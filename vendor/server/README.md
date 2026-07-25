@@ -64,6 +64,7 @@ cd /Volumes/Eprojects/project_202607/kakao-new-bot/new-bot/vendor/server
 ./scripts/bootstrap-secrets.sh
 ./scripts/start-stack.sh
 ./scripts/self-test-stack.sh
+./scripts/test-watchdog.sh
 ```
 
 종료:

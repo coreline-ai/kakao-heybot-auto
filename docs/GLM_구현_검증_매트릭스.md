@@ -23,7 +23,7 @@
 | 기존 Iris 이미지 발신 | `Replier.sendPhoto()` | PD20 `/reply` 이미지 후 자체 `type=2` 로그 1건 확인 | 완료 |
 | DBObserver·WebSocket·Webhook | `ObserverHelper` | PD20 텍스트 이벤트가 WebSocket과 ADB reverse 경유 임시 로컬 Webhook에 모두 수신됨 | 완료 |
 | 안전한 기동·롤백 | `scripts/start_iris_glm_pd20.sh`, 운영 문서 | 토큰 미주입 시 배포·기동 전에 안전 중단, GLM 비활성 재기동 성공 | 완료 |
-| 빌드 품질 | `vendor/Iris` Gradle | `:app:testDebugUnitTest :app:assembleRelease` 성공, 단위 테스트 99개 성공 | 완료 |
+| 빌드 품질 | `vendor/Iris` Gradle | `:app:testDebugUnitTest :app:assembleRelease` 성공, 단위 테스트 100개 성공 | 완료 |
 
 ## 실 GLM 호출 및 발신 E2E 기록
 
@@ -42,7 +42,7 @@
 | Iris 기준 upstream commit | `ee1dc978ec465df11642596e40f74caff497301d` |
 | GLM 작업 브랜치 | `feature/glm-autoreply` |
 | 현재 안전성·방 소유권 commit | `d36347d` |
-| release APK SHA-256 | `5b5c87f9e0c64537dc8dccd615c6b39f95af6dc90105157cb08db9dee400d808` |
+| release APK SHA-256 | `8e633d7dc6f569a4a5aa5c28f8e739f637b09209ec0d7317a92c225e4dc7a79b` |
 | PD20 GLM APK 경로 | `/data/local/tmp/Iris-glm.apk` |
 
 ## 후속 권장 점검
