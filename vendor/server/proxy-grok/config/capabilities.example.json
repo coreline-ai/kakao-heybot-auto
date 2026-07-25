@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "capabilities": [
+    {
+      "id": "video.generate",
+      "enabled": false,
+      "allowedCallers": ["video"],
+      "inputSchema": "video-generate-v1",
+      "modelEnv": "GROK_VIDEO_MODEL",
+      "timeoutMs": 1800000,
+      "maxArtifacts": 1,
+      "acceptedMediaTypes": ["video/mp4"],
+      "maxBytesPerArtifact": 536870912,
+      "canaryRequiresExplicitConfirmation": true
+    }
+  ]
+}

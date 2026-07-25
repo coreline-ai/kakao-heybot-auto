@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "capabilities": [
+    {
+      "id": "image.generate",
+      "enabled": true,
+      "allowedCallers": ["image"],
+      "inputSchema": "image-generate-v1",
+      "modelEnv": "CODEX_IMAGE_MODEL",
+      "timeoutMs": 360000,
+      "maxArtifacts": 1,
+      "acceptedMediaTypes": ["image/png"],
+      "maxBytesPerArtifact": 12582912,
+      "canaryRequiresExplicitConfirmation": true
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+.DS_Store
+*.log
+*.pid
+
+vendor/server/**/node_modules/
+vendor/server/**/dist/
+vendor/server/**/runtime/
+
+vendor/Iris/.gradle/
+vendor/Iris/.idea/
+vendor/Iris/local.properties
+vendor/Iris/**/build/
+vendor/Iris/output/
+
+vendor/Iris/
