@@ -17,6 +17,7 @@
 | `implement_20260725_095558.md` | 사용자별 일반대화 세션 | 대체됨 | 100224의 중앙 관리자 전역 일반대화 결정으로 대체. 구현하지 않음 |
 | `implement_20260725_100224.md` | 중앙 관리자·전역 일반대화 | 활성 | 코드 구현 완료. 관리자 제한 E2E·롤백만 관리 |
 | `implement_20260725_102332.md` | 응답 안전·방/사용자 정책·circuit breaker | 활성/E2E 잔여 | Phase 1~3 코드 완료. 제한 카카오 E2E의 정본 |
+| `implement_20260725_112823.md` | 통합 마감·watchdog 자동화 | 활성 | 자동화 가능한 잔여 구현과 외부 E2E/물리 검증의 통합 정본 |
 
 ## 통합 실행 순서
 
@@ -24,8 +25,9 @@
 2. 이미지·텍스트 다중 방 E2E
 3. 프록시 Job의 방 소유권과 cross-room 접근 차단
 4. 중앙 관리자 전역 일반대화 제한 E2E
-5. 일반대화 정책·응답 safety·circuit의 제한 카카오 E2E
-6. sleep/wake·USB 재연결·24시간 soak
+5. watchdog fake-ADB 회귀 자동화와 전체 자동 회귀
+6. 일반대화 정책·응답 safety·circuit의 제한 카카오 E2E
+7. sleep/wake·USB 재연결·24시간 soak
 
 외부 비봇 카카오 계정이 필요한 단계는 자동 단위 테스트와 분리한다. 해당 E2E가
 대기 중이어도 이미 정의된 fail-closed 코드와 자동 테스트 구현은 계속할 수 있지만,
@@ -33,7 +35,7 @@
 
 ## 현재 자동 검증 기준
 
-- Iris Android JVM test: `99`개 통과, 실패 `0`
+- Iris Android JVM test: `100`개 통과, 실패 `0`
 - Iris release APK build: 통과
 - 서버 자동 테스트: `26`개 통과, 실패 `0`
 - PD20 → Z.AI `glm-4.5-flash` SSE canary: HTTP `200`, 약 `0.83초`

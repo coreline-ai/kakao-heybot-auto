@@ -170,6 +170,15 @@ ADB="$HOME/Library/Android/sdk/platform-tools/adb"
 
 watchdog는 60초 시작 유예 후 30초마다 확인하며 3회 연속 실패 시 세 서비스를 의존 순서로 재기동한다. PD20이 연결되어 있으면 매 주기 `adb reverse tcp:4340 tcp:4340`도 검사하고 누락 시 자동 복원한다.
 
+실제 단말·launchd를 건드리지 않는 watchdog 회귀 검사는 다음 명령으로 실행한다.
+
+```bash
+./scripts/test-watchdog.sh
+```
+
+fake ADB/curl/launchctl fixture로 reverse 누락 복구, PD20 미연결 시 무동작,
+readiness 성공의 failure counter 초기화, 3회 실패 뒤 고정 의존 순서 재기동을 검증한다.
+
 ## 9. 보존·로그 관리
 
 - Codex 원시 artifact: 1시간
@@ -188,11 +197,12 @@ watchdog는 60초 시작 유예 후 30초마다 확인하며 3회 연속 실패 
 ## 10. 검증 상태
 
 - 서버 자동 테스트: 26개 통과
-- Android unit test: 99개 통과
+- Android unit test: 100개 통과
 - Android release APK: 빌드·PD20 배포 통과
 - manager → image → 실제 Codex → QC → PNG download: 통과
 - PD20 APK·secret·ADB reverse·Iris 기동: 통과
 - 실제 외부 카카오 메시지 → 생성 → 봇 이미지 DB 로그 → `delivered`: 통과
 - launchd 내부 미러 상시 기동·개별 proxy 강제 종료 자동 복구: 통과
 - ADB reverse 제거 후 watchdog 자동 복원: 통과
+- watchdog fake-ADB 회귀: 통과
 - Mac sleep/wake, 물리 USB 분리·재연결, 24시간 soak: 운영 검증 필요
