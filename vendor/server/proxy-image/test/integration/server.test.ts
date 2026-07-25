@@ -141,9 +141,12 @@ test("preserves IDs, is idempotent, validates and downloads a PNG", async () => 
 
   let completed: Record<string, any> | undefined;
   for (let attempt = 0; attempt < 100; attempt += 1) {
-    const response = await fetch(`${baseUrl}/v1/image/jobs/${initial.jobId}`, {
+    const response = await fetch(
+      `${baseUrl}/v1/image/jobs/${initial.jobId}?chatId=${request.chatId}`,
+      {
       headers: headers(),
-    });
+      },
+    );
     const body = (await response.json()) as Record<string, any>;
     if (body.status === "succeeded") {
       completed = body;
@@ -152,9 +155,59 @@ test("preserves IDs, is idempotent, validates and downloads a PNG", async () => 
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 20));
   }
   assert.equal(completed?.status, "succeeded");
-  const file = await fetch(`${baseUrl}/v1/image/jobs/${initial.jobId}/file`, {
-    headers: headers(),
-  });
+  const file = await fetch(
+    `${baseUrl}/v1/image/jobs/${initial.jobId}/file?chatId=${request.chatId}`,
+    { headers: headers() },
+  );
   assert.equal(file.status, 200);
   assert.deepEqual(Buffer.from(await file.arrayBuffer()), image);
+});
+
+test("scopes status, file, cancel and idempotency to the exact chat ID", async () => {
+  const request = {
+    requestId: "image-room-scope-1",
+    chatId: "18480337854645134",
+    userId: "7216943976749157453",
+    logId: "900719925474099313",
+    prompt: "방 소유권 테스트",
+  };
+  const created = await fetch(`${baseUrl}/v1/image/jobs`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(request),
+  });
+  assert.equal(created.status, 202);
+  const job = (await created.json()) as { jobId: string };
+  const otherChatId = "18226456888539938";
+
+  for (const [method, suffix] of [
+    ["GET", ""],
+    ["GET", "/file"],
+    ["DELETE", ""],
+  ] as const) {
+    const response = await fetch(
+      `${baseUrl}/v1/image/jobs/${job.jobId}${suffix}?chatId=${otherChatId}`,
+      { method, headers: headers() },
+    );
+    assert.equal(response.status, 404);
+    const body = JSON.stringify(await response.json());
+    assert.doesNotMatch(body, new RegExp(job.jobId));
+    assert.doesNotMatch(body, new RegExp(request.chatId));
+  }
+
+  const missingScope = await fetch(`${baseUrl}/v1/image/jobs/${job.jobId}`, {
+    headers: headers(),
+  });
+  assert.equal(missingScope.status, 400);
+  assert.equal(((await missingScope.json()) as any).error.code, "INVALID_CHAT_ID");
+
+  const collidingRequest = await fetch(`${baseUrl}/v1/image/jobs`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({ ...request, chatId: otherChatId }),
+  });
+  assert.equal(collidingRequest.status, 404);
+  const collisionBody = JSON.stringify(await collidingRequest.json());
+  assert.doesNotMatch(collisionBody, new RegExp(job.jobId));
+  assert.doesNotMatch(collisionBody, new RegExp(request.chatId));
 });

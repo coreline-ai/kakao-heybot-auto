@@ -64,6 +64,19 @@ function validateCreate(value: unknown, config: ImageProxyConfig): CreateImageJo
   };
 }
 
+const DECIMAL_ID = /^[1-9]\d{0,19}$/;
+
+function scopedJob(
+  store: ImageJobStore,
+  jobId: string,
+  url: URL,
+): ReturnType<ImageJobStore["get"]> {
+  const chatId = url.searchParams.get("chatId");
+  if (!chatId || !DECIMAL_ID.test(chatId)) throw new Error("INVALID_CHAT_ID");
+  const job = store.get(jobId);
+  return job?.chatId === chatId ? job : undefined;
+}
+
 export interface ImageServerContext {
   server: Server;
   store: ImageJobStore;
@@ -121,7 +134,12 @@ export function createImageServer(config: ImageProxyConfig): ImageServerContext 
       if (request.method === "POST" && url.pathname === "/v1/image/jobs") {
         const input = validateCreate(await readJson(request, config.requestMaxBytes), config);
         const existing = store.findByRequest(input.requestId);
-        if (existing) return json(response, 200, toPublicImageJob(existing));
+        if (existing) {
+          if (existing.chatId !== input.chatId) {
+            return json(response, 404, { error: { code: "IMAGE_JOB_NOT_FOUND" } });
+          }
+          return json(response, 200, toPublicImageJob(existing));
+        }
         if (store.countPending() >= config.queueMaxPending) {
           return json(response, 429, {
             error: { code: "IMAGE_QUEUE_FULL", retryAfterMs: 5_000 },
@@ -138,7 +156,7 @@ export function createImageServer(config: ImageProxyConfig): ImageServerContext 
       }
       const fileMatch = url.pathname.match(/^\/v1\/image\/jobs\/([0-9a-f-]+)\/file$/);
       if (request.method === "GET" && fileMatch) {
-        const job = store.get(fileMatch[1]!);
+        const job = scopedJob(store, fileMatch[1]!, url);
         if (job?.status !== "succeeded" || !job.artifactPath) {
           return json(response, 404, { error: { code: "IMAGE_FILE_NOT_FOUND" } });
         }
@@ -154,7 +172,7 @@ export function createImageServer(config: ImageProxyConfig): ImageServerContext 
       }
       const jobMatch = url.pathname.match(/^\/v1\/image\/jobs\/([0-9a-f-]+)$/);
       if (jobMatch) {
-        const job = store.get(jobMatch[1]!);
+        const job = scopedJob(store, jobMatch[1]!, url);
         if (!job) return json(response, 404, { error: { code: "IMAGE_JOB_NOT_FOUND" } });
         if (request.method === "GET") return json(response, 200, toPublicImageJob(job));
         if (request.method === "DELETE") {

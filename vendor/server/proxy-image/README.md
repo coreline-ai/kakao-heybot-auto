@@ -2,7 +2,8 @@
 
 Mac mini에서 실행하며 이미지 도메인 API·정책·픽셀 QC를 담당하는 **독립 이미지 프록시 패키지**다. 외부 요청은 `proxy-manager`에서 받고, Codex 실행은 내부 `proxy-codex` API에 위임한다.
 
-현재 상태는 **구현 및 자동 테스트 완료**다. SQLite queue, Codex Job API 연동, PNG decode·픽셀 QC, 최종 artifact 보존과 streaming download가 동작한다.
+현재 상태는 **구현 및 자동 테스트 완료**다. SQLite queue, 방별 Job 소유권,
+Codex Job API 연동, PNG decode·픽셀 QC, 최종 artifact 보존과 streaming download가 동작한다.
 
 ## 독립성 원칙
 
@@ -115,9 +116,9 @@ Queue가 차면 `IMAGE_QUEUE_FULL`, 방별 상한이면 `ROOM_QUEUE_LIMIT`을 �
 
 ```text
 POST   /v1/image/jobs
-GET    /v1/image/jobs/:jobId
-GET    /v1/image/jobs/:jobId/file
-DELETE /v1/image/jobs/:jobId
+GET    /v1/image/jobs/:jobId?chatId=:chatId
+GET    /v1/image/jobs/:jobId/file?chatId=:chatId
+DELETE /v1/image/jobs/:jobId?chatId=:chatId
 GET    /health
 GET    /ready
 POST   /v1/self-test/readiness
@@ -127,6 +128,8 @@ POST   /v1/self-test/generate
 `proxy-manager`는 `/v1/image` prefix를 이 프록시의 `http://127.0.0.1:4347`로 전달한다. 이미지 프록시는 loopback 내부 포트에만 바인딩한다.
 
 PD20 연결과 인증은 `proxy-manager`가 담당하며, 이미지 프록시는 manager가 전달한 내부 인증만 검증한다.
+상태·파일·취소의 `chatId`는 생성 당시 SQLite에 저장한 값과 정확히 일치해야 한다.
+누락·불일치 시 다른 job의 존재 여부나 metadata를 노출하지 않는다.
 
 ## 구현 순서
 
