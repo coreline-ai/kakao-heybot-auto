@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "proxies": [
+    {
+      "id": "image",
+      "enabled": true,
+      "exposure": "gateway",
+      "routePrefix": "/v1/image",
+      "targetBaseUrl": "http://127.0.0.1:4347",
+      "healthPath": "/health",
+      "readyPath": "/ready",
+      "readinessTestPath": "/v1/self-test/readiness",
+      "canaryTestPath": "/v1/self-test/generate",
+      "canaryRequiresExplicitConfirmation": true,
+      "managerClientSecretFile": "./runtime/secrets/proxy-image.secret",
+      "launchdLabel": "ai.coreline.heybot.proxy-image",
+      "dependencies": ["codex"]
+    },
+    {
+      "id": "codex",
+      "enabled": true,
+      "exposure": "internal",
+      "targetBaseUrl": "http://127.0.0.1:4348",
+      "healthPath": "/health",
+      "readyPath": "/ready",
+      "readinessTestPath": "/internal/v1/self-test/readiness",
+      "canaryTestPath": "/internal/v1/self-test/capabilities/image.generate",
+      "canaryRequiresExplicitConfirmation": true,
+      "managerClientSecretFile": "./runtime/secrets/proxy-codex.secret",
+      "launchdLabel": "ai.coreline.heybot.proxy-codex",
+      "dependencies": []
+    },
+    {
+      "id": "video",
+      "enabled": false,
+      "exposure": "gateway",
+      "routePrefix": "/v1/video",
+      "targetBaseUrl": "http://127.0.0.1:4357",
+      "healthPath": "/health",
+      "readyPath": "/ready",
+      "readinessTestPath": "/v1/self-test/readiness",
+      "canaryTestPath": "/v1/self-test/generate",
+      "canaryRequiresExplicitConfirmation": true,
+      "managerClientSecretFile": "./runtime/secrets/proxy-video.secret",
+      "launchdLabel": "ai.coreline.heybot.proxy-video",
+      "dependencies": ["grok"]
+    },
+    {
+      "id": "grok",
+      "enabled": false,
+      "exposure": "internal",
+      "targetBaseUrl": "http://127.0.0.1:4358",
+      "healthPath": "/health",
+      "readyPath": "/ready",
+      "readinessTestPath": "/internal/v1/self-test/readiness",
+      "canaryTestPath": "/internal/v1/self-test/capabilities/video.generate",
+      "canaryRequiresExplicitConfirmation": true,
+      "managerClientSecretFile": "./runtime/secrets/proxy-grok.secret",
+      "launchdLabel": "ai.coreline.heybot.proxy-grok",
+      "dependencies": []
+    }
+  ]
+}
