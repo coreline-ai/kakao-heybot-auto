@@ -44,7 +44,7 @@ export function toPublicImageJob(job: ImageJob): Record<string, unknown> {
             mediaType: "image/png",
             bytes: job.artifactBytes,
             sha256: job.artifactSha256,
-            href: `/v1/image/jobs/${job.id}/file`,
+            href: `/v1/image/jobs/${job.id}/file?chatId=${job.chatId}`,
           }
         : undefined,
   };

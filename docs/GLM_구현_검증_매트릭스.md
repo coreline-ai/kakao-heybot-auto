@@ -14,13 +14,16 @@
 | Z.AI Chat Completion 요청 | `GlmClient` | MockWebServer에서 endpoint, Bearer 헤더, `stream=true`, SSE 청크 병합, `thinking.clear_thinking=true` 확인 | 완료 |
 | 모델·허용 방·호출어 고정 | `GlmSettings`, `scripts/start_iris_glm_pd20.sh` | 주 모델 `glm-4.5-flash`, `헤이봇`, 실제 chat ID만 설정 | 완료 |
 | 수신 메시지 필터 | `GlmAutoReplyHandler` | 텍스트 타입, 허용 방, 자기 메시지, 호출어, 빈 질의, 중복을 단위 테스트 | 완료 |
-| 대화 문맥·출력 정리 | `GlmAutoReplyHandler` | 방별 4턴/30분, `<think>`, 코드펜스, 480자 제한 단위 테스트 | 완료 |
+| 대화 문맥·출력 정리 | `ConversationMemoryStore`, `ReplySafetyPolicy` | `(chatId,userId)`별 4턴/30분, `<think>`, 코드펜스, 480자 제한 단위 테스트 | 완료 |
+| 일반대화 방·사용자 정책 | `GeneralConversationPolicy` | explicit allowlist, 전역/방별 user block, 손상·권한 오류 fail-closed 단위 테스트 | 완료 |
+| GLM 텍스트 safety | `ReplySafetyPolicy` | secret-like 출력 차단, 이메일·전화·주민번호·카드번호 고정 마스킹, 호출어·일반대화 단일 경계 테스트 | 완료 |
+| 일반대화 자동 정지 | `GeneralConversationCircuitBreaker` | 5분/3회 threshold, window 경계, stale in-flight 무효화, 호출어 독립·관리자 reset 단위 테스트 | 완료 |
 | 오류 무응답·대체 처리 | `GlmClient`, `GlmAutoReplyHandler` | 401/403/429/5xx/네트워크·타임아웃 분류, 429 제한 재시도, 주 모델의 429/시간 초과 시 대체 모델 1회 시도, 최종 실패 시 카카오 발신 0건 단위 테스트 | 완료 |
 | 기존 Iris 텍스트 발신 | `Replier.sendMessage()` | PD20 `/reply` 실발신 및 자체 로그 확인 | 완료 |
 | 기존 Iris 이미지 발신 | `Replier.sendPhoto()` | PD20 `/reply` 이미지 후 자체 `type=2` 로그 1건 확인 | 완료 |
 | DBObserver·WebSocket·Webhook | `ObserverHelper` | PD20 텍스트 이벤트가 WebSocket과 ADB reverse 경유 임시 로컬 Webhook에 모두 수신됨 | 완료 |
 | 안전한 기동·롤백 | `scripts/start_iris_glm_pd20.sh`, 운영 문서 | 토큰 미주입 시 배포·기동 전에 안전 중단, GLM 비활성 재기동 성공 | 완료 |
-| 빌드 품질 | `vendor/Iris` Gradle | `:app:testDebugUnitTest :app:assembleRelease` 성공, 단위 테스트 26개 성공 | 완료 |
+| 빌드 품질 | `vendor/Iris` Gradle | `:app:testDebugUnitTest :app:assembleRelease` 성공, 단위 테스트 99개 성공 | 완료 |
 
 ## 실 GLM 호출 및 발신 E2E 기록
 
@@ -38,7 +41,8 @@
 |---|---|
 | Iris 기준 upstream commit | `ee1dc978ec465df11642596e40f74caff497301d` |
 | GLM 작업 브랜치 | `feature/glm-autoreply` |
-| release APK SHA-256 | `b8490f268979f5a8e13da8fb9702a207029233e42536342a78c2ac415ef13c37` |
+| 현재 안전성·방 소유권 commit | `d36347d` |
+| release APK SHA-256 | `5b5c87f9e0c64537dc8dccd615c6b39f95af6dc90105157cb08db9dee400d808` |
 | PD20 GLM APK 경로 | `/data/local/tmp/Iris-glm.apk` |
 
 ## 후속 권장 점검

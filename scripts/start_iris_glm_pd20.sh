@@ -13,6 +13,7 @@ APK="${APK:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/vendor/Iris/output/
 REMOTE_APK=/data/local/tmp/Iris-glm.apk
 TOKEN_FILE=/data/local/private/iris-glm.token
 ADMIN_FILE=/data/local/private/iris-bot-admins.txt
+GENERAL_CONVERSATION_BLOCK_FILE=/data/local/private/iris-general-conversation-blocks.txt
 MEMORY_FILE=/data/local/private/iris-bot-memory.json
 IMAGE_PROXY_SECRET_FILE=/data/local/private/iris-image-proxy.token
 IMAGE_STATE_FILE=/data/local/private/iris-image-jobs.json
@@ -64,6 +65,19 @@ else
     fail "Admin ID file must be mode 600 and root:root (current: $admin_metadata)"
 fi
 
+# General conversation is fail-closed unless an explicit root-only block policy
+# file exists. An empty file means no users are blocked.
+general_block_metadata="$($ADB -s "$SERIAL" shell "su root sh -c '
+  if [ ! -e $GENERAL_CONVERSATION_BLOCK_FILE ]; then
+    touch $GENERAL_CONVERSATION_BLOCK_FILE
+    chown root:root $GENERAL_CONVERSATION_BLOCK_FILE
+    chmod 600 $GENERAL_CONVERSATION_BLOCK_FILE
+  fi
+  stat -c \"%a %U:%G\" $GENERAL_CONVERSATION_BLOCK_FILE
+'" | tr -d '\r')"
+[[ "$general_block_metadata" == "600 root:root" ]] ||
+  fail "General conversation block file must be mode 600 and root:root (current: $general_block_metadata)"
+
 # The memory file is created atomically by Iris. Validate metadata only when it
 # already exists from a previous run.
 memory_metadata="$($ADB -s "$SERIAL" shell "su root sh -c '
@@ -86,9 +100,14 @@ printf 'Deploying %s to PD20…\n' "$(basename "$APK")"
   IRIS_GLM_BASE_URL=https://api.z.ai/api/paas/v4/ \\
   IRIS_GLM_MODEL=glm-4.5-flash \\
   IRIS_GLM_TRIGGER=헤이봇 \\
-  IRIS_GLM_ALLOWED_CHAT_IDS=18480337854645134,18226456888539938,18243496625741211 \\
+  IRIS_GLM_ALLOWED_CHAT_IDS=18480337854645134,18226456888539938,18243496625741211,18393359886930036 \\
   IRIS_GLM_API_KEY_FILE=$TOKEN_FILE \\
   IRIS_GLM_TIMEOUT_MS=120000 \\
+  IRIS_GENERAL_CONVERSATION_TIMEOUT_MS=15000 \\
+  IRIS_GENERAL_CONVERSATION_ALLOWED_CHAT_IDS=18480337854645134,18226456888539938,18243496625741211 \\
+  IRIS_GENERAL_CONVERSATION_BLOCK_FILE=$GENERAL_CONVERSATION_BLOCK_FILE \\
+  IRIS_GENERAL_CONVERSATION_CIRCUIT_WINDOW_MS=300000 \\
+  IRIS_GENERAL_CONVERSATION_CIRCUIT_FAILURE_THRESHOLD=3 \\
   IRIS_GLM_MAX_TOKENS=128 \\
   IRIS_GLM_TEMPERATURE=0.2 \\
   IRIS_GLM_RATE_LIMIT_RETRIES=2 \\

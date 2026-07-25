@@ -6,7 +6,7 @@
 
 향후 비디오는 [`proxy-video`](proxy-video/README.md)가 담당하고 Grok CLI 실행은 [`proxy-grok`](proxy-grok/README.md)에 위임한다. 두 패키지는 현재 비활성 구조 예약 상태다.
 
-현재 상태는 **이미지 생성 경로 구현·자동 테스트·Mac 실제 Codex 생성·PD20 카카오 이미지 E2E·launchd 상시 기동 완료**다. Mac sleep/wake, 물리 USB 재연결, 24시간 상시 운영 검증은 남아 있다. `old-bot` 소스는 라이선스상 검토·참조 전용이며 코드를 복사하지 않고 새로 구현했다.
+현재 상태는 **이미지 생성 경로·방별 Job 소유권·cross-room 차단·자동 테스트·Mac 실제 Codex 생성·PD20 카카오 이미지 E2E·launchd 상시 기동 완료**다. Mac sleep/wake, 물리 USB 재연결, 24시간 상시 운영 검증은 남아 있다. `old-bot` 소스는 라이선스상 검토·참조 전용이며 코드를 복사하지 않고 새로 구현했다.
 
 ## 목표
 
@@ -107,3 +107,4 @@ vendor/server/
 11. 모든 프록시는 각각 독립 OS 프로세스로 실행하고 queue·DB·장애를 격리한다.
 12. 생성 API는 비동기 job으로 즉시 반환하며 CLI 실행 중에도 대화·상태 조회·다른 프록시가 계속 동작한다.
 13. domain queue와 engine queue의 동시성·총 대기·방별 대기 한계는 환경설정으로 변경할 수 있어야 한다.
+14. 이미지 status/file/cancel은 생성 당시의 exact `chatId`가 일치해야 하며 cross-room 오류는 job 존재 정보를 노출하지 않는다.

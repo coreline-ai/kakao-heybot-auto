@@ -138,6 +138,14 @@ ADB="$HOME/Library/Android/sdk/platform-tools/adb"
 
 이미지·영상은 텍스트의 `NotificationActionService`가 아니라 카카오 공유 Activity를 사용한다. 카카오톡 앱 잠금이 걸려 있으면 `awaiting_unlock`으로 전환하고, 잠금 해제 후 `헤이봇 이미지 재전송`으로 다시 보낸다. Activity 시작만으로 완료 처리하지 않고 카카오 DB에서 봇 계정의 이미지 로그(`isMine=true`, type `2` 또는 `3`)를 관찰한 뒤에만 `delivered`로 기록한다. 같은 방의 delivery는 Mutex로 직렬화한다.
 
+### Job 방 소유권
+
+- 생성 `requestId`는 `image:<chatId>:<logId>` 형식이며 원래 방을 포함한다.
+- 상태·파일 다운로드·취소 요청은 저장된 불변 `chatId`를 query로 함께 보내야 한다.
+- 다른 방 또는 누락된 `chatId`로 기존 job을 조회하면 job 존재 여부·ID·metadata를 노출하지 않고 거부한다.
+- 같은 `requestId`를 다른 방에서 재사용해도 기존 job을 반환하지 않는다.
+- PD20 coordinator는 명령 시점의 현재 방 값이 아니라 로컬 job에 저장된 원래 `chatId`를 사용한다.
+
 ## 7. Queue 기본값
 
 | 위치 | 설정 | 기본값 |
@@ -179,8 +187,8 @@ watchdog는 60초 시작 유예 후 30초마다 확인하며 3회 연속 실패 
 
 ## 10. 검증 상태
 
-- 서버 자동 테스트: 25개 통과
-- Android unit test: 75개 통과
+- 서버 자동 테스트: 26개 통과
+- Android unit test: 99개 통과
 - Android release APK: 빌드·PD20 배포 통과
 - manager → image → 실제 Codex → QC → PNG download: 통과
 - PD20 APK·secret·ADB reverse·Iris 기동: 통과
