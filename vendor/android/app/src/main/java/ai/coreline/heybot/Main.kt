@@ -1,0 +1,336 @@
+// SendMsg : ye-seola/go-kdb
+// Kakaodecrypt : jiru/kakaodecrypt
+package ai.coreline.heybot
+
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+
+const val IMAGE_DIR_PATH: String = "/sdcard/Android/data/com.kakao.talk/files"
+
+class Main {
+    companion object {
+        @JvmStatic
+        fun main(args: Array<String>) {
+            try {
+                if (args.firstOrNull() == SELF_TEST_ARGUMENT) {
+                    val mode = SelfTestMode.parse(args.getOrNull(1))
+                    if (mode == null) {
+                        println("SELF_TEST_MODE_INVALID")
+                        return
+                    }
+                    val report = runBlocking {
+                        SelfTestRunner.production().run(mode)
+                    }
+                    println(Json.encodeToString(report))
+                    return
+                }
+                val wsEventFlow = MutableSharedFlow<String>()
+
+                val notificationReferer = readNotificationReferer()
+
+                Replier.startMessageSender()
+                println("Message sender thread started")
+
+                val kakaoDb = KakaoDB()
+                val roomCapabilityPolicy = createRoomCapabilityPolicy()
+                val selfTestRunner = SelfTestRunner.production()
+                val glmAutoReplyHandler = createGlmAutoReplyHandler(
+                    notificationReferer,
+                    roomCapabilityPolicy,
+                    selfTestRunner
+                )
+                val imageJobCoordinator = createImageJobCoordinator(
+                    notificationReferer,
+                    roomCapabilityPolicy
+                )
+                val videoJobCoordinator = createVideoJobCoordinator(
+                    notificationReferer,
+                    roomCapabilityPolicy
+                )
+                val penBrushJobCoordinator = createPenBrushJobCoordinator(
+                    notificationReferer,
+                    roomCapabilityPolicy
+                )
+                val observerHelper = ObserverHelper(
+                    kakaoDb,
+                    wsEventFlow,
+                    glmAutoReplyHandler,
+                    imageJobCoordinator,
+                    videoJobCoordinator,
+                    penBrushJobCoordinator
+                )
+
+                val dbObserver = DBObserver(kakaoDb, observerHelper)
+                dbObserver.startPolling()
+                println("DBObserver started")
+
+                val notificationPoller = NotificationPoller()
+                notificationPoller.startPolling()
+                println("Notification Poller started")
+
+                val imageDeleter = ImageDeleter(IMAGE_DIR_PATH, TimeUnit.HOURS.toMillis(1))
+                imageDeleter.startDeletion()
+                println("ImageDeleter started, and will delete images older than 1 hour.")
+
+                when (val httpSecurity = IrisHttpSecuritySettings.load()) {
+                    IrisHttpSecuritySettingsLoadResult.Disabled -> {
+                        println("Iris HTTP API disabled")
+                    }
+
+                    is IrisHttpSecuritySettingsLoadResult.Invalid -> {
+                        System.err.println("Iris HTTP API disabled: ${httpSecurity.code}")
+                    }
+
+                    is IrisHttpSecuritySettingsLoadResult.Ready -> {
+                        IrisServer(
+                            dbObserver,
+                            observerHelper,
+                            notificationReferer,
+                            wsEventFlow,
+                            httpSecurity.settings,
+                            selfTestRunner
+                        ).startServer()
+                        println("Iris HTTP API started on loopback")
+                    }
+                }
+
+                // app_process terminates when this entry point returns, even
+                // though Iris has scheduled/background workers. Keep the
+                // process owner alive until the deployment script stops it.
+                println("Iris process lifetime ready")
+                CountDownLatch(1).await()
+            } catch (e: Exception) {
+                System.err.println("Iris Error")
+            }
+        }
+
+        private const val SELF_TEST_ARGUMENT = "--self-test"
+
+        private fun readNotificationReferer(): String {
+            val appPath = PathUtils.getAppPath()
+            val prefsFile = File("${appPath}shared_prefs/KakaoTalk.hw.perferences.xml")
+            val data = prefsFile.bufferedReader().use {
+                it.readText()
+            }
+            val regex = Regex("""<string name="NotificationReferer">(.*?)</string>""")
+            val match = regex.find(data) ?: throw Exception("failed to extract referer from data")
+
+            val referer =
+                match.groups[1]?.value ?: throw Exception("failed to extract referer from data")
+
+            return referer
+        }
+
+        private fun createRoomCapabilityPolicy(): RoomCapabilityPolicyStore = when (
+            val config = GlmSettings.load()
+        ) {
+            is GlmSettingsLoadResult.Ready -> RoomCapabilityPolicyStore.load(
+                settings = config.settings.roomCapabilities,
+                managedChatIds = config.settings.allowedChatIds,
+                controlChatId = config.settings.adminControlChatId
+            ).also { policy ->
+                val snapshot = policy.snapshot()
+                println(
+                    "Room capability policy ready=${snapshot.ready} " +
+                        "rooms=${snapshot.rooms.size} revision=${snapshot.revision}"
+                )
+            }
+            else -> RoomCapabilityPolicyStore.legacy(emptySet())
+        }
+
+        private fun createGlmAutoReplyHandler(
+            notificationReferer: String,
+            roomCapabilityPolicy: RoomCapabilityPolicyStore,
+            selfTestRunner: SelfTestRunner
+        ): GlmAutoReplyHandler? {
+            return when (val config = GlmSettings.load()) {
+                GlmSettingsLoadResult.Disabled -> {
+                    println("GLM auto-reply disabled")
+                    null
+                }
+
+                is GlmSettingsLoadResult.Invalid -> {
+                    System.err.println("GLM auto-reply disabled: ${config.reason}")
+                    null
+                }
+
+                is GlmSettingsLoadResult.Ready -> {
+                    println("GLM auto-reply enabled")
+                    val settings = config.settings
+                    val proxyConfig = ConversationProxySettings.load()
+                    val modeStore = ConversationEngineModeStore(
+                        file = when (proxyConfig) {
+                            is ConversationProxySettingsLoadResult.Ready -> proxyConfig.settings.modeFile
+                            else -> File(ConversationProxySettings.DEFAULT_MODE_FILE)
+                        }
+                    )
+                    val glmGateway = GlmClient(settings)
+                    val codexGateway = (proxyConfig as? ConversationProxySettingsLoadResult.Ready)
+                        ?.let { ConversationProxyClient(it.settings, ConversationEngine.CODEX) }
+                    val grokGateway = (proxyConfig as? ConversationProxySettingsLoadResult.Ready)
+                        ?.let { ConversationProxyClient(it.settings, ConversationEngine.GROK) }
+                    val conversationGateway = ConversationGatewayRouter(
+                        modeStore = modeStore,
+                        glm = glmGateway,
+                        codex = codexGateway,
+                        grok = grokGateway
+                    )
+                    println(
+                        "Conversation engine ready=${modeStore.snapshot().engine.displayName} " +
+                            "proxy=${if (proxyConfig is ConversationProxySettingsLoadResult.Ready) "configured" else "disabled"}"
+                    )
+                    val generalConversationPolicy =
+                        GeneralConversationPolicy.load(settings.generalConversation)
+                    val policyStatus = generalConversationPolicy.status()
+                    println(
+                        "General conversation policy " +
+                            "ready=${policyStatus.ready} " +
+                            "rooms=${policyStatus.allowedRoomCount} " +
+                            "reason=${policyStatus.reason}"
+                    )
+                    GlmAutoReplyHandler(
+                        settings = settings,
+                        botId = Configurable.botId,
+                        gateway = conversationGateway,
+                        replySender = GlmReplySender { chatId, message, threadId ->
+                            Replier.sendMessage(notificationReferer, chatId, message, threadId)
+                        },
+                        memoryStore = AtomicJsonConversationMemoryStore(
+                            backend = AndroidAtomicFileBackend(settings.memoryFile),
+                            maxTurnsPerConversation = settings.memoryMaxTurns,
+                            ttlMillis = settings.memoryTtlMillis,
+                            maxBytes = settings.memoryMaxBytes,
+                            maxConversations = settings.memoryMaxConversations
+                        ),
+                        adminAuthorizer = AdminAuthorizer.fromFile(settings.adminUserIdsFile),
+                        generalConversationPolicy = generalConversationPolicy,
+                        roomCapabilityPolicy = roomCapabilityPolicy,
+                        conversationEngineModeStore = modeStore,
+                        selfTestRunner = selfTestRunner
+                    )
+                }
+            }
+        }
+
+        private fun createImageJobCoordinator(
+            notificationReferer: String,
+            roomCapabilityPolicy: RoomCapabilityPolicyStore
+        ): ImageJobCoordinator? {
+            return when (val config = ImageProxySettings.load()) {
+                ImageProxySettingsLoadResult.Disabled -> {
+                    println("Image proxy disabled")
+                    null
+                }
+
+                is ImageProxySettingsLoadResult.Invalid -> {
+                    System.err.println("Image proxy disabled: ${config.reason}")
+                    null
+                }
+
+                is ImageProxySettingsLoadResult.Ready -> {
+                    val settings = config.settings
+                    println("Image proxy enabled")
+                    ImageJobCoordinator(
+                        settings = settings,
+                        trigger = System.getenv()["IRIS_GLM_TRIGGER"]?.trim()
+                            ?.takeIf { it.isNotBlank() } ?: "헤이봇",
+                        botId = Configurable.botId,
+                        gateway = ImageProxyClient(settings),
+                        textSender = ImageTextReplySender { chatId, message, threadId ->
+                            Replier.sendMessage(notificationReferer, chatId, message, threadId)
+                        },
+                        imageSender = ImageBytesReplySender { chatId, bytes ->
+                            Replier.sendPhotoBytes(chatId, bytes)
+                        },
+                        stateStore = AtomicJsonImageJobStateStore(
+                            AndroidAtomicFileBackend(settings.stateFile)
+                        ),
+                        roomCapabilityPolicy = roomCapabilityPolicy
+                    )
+                }
+            }
+        }
+
+        private fun createVideoJobCoordinator(
+            notificationReferer: String,
+            roomCapabilityPolicy: RoomCapabilityPolicyStore
+        ): VideoJobCoordinator? {
+            return when (val config = VideoProxySettings.load()) {
+                VideoProxySettingsLoadResult.Disabled -> {
+                    println("Video proxy disabled")
+                    null
+                }
+
+                is VideoProxySettingsLoadResult.Invalid -> {
+                    System.err.println("Video proxy disabled: ${config.reason}")
+                    null
+                }
+
+                is VideoProxySettingsLoadResult.Ready -> {
+                    val settings = config.settings
+                    println("Video proxy enabled")
+                    VideoJobCoordinator(
+                        settings = settings,
+                        trigger = System.getenv()["IRIS_GLM_TRIGGER"]?.trim()
+                            ?.takeIf { it.isNotBlank() } ?: "헤이봇",
+                        botId = Configurable.botId,
+                        gateway = VideoProxyClient(settings),
+                        textSender = VideoTextReplySender { chatId, message, threadId ->
+                            Replier.sendMessage(notificationReferer, chatId, message, threadId)
+                        },
+                        videoSender = VideoBytesReplySender { chatId, bytes ->
+                            Replier.sendVideoBytes(chatId, bytes)
+                        },
+                        stateStore = AtomicJsonVideoJobStateStore(
+                            AndroidAtomicFileBackend(settings.stateFile)
+                        ),
+                        roomCapabilityPolicy = roomCapabilityPolicy
+                    )
+                }
+            }
+        }
+
+        private fun createPenBrushJobCoordinator(
+            notificationReferer: String,
+            roomCapabilityPolicy: RoomCapabilityPolicyStore
+        ): PenBrushJobCoordinator? {
+            return when (val config = PenBrushProxySettings.load()) {
+                PenBrushProxySettingsLoadResult.Disabled -> {
+                    println("Pen-brush proxy disabled")
+                    null
+                }
+
+                is PenBrushProxySettingsLoadResult.Invalid -> {
+                    System.err.println("Pen-brush proxy disabled: ${config.reason}")
+                    null
+                }
+
+                is PenBrushProxySettingsLoadResult.Ready -> {
+                    val settings = config.settings
+                    println("Pen-brush proxy enabled")
+                    PenBrushJobCoordinator(
+                        settings = settings,
+                        trigger = System.getenv()["IRIS_GLM_TRIGGER"]?.trim()
+                            ?.takeIf { it.isNotBlank() } ?: "헤이봇",
+                        botId = Configurable.botId,
+                        gateway = PenBrushProxyClient(settings),
+                        textSender = PenBrushTextReplySender { chatId, message, threadId ->
+                            Replier.sendMessage(notificationReferer, chatId, message, threadId)
+                        },
+                        videoSender = PenBrushBytesReplySender { chatId, bytes ->
+                            Replier.sendVideoBytes(chatId, bytes)
+                        },
+                        stateStore = AtomicJsonPenBrushJobStateStore(
+                            AndroidAtomicFileBackend(settings.stateFile)
+                        ),
+                        roomCapabilityPolicy = roomCapabilityPolicy
+                    )
+                }
+            }
+        }
+    }
+}

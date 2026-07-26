@@ -16,5 +16,3 @@ vendor/android/.idea/
 vendor/android/local.properties
 vendor/android/**/build/
 vendor/android/output/
-
-vendor/android/
