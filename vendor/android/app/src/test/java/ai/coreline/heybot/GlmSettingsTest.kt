@@ -248,12 +248,23 @@ class GlmSettingsTest {
 
     @Test
     fun `loads an explicit general conversation subset and circuit settings`() {
+        val defaults = GlmSettings.load(
+            validEnvironment() +
+                ("IRIS_GENERAL_CONVERSATION_ALLOWED_CHAT_IDS" to "18480337854645134")
+        ) as GlmSettingsLoadResult.Ready
+        assertEquals(
+            GlmSettings.DEFAULT_GENERAL_CONVERSATION_MODE_FILE,
+            requireNotNull(defaults.settings.generalConversation).modeFile.path
+        )
+
         val result = GlmSettings.load(
             validEnvironment() + mapOf(
                 "IRIS_GLM_ALLOWED_CHAT_IDS" to "18480337854645134,18226456888539938",
                 "IRIS_GENERAL_CONVERSATION_ALLOWED_CHAT_IDS" to "18480337854645134",
                 "IRIS_GENERAL_CONVERSATION_BLOCK_FILE" to
                     "/data/local/private/iris-general-conversation-blocks.txt",
+                "IRIS_GENERAL_CONVERSATION_MODE_FILE" to
+                    "/data/local/private/custom-general-conversation-mode.json",
                 "IRIS_GENERAL_CONVERSATION_CIRCUIT_WINDOW_MS" to "300000",
                 "IRIS_GENERAL_CONVERSATION_CIRCUIT_FAILURE_THRESHOLD" to "3"
             )
@@ -261,6 +272,10 @@ class GlmSettingsTest {
 
         val general = requireNotNull(result.settings.generalConversation)
         assertEquals(setOf(18480337854645134L), general.allowedChatIds)
+        assertEquals(
+            "/data/local/private/custom-general-conversation-mode.json",
+            general.modeFile.path
+        )
         assertEquals(300_000L, general.circuitWindowMillis)
         assertEquals(3, general.circuitFailureThreshold)
     }
@@ -290,6 +305,14 @@ class GlmSettingsTest {
             )
         ) as GlmSettingsLoadResult.Ready
         assertEquals(null, relativePath.settings.generalConversation)
+
+        val relativeModePath = GlmSettings.load(
+            validEnvironment() + mapOf(
+                "IRIS_GENERAL_CONVERSATION_ALLOWED_CHAT_IDS" to "18480337854645134",
+                "IRIS_GENERAL_CONVERSATION_MODE_FILE" to "mode.json"
+            )
+        ) as GlmSettingsLoadResult.Ready
+        assertEquals(null, relativeModePath.settings.generalConversation)
 
         val badThreshold = GlmSettings.load(
             validEnvironment() + mapOf(

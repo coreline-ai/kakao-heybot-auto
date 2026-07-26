@@ -566,11 +566,18 @@ class GlmAutoReplyHandler(
                 generalConversationCircuitBreaker.reset()
                 generalConversationPendingStore.clearAll()
                 val status = generalConversationModeStore.start()
-                safeReply(
+                if (!status.enabled) {
+                    safeReply(
                         incoming,
-                        "일반대화 모드를 시작했어요. 허용된 모든 방에서 필요할 때만 답할게요. " +
+                        "일반대화 상태를 저장하지 못해 시작하지 않았어요. 호출어 대화는 계속 사용할 수 있어요."
+                    )
+                    return@runAdminCommand
+                }
+                safeReply(
+                    incoming,
+                    "일반대화 모드를 시작했어요. 허용된 모든 방에서 필요할 때만 답할게요. " +
                         "현재 허용방 ${roomCapabilityPolicy.snapshot().generalConversationRoomCount}개, " +
-                        "상태 ${if (status.enabled) "켜짐" else "꺼짐"}."
+                        "상태 켜짐, 재시작 복원 ${modePersistenceLabel(status)}."
                 )
             }
 
@@ -586,6 +593,7 @@ class GlmAutoReplyHandler(
                         "적용 대상 ${roomCapabilityPolicy.snapshot().generalConversationRoomCount}개 방, " +
                         "회로 ${if (circuit.tripped) "차단" else "정상"}, " +
                         "최근 사유 ${circuit.lastReason?.name ?: "-"}, " +
+                        "상태 저장 ${modePersistenceLabel(status)}, " +
                         "대화 엔진 $engine 입니다."
                 )
             }
@@ -601,10 +609,20 @@ class GlmAutoReplyHandler(
             }
 
             BotCommand.StopGeneralConversation -> runAdminCommand(incoming, "general-conversation-stop") {
-                generalConversationModeStore.stop()
+                val status = generalConversationModeStore.stop()
                 generalConversationCircuitBreaker.reset()
                 generalConversationPendingStore.clearAll()
-                safeReply(incoming, "일반대화 모드를 종료했어요. 이제 모든 방에서 다시 ‘헤이봇’ 호출어가 필요해요.")
+                val persistenceWarning = if (
+                    status.persistenceConfigured && status.lastPersistSucceeded == false
+                ) {
+                    " 현재 프로세스에서는 꺼졌지만 상태 저장에 실패해 파일 상태를 확인해야 해요."
+                } else {
+                    ""
+                }
+                safeReply(
+                    incoming,
+                    "일반대화 모드를 종료했어요. 이제 모든 방에서 다시 ‘헤이봇’ 호출어가 필요해요.$persistenceWarning"
+                )
             }
 
             // `헤이봇 카톡방`은 현재 방 하나가 아니라, 관리자가 R번호를 보고
@@ -759,13 +777,14 @@ class GlmAutoReplyHandler(
     private fun buildSettingsSummary(): String =
         generalConversationPolicy.status().let { policy ->
             val circuit = generalConversationCircuitBreaker.status()
+            val mode = generalConversationModeStore.status()
             (
             "헤이봇 설정 | 모델 ${settings.model} | 관리방 ${roomCapabilityPolicy.snapshot().rooms.size}개, " +
                 "텍스트 ${roomCapabilityPolicy.snapshot().textRoomCount}개, " +
                 "이미지 ${roomCapabilityPolicy.snapshot().imageRoomCount}개, " +
                 "영상 ${roomCapabilityPolicy.snapshot().videoRoomCount}개, " +
                 "펜브러쉬 ${roomCapabilityPolicy.snapshot().penBrushRoomCount}개 | " +
-                "일반대화 ${if (generalConversationModeStore.status().enabled) "켜짐" else "꺼짐"} | " +
+                "일반대화 ${if (mode.enabled) "켜짐" else "꺼짐"}/저장 ${modePersistenceLabel(mode)} | " +
                 "일반정책 ${if (policy.ready) "정상" else "비활성"}/${policy.allowedRoomCount}방 | " +
                 "일반회로 ${if (circuit.tripped) "차단" else "정상"}/" +
                 "${circuit.lastReason?.name ?: "-"} | " +
@@ -776,6 +795,13 @@ class GlmAutoReplyHandler(
                 "기억 ${settings.memoryMaxTurns}턴/${settings.memoryTtlMillis / 60_000}분"
             ).take(MAX_REPLY_LENGTH)
         }
+
+    private fun modePersistenceLabel(status: GeneralConversationModeStatus): String = when {
+        !status.persistenceConfigured -> "메모리"
+        status.lastPersistSucceeded == true -> "정상"
+        status.lastPersistSucceeded == false -> "확인 필요"
+        else -> "초기 상태"
+    }
 
     private fun safeReply(incoming: GlmIncomingMessage, message: String) {
         runCatching {

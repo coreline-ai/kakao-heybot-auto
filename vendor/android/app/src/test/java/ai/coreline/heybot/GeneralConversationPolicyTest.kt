@@ -69,6 +69,7 @@ class GeneralConversationPolicyTest {
     private fun settings(file: File) = GeneralConversationSettings(
         allowedChatIds = setOf(1L, 2L),
         blockFile = file,
+        modeFile = File("/tmp/iris-general-conversation-mode-test.json"),
         circuitWindowMillis = 300_000L,
         circuitFailureThreshold = 3
     )
