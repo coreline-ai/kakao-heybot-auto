@@ -257,12 +257,16 @@ class GlmAutoReplyHandler(
             return
         }
         when (val result = admission.admit(incoming)) {
-            AdmissionResult.Accepted -> submitToQueue(
-                incoming,
-                incoming.message.trim(),
-                snapshot,
-                roomCapabilityRevision
-            )
+            AdmissionResult.Accepted -> {
+                metrics.recordGeneralConversationRequest()
+                log("General conversation queued")
+                submitToQueue(
+                    incoming,
+                    incoming.message.trim(),
+                    snapshot,
+                    roomCapabilityRevision
+                )
+            }
             AdmissionResult.DuplicateLog,
             AdmissionResult.DuplicateMessage -> metrics.recordDuplicateDrop()
             is AdmissionResult.RoomRateLimited,
@@ -280,12 +284,15 @@ class GlmAutoReplyHandler(
             return
         }
         when (val result = admission.admit(incoming)) {
-            AdmissionResult.Accepted -> executeGeneralConversation(
-                incoming,
-                incoming.message.trim(),
-                snapshot,
-                roomCapabilityRevision
-            )
+            AdmissionResult.Accepted -> {
+                metrics.recordGeneralConversationRequest()
+                executeGeneralConversation(
+                    incoming,
+                    incoming.message.trim(),
+                    snapshot,
+                    roomCapabilityRevision
+                )
+            }
             AdmissionResult.DuplicateLog,
             AdmissionResult.DuplicateMessage -> metrics.recordDuplicateDrop()
             is AdmissionResult.RoomRateLimited,
@@ -370,8 +377,24 @@ class GlmAutoReplyHandler(
             pendingMessages = pendingMessages
         )
 
-        generateWithFailoverAndRetry(request)
+        var responseResult = generateWithFailoverAndRetry(request)
+        if (responseResult.getOrNull()?.finishReason == FINISH_REASON_LENGTH) {
+            metrics.recordGeneralConversationTruncationRetry()
+            log("General conversation response truncated; retrying concise JSON")
+            responseResult = generateWithFailoverAndRetry(
+                generalConversationArbiter.buildTruncationRetryRequest(request)
+            )
+        }
+
+        responseResult
             .onSuccess { response ->
+                if (response.finishReason == FINISH_REASON_LENGTH) {
+                    metrics.recordGeneralConversationInvalidResponse()
+                    metrics.recordGlmFailure("GeneralTruncatedResponse", nowMillis())
+                    generalConversationPendingStore.clear(key)
+                    log("General conversation decision=invalid reason=truncated")
+                    return@onSuccess
+                }
                 val stillCurrent = synchronized(generalConversationCircuitBreaker) {
                     generalConversationCircuitBreaker.recordSuccess()
                     generalConversationModeStore.isCurrent(modeSnapshot)
@@ -384,6 +407,7 @@ class GlmAutoReplyHandler(
                 ) return@onSuccess
                 when (val decision = generalConversationArbiter.parse(response.content)) {
                     is GeneralConversationDecision.Reply -> {
+                        log("General conversation decision=reply")
                         val safeReply = when (val safety = replySafetyPolicy.apply(decision.text)) {
                             is ReplySafetyResult.Safe -> {
                                 metrics.recordReplyPiiRedactions(safety.redactions.size)
@@ -411,6 +435,7 @@ class GlmAutoReplyHandler(
                             false
                         }
                         if (sent) {
+                            metrics.recordGeneralConversationReply()
                             metrics.recordGlmSuccess(response.latencyMillis, nowMillis())
                             val persisted = memoryStore.append(
                                 key,
@@ -429,6 +454,8 @@ class GlmAutoReplyHandler(
                     }
 
                     GeneralConversationDecision.Wait -> {
+                        metrics.recordGeneralConversationWait()
+                        log("General conversation decision=wait")
                         generalConversationModeStore.dispatchIfCurrent(modeSnapshot) {
                             if (!roomCapabilityPolicy.isCurrent(
                                     roomCapabilityRevision,
@@ -441,8 +468,18 @@ class GlmAutoReplyHandler(
                         }
                     }
 
-                    GeneralConversationDecision.Ignore,
-                    GeneralConversationDecision.Invalid -> generalConversationPendingStore.clear(key)
+                    GeneralConversationDecision.Ignore -> {
+                        metrics.recordGeneralConversationIgnore()
+                        log("General conversation decision=ignore")
+                        generalConversationPendingStore.clear(key)
+                    }
+
+                    GeneralConversationDecision.Invalid -> {
+                        metrics.recordGeneralConversationInvalidResponse()
+                        metrics.recordGlmFailure("GeneralInvalidResponse", nowMillis())
+                        log("General conversation decision=invalid reason=contract")
+                        generalConversationPendingStore.clear(key)
+                    }
                 }
             }
             .onFailure {
@@ -699,6 +736,11 @@ class GlmAutoReplyHandler(
                 "중복 ${metric.duplicateDrops}, 제한 ${metric.rateLimitDrops}, " +
                 "큐초과 ${metric.queueFullDrops} | 안전차단 ${metric.replySafetyBlocks}, " +
                 "마스킹 ${metric.replyPiiRedactions}, 정책제외 ${metric.generalPolicyDrops} | " +
+                "일반 요청/답변/대기/무시/오류/재시도 " +
+                "${metric.generalConversationRequests}/${metric.generalConversationReplies}/" +
+                "${metric.generalConversationWaits}/${metric.generalConversationIgnores}/" +
+                "${metric.generalConversationInvalidResponses}/" +
+                "${metric.generalConversationTruncationRetries} | " +
                 "일반회로 ${if (circuit.tripped) "차단" else "정상"}/" +
                 "${metric.generalCircuitTrips}회/${circuit.lastReason?.name ?: "-"} | " +
                 "기억 ${memory.conversations}명/${memory.turns}턴, 저장 $persistence"
@@ -841,6 +883,7 @@ class GlmAutoReplyHandler(
 
     private companion object {
         const val TEXT_MESSAGE_TYPE = "1"
+        const val FINISH_REASON_LENGTH = "length"
         const val MAX_REPLY_LENGTH = 480
         const val DEFAULT_RATE_LIMIT_RETRY_DELAY_MILLIS = 15_000L
         const val MIN_RATE_LIMIT_RETRY_DELAY_MILLIS = 5_000L

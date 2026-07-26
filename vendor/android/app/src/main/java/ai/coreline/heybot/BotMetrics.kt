@@ -16,6 +16,12 @@ data class BotMetricsSnapshot(
     val replySafetyBlocks: Long,
     val replyPiiRedactions: Long,
     val generalCircuitTrips: Long,
+    val generalConversationRequests: Long,
+    val generalConversationReplies: Long,
+    val generalConversationWaits: Long,
+    val generalConversationIgnores: Long,
+    val generalConversationInvalidResponses: Long,
+    val generalConversationTruncationRetries: Long,
     val averageLatencyMillis: Long?,
     val p50LatencyMillis: Long?,
     val p95LatencyMillis: Long?,
@@ -42,6 +48,12 @@ class BotMetrics(
     private var replySafetyBlocks = 0L
     private var replyPiiRedactions = 0L
     private var generalCircuitTrips = 0L
+    private var generalConversationRequests = 0L
+    private var generalConversationReplies = 0L
+    private var generalConversationWaits = 0L
+    private var generalConversationIgnores = 0L
+    private var generalConversationInvalidResponses = 0L
+    private var generalConversationTruncationRetries = 0L
     private var lastSuccessAtMillis: Long? = null
     private var lastFailureAtMillis: Long? = null
     private var lastFailureType: String? = null
@@ -98,6 +110,30 @@ class BotMetrics(
         generalCircuitTrips += 1
     }
 
+    fun recordGeneralConversationRequest() = synchronized(lock) {
+        generalConversationRequests += 1
+    }
+
+    fun recordGeneralConversationReply() = synchronized(lock) {
+        generalConversationReplies += 1
+    }
+
+    fun recordGeneralConversationWait() = synchronized(lock) {
+        generalConversationWaits += 1
+    }
+
+    fun recordGeneralConversationIgnore() = synchronized(lock) {
+        generalConversationIgnores += 1
+    }
+
+    fun recordGeneralConversationInvalidResponse() = synchronized(lock) {
+        generalConversationInvalidResponses += 1
+    }
+
+    fun recordGeneralConversationTruncationRetry() = synchronized(lock) {
+        generalConversationTruncationRetries += 1
+    }
+
     fun snapshot(): BotMetricsSnapshot = synchronized(lock) {
         val sortedLatencies = latencies.sorted()
         BotMetricsSnapshot(
@@ -114,6 +150,12 @@ class BotMetrics(
             replySafetyBlocks = replySafetyBlocks,
             replyPiiRedactions = replyPiiRedactions,
             generalCircuitTrips = generalCircuitTrips,
+            generalConversationRequests = generalConversationRequests,
+            generalConversationReplies = generalConversationReplies,
+            generalConversationWaits = generalConversationWaits,
+            generalConversationIgnores = generalConversationIgnores,
+            generalConversationInvalidResponses = generalConversationInvalidResponses,
+            generalConversationTruncationRetries = generalConversationTruncationRetries,
             averageLatencyMillis = latencies
                 .takeIf { it.isNotEmpty() }
                 ?.sum()

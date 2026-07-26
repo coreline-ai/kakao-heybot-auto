@@ -42,7 +42,7 @@ class GeneralConversationArbiterTest {
         )
         assertEquals(GeneralConversationDecision.Invalid, arbiter.parse("not json"))
         assertTrue(
-            arbiter.parse("""{"action":"REPLY","reply":"${"가".repeat(481)}"}""")
+            arbiter.parse("""{"action":"REPLY","reply":"${"가".repeat(301)}"}""")
                 is GeneralConversationDecision.Invalid
         )
     }
@@ -66,6 +66,7 @@ class GeneralConversationArbiterTest {
 
         assertEquals(12_000L, request.timeoutMillis)
         assertEquals(GlmRequestKind.GENERAL_CONVERSATION, request.kind)
+        assertEquals(384, request.maxTokens)
     }
 
     @Test
@@ -101,4 +102,26 @@ class GeneralConversationArbiterTest {
         assertTrue(request.messages[3].content.contains("미완성 발화"))
         assertEquals("현재 마지막 발화입니다.\n현재 발화", request.messages.last().content)
     }
+
+    @Test
+    fun `truncated response retry uses the largest budget and concise contract`() {
+        val settings = testSettings()
+        val request = arbiter.buildRequest(settings, "오늘 할 일을 세 단계로 정리해줘")
+        val retry = arbiter.buildTruncationRetryRequest(request)
+
+        assertEquals(384, request.maxTokens)
+        assertEquals(512, retry.maxTokens)
+        assertTrue(retry.messages.first().content.contains("180자 이내"))
+    }
+
+    private fun testSettings() = GlmSettings(
+        baseUrl = "https://api.z.ai/api/paas/v4/",
+        model = "glm-4.5-flash",
+        trigger = "헤이봇",
+        allowedChatIds = setOf(1L),
+        apiKeyFile = java.io.File("/tmp/test-token"),
+        timeoutMillis = 120_000L,
+        maxTokens = 128,
+        temperature = 0.2
+    )
 }
