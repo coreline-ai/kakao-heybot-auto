@@ -8,6 +8,13 @@ import { CodexJobStore } from "../jobs/store.js";
 import { CodexJobProcessor } from "../queue/processor.js";
 import { toPublicJob } from "../jobs/types.js";
 import type { CodexRunner } from "../cli/runner.js";
+import {
+  CliCodexTextRunner,
+  FakeCodexTextRunner,
+  type CodexTextRunner,
+} from "../cli/text-runner.js";
+import type { CodexTextRequest } from "../conversation/types.js";
+import { BoundedConversationQueue } from "../conversation/queue.js";
 
 interface JobRequestBody {
   requestId: string;
@@ -121,11 +128,18 @@ export interface CodexServerContext {
 export function createCodexServer(
   config: CodexProxyConfig,
   runner: CodexRunner,
+  textRunner: CodexTextRunner = config.runnerMode === "fake"
+    ? new FakeCodexTextRunner()
+    : new CliCodexTextRunner(config),
 ): CodexServerContext {
   const auth = new CodexAuthenticator(config.managerSecretFile, config.callerSecretsDir);
   const capabilities = new CapabilityRegistry(config.capabilitiesFile);
   const store = new CodexJobStore(config.databaseFile);
   const processor = new CodexJobProcessor(store, runner, config);
+  const textQueue = new BoundedConversationQueue(
+    config.textQueueConcurrency,
+    config.textQueueMaxPending,
+  );
   let readiness: Awaited<ReturnType<CodexRunner["readiness"]>> = {
     ready: false,
     reason: "STARTING",
@@ -147,6 +161,7 @@ export function createCodexServer(
           reason: readiness.reason,
           version: readiness.version,
           queue: processor.snapshot(),
+          text: textQueue.snapshot(),
         });
       }
 
@@ -215,6 +230,65 @@ export function createCodexServer(
         return json(response, result.created ? 202 : 200, toPublicJob(result.job));
       }
 
+      if (
+        request.method === "POST" &&
+        url.pathname === "/internal/v1/codex/conversation"
+      ) {
+        capabilities.requireAllowed("conversation.respond.v1", callerId);
+        const value = await readJson(request, config.requestMaxBytes);
+        if (!value || typeof value !== "object" || Array.isArray(value)) {
+          throw new Error("INVALID_REQUEST");
+        }
+        const body = value as Record<string, unknown>;
+        if (
+          Object.keys(body).some((key) => !["requestId", "capability", "input"].includes(key)) ||
+          body.capability !== "conversation.respond.v1" ||
+          typeof body.requestId !== "string" ||
+          !/^[A-Za-z0-9._:-]{1,128}$/.test(body.requestId)
+        ) {
+          throw new Error("INVALID_REQUEST");
+        }
+        const input = body.input;
+        if (!input || typeof input !== "object" || Array.isArray(input)) {
+          throw new Error("INVALID_INPUT");
+        }
+        const rawMessages = (input as Record<string, unknown>).messages;
+        if (!Array.isArray(rawMessages) || rawMessages.length < 1 || rawMessages.length > 32) {
+          throw new Error("INVALID_MESSAGES");
+        }
+        const messages = rawMessages.map((item) => {
+          if (!item || typeof item !== "object" || Array.isArray(item)) {
+            throw new Error("INVALID_MESSAGE");
+          }
+          const message = item as Record<string, unknown>;
+          if (
+            Object.keys(message).some((key) => !["role", "content"].includes(key)) ||
+            !["system", "user", "assistant"].includes(String(message.role)) ||
+            typeof message.content !== "string" ||
+            message.content.trim().length < 1 ||
+            message.content.length > 4_000
+          ) {
+            throw new Error("INVALID_MESSAGE");
+          }
+          return {
+            role: message.role as CodexTextRequest["messages"][number]["role"],
+            content: message.content.trim(),
+          };
+        });
+        const result = await textQueue.run(() =>
+          textRunner.run(
+            { requestId: body.requestId as string, messages },
+            AbortSignal.timeout(config.textTimeoutMs),
+          ),
+        );
+        return json(response, 200, {
+          requestId: result.requestId,
+          engine: "codex",
+          text: result.text,
+          latencyMillis: result.latencyMillis,
+        });
+      }
+
       const artifactMatch = url.pathname.match(
         /^\/internal\/v1\/codex\/jobs\/([0-9a-f-]+)\/artifacts\/([0-9a-f-]+)$/,
       );
@@ -265,6 +339,7 @@ export function createCodexServer(
   let shutdownPromise: Promise<void> | undefined;
   const shutdown = (): Promise<void> => {
     if (!shutdownPromise) {
+      textQueue.close();
       shutdownPromise = processor.close().then(() => {
         store.close();
       });

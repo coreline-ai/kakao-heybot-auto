@@ -19,6 +19,10 @@ export interface CodexProxyConfig {
   runtimeDir: string;
   databaseFile: string;
   runnerMode: "codex" | "fake";
+  textQueueConcurrency: number;
+  textQueueMaxPending: number;
+  textTimeoutMs: number;
+  textMaxOutputChars: number;
 }
 
 function integer(
@@ -109,5 +113,9 @@ export function loadCodexProxyConfig(
     runtimeDir,
     databaseFile: resolve(runtimeDir, "db", "jobs.sqlite3"),
     runnerMode,
+    textQueueConcurrency: integer(env, "CODEX_TEXT_QUEUE_CONCURRENCY", 1, 1, 4),
+    textQueueMaxPending: integer(env, "CODEX_TEXT_QUEUE_MAX_PENDING", 4, 1, 32),
+    textTimeoutMs: integer(env, "CODEX_TEXT_TIMEOUT_MS", 90_000, 5_000, 300_000),
+    textMaxOutputChars: integer(env, "CODEX_TEXT_MAX_OUTPUT_CHARS", 4_000, 64, 16_000),
   };
 }

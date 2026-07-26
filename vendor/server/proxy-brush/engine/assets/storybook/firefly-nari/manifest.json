@@ -1,0 +1,122 @@
+{
+  "project": "storybook-firefly-nari",
+  "title": "길 잃은 반딧불이",
+  "total_scenes": 10,
+  "target_resolution": "1080x1920",
+  "aspect_ratio": "9:16",
+  "generated_with": "built-in image_gen",
+  "upscaled_from": "source portrait render to 1080x1920 using Lanczos",
+  "style": "storybook illustration; warm cream paper; closed dark-brown outlines; broad flat color regions; pen-to-brush ready",
+  "scenes": [
+    {
+      "scene": 1,
+      "description": "작은 반딧불이 나리가 어두운 숲에서 가족과 떨어진다.",
+      "file": "assets/storybook/firefly-nari/scene-01.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 2,
+      "description": "나리가 희미한 빛으로 가족을 찾으며 숲길을 걷는다.",
+      "file": "assets/storybook/firefly-nari/scene-02.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 3,
+      "description": "달빛이 비치는 갈림길에서 나리가 어느 길로 갈지 몰라 멈춘다.",
+      "file": "assets/storybook/firefly-nari/scene-03.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 4,
+      "description": "나리가 낙엽 아래에 숨어 외롭게 앉아 있다.",
+      "file": "assets/storybook/firefly-nari/scene-04.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 5,
+      "description": "딱정벌레 친구가 이슬을 모아 빛을 반사하자고 제안한다.",
+      "file": "assets/storybook/firefly-nari/scene-05.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 6,
+      "description": "곤충 친구들이 이슬방울과 반짝이는 잎을 모은다.",
+      "file": "assets/storybook/firefly-nari/scene-06.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 7,
+      "description": "숲길에 작은 빛의 표지판이 하나씩 생긴다.",
+      "file": "assets/storybook/firefly-nari/scene-07.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 8,
+      "description": "나리가 멀리서 가족의 따뜻한 불빛을 발견한다.",
+      "file": "assets/storybook/firefly-nari/scene-08.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 9,
+      "description": "나리와 가족이 서로를 향해 날아가 꼭 끌어안는다.",
+      "file": "assets/storybook/firefly-nari/scene-09.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 10,
+      "description": "숲 전체의 반딧불이들이 함께 빛나는 축제를 연다.",
+      "file": "assets/storybook/firefly-nari/scene-10.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    }
+  ]
+}

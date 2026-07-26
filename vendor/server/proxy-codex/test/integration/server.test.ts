@@ -3,6 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { after, before, test } from "node:test";
+import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { loadCodexProxyConfig } from "../../src/config/config.js";
 import { FakeCodexRunner, type CodexRunner, type RawArtifact } from "../../src/cli/runner.js";
@@ -14,6 +15,14 @@ const secret = "c".repeat(48);
 const managerSecret = "m".repeat(48);
 let context: CodexServerContext;
 let baseUrl: string;
+
+async function closeServer(server: Server): Promise<void> {
+  server.closeIdleConnections();
+  server.closeAllConnections();
+  await new Promise<void>((resolvePromise, reject) =>
+    server.close((error) => (error ? reject(error) : resolvePromise())),
+  );
+}
 
 before(async () => {
   mkdirSync(resolve(root, "runtime/secrets/callers"), { recursive: true });
@@ -57,7 +66,7 @@ before(async () => {
 });
 
 after(async () => {
-  await new Promise<void>((resolvePromise) => context.server.close(() => resolvePromise()));
+  await closeServer(context.server);
   await context.shutdown();
 });
 
@@ -315,9 +324,7 @@ test("enforces queue capacity but preserves idempotent lookup", async () => {
     );
     assert.equal(cancelled.status, 202);
   } finally {
-    await new Promise<void>((resolvePromise) =>
-      isolated.server.close(() => resolvePromise()),
-    );
+    await closeServer(isolated.server);
     await isolated.shutdown();
   }
 });

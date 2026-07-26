@@ -21,6 +21,16 @@ let manager: Server;
 let baseUrl: string;
 const binary = Buffer.alloc(1024 * 1024, 42);
 
+async function closeServer(server: Server): Promise<void> {
+  // Node's fetch keeps HTTP sockets alive. Close them before awaiting close(),
+  // otherwise node --test can remain alive after every assertion has finished.
+  server.closeIdleConnections();
+  server.closeAllConnections();
+  await new Promise<void>((resolvePromise, reject) =>
+    server.close((error) => (error ? reject(error) : resolvePromise())),
+  );
+}
+
 before(async () => {
   upstream = createServer(async (request, response) => {
     if (request.url === "/health" || request.url === "/ready") {
@@ -89,8 +99,8 @@ before(async () => {
 });
 
 after(async () => {
-  await new Promise<void>((resolvePromise) => manager.close(() => resolvePromise()));
-  await new Promise<void>((resolvePromise) => upstream.close(() => resolvePromise()));
+  await closeServer(manager);
+  await closeServer(upstream);
 });
 
 test("route auth replaces credentials and preserves 18-digit IDs", async () => {
@@ -205,9 +215,7 @@ test("enabled lifecycle dispatches only the registry launchd label", async () =>
       { label: "ai.coreline.heybot.proxy-image", action: "restart" },
     ]);
   } finally {
-    await new Promise<void>((resolvePromise) =>
-      lifecycleServer.close(() => resolvePromise()),
-    );
+    await closeServer(lifecycleServer);
   }
 });
 
@@ -266,8 +274,6 @@ test("an unavailable proxy degrades only its route while manager health remains 
     assert.equal(((await route.json()) as any).error.code, "PROXY_UNAVAILABLE");
     assert.equal((await fetch(`${unavailableBase}/health`)).status, 200);
   } finally {
-    await new Promise<void>((resolvePromise) =>
-      unavailableServer.close(() => resolvePromise()),
-    );
+    await closeServer(unavailableServer);
   }
 });

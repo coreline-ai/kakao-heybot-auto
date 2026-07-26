@@ -2,6 +2,21 @@
   "schemaVersion": 1,
   "proxies": [
     {
+      "id": "conversation",
+      "enabled": true,
+      "exposure": "gateway",
+      "routePrefix": "/v1/conversation",
+      "targetBaseUrl": "http://127.0.0.1:4361",
+      "healthPath": "/health",
+      "readyPath": "/ready",
+      "readinessTestPath": "/v1/self-test/readiness",
+      "canaryTestPath": "/v1/self-test/readiness",
+      "canaryRequiresExplicitConfirmation": false,
+      "managerClientSecretFile": "./runtime/secrets/proxy-conversation.secret",
+      "launchdLabel": "ai.coreline.heybot.proxy-conversation",
+      "dependencies": ["codex", "grok"]
+    },
+    {
       "id": "image",
       "enabled": true,
       "exposure": "gateway",
@@ -14,7 +29,9 @@
       "canaryRequiresExplicitConfirmation": true,
       "managerClientSecretFile": "./runtime/secrets/proxy-image.secret",
       "launchdLabel": "ai.coreline.heybot.proxy-image",
-      "dependencies": ["codex"]
+      "dependencies": [
+        "codex"
+      ]
     },
     {
       "id": "codex",
@@ -32,7 +49,7 @@
     },
     {
       "id": "video",
-      "enabled": false,
+      "enabled": true,
       "exposure": "gateway",
       "routePrefix": "/v1/video",
       "targetBaseUrl": "http://127.0.0.1:4357",
@@ -43,11 +60,13 @@
       "canaryRequiresExplicitConfirmation": true,
       "managerClientSecretFile": "./runtime/secrets/proxy-video.secret",
       "launchdLabel": "ai.coreline.heybot.proxy-video",
-      "dependencies": ["grok"]
+      "dependencies": [
+        "grok"
+      ]
     },
     {
       "id": "grok",
-      "enabled": false,
+      "enabled": true,
       "exposure": "internal",
       "targetBaseUrl": "http://127.0.0.1:4358",
       "healthPath": "/health",
@@ -58,6 +77,38 @@
       "managerClientSecretFile": "./runtime/secrets/proxy-grok.secret",
       "launchdLabel": "ai.coreline.heybot.proxy-grok",
       "dependencies": []
+    },
+    {
+      "id": "brush",
+      "enabled": true,
+      "exposure": "internal",
+      "targetBaseUrl": "http://127.0.0.1:4360",
+      "healthPath": "/health",
+      "readyPath": "/ready",
+      "readinessTestPath": "/ready",
+      "canaryTestPath": "/internal/v1/pen-brush/jobs",
+      "canaryRequiresExplicitConfirmation": true,
+      "managerClientSecretFile": "./runtime/secrets/proxy-brush.secret",
+      "launchdLabel": "ai.coreline.heybot.proxy-brush",
+      "dependencies": []
+    },
+    {
+      "id": "draw",
+      "enabled": true,
+      "exposure": "gateway",
+      "routePrefix": "/v1/draw",
+      "targetBaseUrl": "http://127.0.0.1:4359",
+      "healthPath": "/health",
+      "readyPath": "/ready",
+      "readinessTestPath": "/v1/self-test/readiness",
+      "canaryTestPath": "/v1/draw/jobs",
+      "canaryRequiresExplicitConfirmation": true,
+      "managerClientSecretFile": "./runtime/secrets/proxy-draw.secret",
+      "launchdLabel": "ai.coreline.heybot.proxy-draw",
+      "dependencies": [
+        "codex",
+        "brush"
+      ]
     }
   ]
 }

@@ -1,0 +1,1316 @@
+{
+  "schemaVersion": 1,
+  "origin": "external_samples/KakaoTalk_Video_2026-07-18-19-03-47_분석.md",
+  "designTokens": "src/promo/tokens.ts",
+  "widgetSchema": "src/promo/schema.ts",
+  "registry": "src/promo/registry.tsx",
+  "widgets": [
+    {
+      "id": "gauge",
+      "family": "meter",
+      "originWidgets": [
+        "W1a",
+        "W1b"
+      ],
+      "component": "src/promo/bodies/Gauge.tsx",
+      "summary": "니들 스윕(needle) 또는 아크 채움+틱 스포크 점등+골드 테일(fill-arc) 반원 게이지. 값 카운트업과 중앙 네스트 라벨을 포함한다.",
+      "props": {
+        "kind": "\"needle\" | \"fill-arc\" (기본 needle)",
+        "value": "number — 표시 값 (min/max로 정규화, 범위 밖 클램프)",
+        "min": "number (기본 0)",
+        "max": "number",
+        "unit": "string? — 값 병기 단위 (예: T, %)",
+        "ticks": "int 0–60 (기본 24) — 눈금/스포크 개수",
+        "goldTail": "boolean (기본 false) — fill-arc 끝단 골드 테일",
+        "caption": "string? — 값 하단 캡션 pill",
+        "sweepFrames": "int (기본 36) — 스윕 지속 프레임"
+      },
+      "demos": [
+        {
+          "page": 1,
+          "type": "gauge",
+          "kind": "needle",
+          "x": 140,
+          "y": 130,
+          "w": 400,
+          "h": 300,
+          "enterAt": 0,
+          "label": "OFFICIAL WEIGH-IN",
+          "value": 2.8,
+          "min": 0,
+          "max": 3,
+          "unit": "T",
+          "ticks": 12,
+          "goldTail": false,
+          "sweepFrames": 36
+        },
+        {
+          "page": 1,
+          "type": "gauge",
+          "kind": "fill-arc",
+          "x": 660,
+          "y": 130,
+          "w": 400,
+          "h": 300,
+          "enterAt": 8,
+          "label": "STREAK MONITOR",
+          "value": 90,
+          "min": 0,
+          "max": 100,
+          "unit": "%",
+          "ticks": 24,
+          "goldTail": true,
+          "caption": "CODING",
+          "sweepFrames": 42
+        }
+      ]
+    },
+    {
+      "id": "statBar",
+      "family": "bar",
+      "originWidgets": [
+        "W2",
+        "W3"
+      ],
+      "component": "src/promo/bodies/StatBar.tsx",
+      "summary": "좌→우 필 진행 바(눈금·우단 골드 라벨) 또는 주체 vs 라이벌 대결 바(중앙 VS 배지).",
+      "props": {
+        "mode": "\"progress\" | \"vs\" (기본 progress)",
+        "value": "number — progress: 현재값 / vs: 주체 점수",
+        "max": "number — 축 최대",
+        "name": "string? — vs 주체 이름",
+        "ticks": "{at, label}[] (기본 []) — 축 눈금",
+        "endLabel": "string? — 우단 골드 라벨",
+        "rivals": "{name, value}[] (기본 []) — vs 전용",
+        "fillFrames": "int (기본 30) — 채움 지속 프레임"
+      },
+      "demos": [
+        {
+          "page": 1,
+          "type": "statBar",
+          "mode": "progress",
+          "x": 140,
+          "y": 560,
+          "w": 800,
+          "h": 130,
+          "enterAt": 24,
+          "label": "CONTEXT STAMINA",
+          "value": 1000000,
+          "max": 1000000,
+          "ticks": [
+            {
+              "at": 100000,
+              "label": "100K"
+            },
+            {
+              "at": 500000,
+              "label": "500K"
+            },
+            {
+              "at": 1000000,
+              "label": "1M"
+            }
+          ],
+          "endLabel": "1M TOKENS",
+          "rivals": [],
+          "fillFrames": 40
+        },
+        {
+          "page": 1,
+          "type": "statBar",
+          "mode": "vs",
+          "x": 1040,
+          "y": 540,
+          "w": 740,
+          "h": 170,
+          "enterAt": 32,
+          "label": "HEAD TO HEAD // TERMINAL",
+          "name": "KIMI K3",
+          "value": 88.3,
+          "max": 100,
+          "ticks": [],
+          "rivals": [
+            {
+              "name": "OPUS 4.8",
+              "value": 84.6
+            },
+            {
+              "name": "FABLE 5",
+              "value": 84.6
+            }
+          ],
+          "fillFrames": 36
+        }
+      ]
+    },
+    {
+      "id": "leaderboard",
+      "family": "ranking",
+      "originWidgets": [
+        "W5"
+      ],
+      "component": "src/promo/bodies/Leaderboard.tsx",
+      "summary": "pill 헤더 + 행(순위·이름·우측정렬 점수) 리더보드. 하이라이트 행 풀폭 블루 필과 리오더 상승 애니메이션.",
+      "props": {
+        "header": "string? — pill 헤더",
+        "headerTag": "string? — 헤더 우측 보조",
+        "rows": "{name, score, highlight?}[] (최소 1행)",
+        "footer": "string? — 하단 중앙",
+        "scoreDecimals": "int 0–3 (기본 1)",
+        "reorder": "boolean (기본 false) — highlight 행 최하단→자기 순위 상승",
+        "populateFrames": "int (기본 8) — 행당 진입 stagger"
+      },
+      "demos": [
+        {
+          "page": 1,
+          "type": "leaderboard",
+          "x": 1220,
+          "y": 130,
+          "w": 560,
+          "h": 300,
+          "enterAt": 16,
+          "header": "PROGRAM BENCH",
+          "headerTag": "ALL MODELS",
+          "rows": [
+            {
+              "name": "KIMI K3",
+              "score": 77.8,
+              "highlight": true
+            },
+            {
+              "name": "GPT-5.6 SOL",
+              "score": 77.6,
+              "highlight": false
+            },
+            {
+              "name": "FABLE 5",
+              "score": 76.8,
+              "highlight": false
+            }
+          ],
+          "footer": "NEW LEADER",
+          "scoreDecimals": 1,
+          "reorder": true,
+          "populateFrames": 8
+        }
+      ]
+    },
+    {
+      "id": "countUp",
+      "family": "hero-number",
+      "originWidgets": [
+        "W8",
+        "W9"
+      ],
+      "component": "src/promo/bodies/CountUp.tsx",
+      "summary": "오도미터 히어로 숫자 카운트업. prefix(×·$·+)/suffix(T·%·PTS) 블루 강조, 언더라인 룰, 캡션.",
+      "props": {
+        "from": "number (기본 0)",
+        "to": "number",
+        "decimals": "int 0–3 (기본 1)",
+        "prefix": "string? — 예: ×, $, +",
+        "suffix": "string? — 예: T, %, PTS",
+        "suffixAccent": "boolean (기본 true) — suffix 데이터 블루",
+        "rule": "boolean (기본 false) — 하단 헤어라인",
+        "caption": "string? — 하단 캡션",
+        "countFrames": "int (기본 24) — 카운트 지속 프레임"
+      },
+      "demos": [
+        {
+          "page": 1,
+          "type": "countUp",
+          "x": 140,
+          "y": 760,
+          "w": 700,
+          "h": 220,
+          "enterAt": 44,
+          "from": 1,
+          "to": 6.3,
+          "decimals": 1,
+          "prefix": "×",
+          "suffixAccent": true,
+          "rule": true,
+          "caption": "DECODING @ 1M CONTEXT",
+          "countFrames": 30
+        },
+        {
+          "page": 1,
+          "type": "countUp",
+          "x": 1040,
+          "y": 760,
+          "w": 700,
+          "h": 220,
+          "enterAt": 52,
+          "from": 2.1,
+          "to": 2.8,
+          "decimals": 1,
+          "suffix": "T",
+          "suffixAccent": true,
+          "rule": false,
+          "caption": "TRILLION PARAMETERS",
+          "countFrames": 24
+        }
+      ]
+    },
+    {
+      "id": "rankLadder",
+      "family": "ranking",
+      "originWidgets": [
+        "W6"
+      ],
+      "component": "src/promo/bodies/RankLadder.tsx",
+      "summary": "수직 지그재그 순위 눈금 위로 pill 토큰이 등반한다 (#18위→단숨에 #2).",
+      "props": {
+        "ranks": "number[] (최소 2) — 아래→위 순 눈금",
+        "climbTo": "int — 토큰 최종 순위",
+        "climbFrames": "int (기본 40)"
+      },
+      "demos": [
+        {
+          "page": 2,
+          "type": "rankLadder",
+          "x": 140,
+          "y": 130,
+          "w": 300,
+          "h": 560,
+          "enterAt": 0,
+          "label": "FRONTEND ARENA",
+          "ranks": [
+            15,
+            12,
+            9,
+            6,
+            4,
+            3
+          ],
+          "climbTo": 2,
+          "climbFrames": 46
+        }
+      ]
+    },
+    {
+      "id": "numberLinePlot",
+      "family": "data-panel",
+      "originWidgets": [
+        "W7"
+      ],
+      "component": "src/promo/bodies/NumberLinePlot.tsx",
+      "summary": "수평 축 위 tone별 점(주체 블루·상대 레드) + CLOSING 점선 화살표 draw-on (ELO 추격 플롯).",
+      "props": {
+        "axisLabel": "string? — 축 라벨 (예: GDPval ELO)",
+        "min": "number",
+        "max": "number",
+        "points": "{name, value, tone: data|rival|muted}[] (최소 1)",
+        "arrowFrom": "string? — 화살표 시작 점 name",
+        "arrowTo": "string? — 화살표 끝 점 name",
+        "arrowLabel": "string? — 예: CLOSING",
+        "drawFrames": "int (기본 30)"
+      },
+      "demos": [
+        {
+          "page": 2,
+          "type": "numberLinePlot",
+          "x": 520,
+          "y": 150,
+          "w": 860,
+          "h": 290,
+          "enterAt": 6,
+          "label": "FINAL STRETCH // GDPVAL",
+          "axisLabel": "GDPVAL ELO",
+          "min": 1560,
+          "max": 1800,
+          "points": [
+            {
+              "name": "OPUS 4.8",
+              "value": 1600,
+              "tone": "muted"
+            },
+            {
+              "name": "KIMI K3",
+              "value": 1668,
+              "tone": "data"
+            },
+            {
+              "name": "FABLE 5",
+              "value": 1760,
+              "tone": "rival"
+            }
+          ],
+          "arrowFrom": "KIMI K3",
+          "arrowTo": "FABLE 5",
+          "arrowLabel": "CLOSING",
+          "drawFrames": 34
+        }
+      ]
+    },
+    {
+      "id": "priceTag",
+      "family": "hero-number",
+      "originWidgets": [
+        "W10"
+      ],
+      "component": "src/promo/bodies/PriceTag.tsx",
+      "summary": "끈에 매달린 가격 태그의 감쇠 펜듈럼 스윙 + 취소선 고스트 잔상 가격 드롭.",
+      "props": {
+        "value": "string — 예: $3.00",
+        "sub": "string? — 예: PER 1M TOKENS",
+        "ghostValue": "string? — 위 취소선 잔상",
+        "swing": "boolean (기본 true)"
+      },
+      "demos": [
+        {
+          "page": 2,
+          "type": "priceTag",
+          "x": 1460,
+          "y": 120,
+          "w": 320,
+          "h": 400,
+          "enterAt": 10,
+          "label": "CACHE HIT",
+          "value": "$0.30",
+          "ghostValue": "$3.00",
+          "sub": "INPUT / 1M TOKENS",
+          "swing": true
+        }
+      ]
+    },
+    {
+      "id": "nodeGraph",
+      "family": "data-panel",
+      "originWidgets": [
+        "W11"
+      ],
+      "component": "src/promo/bodies/NodeGraph.tsx",
+      "summary": "보더 박스 + 노드 + 방사 커넥터 draw-on. 좌상 pill과 중앙 푸터 라벨 (/swarm PARALLEL AGENTS).",
+      "props": {
+        "pill": "string? — 좌상 pill",
+        "footer": "string? — 중앙 푸터",
+        "nodes": "{label, x 0-1, y 0-1}[] (최소 1)",
+        "edges": "[from, to][] 인덱스 쌍 (기본 [])",
+        "drawFrames": "int (기본 24)"
+      },
+      "demos": [
+        {
+          "page": 3,
+          "type": "nodeGraph",
+          "x": 140,
+          "y": 140,
+          "w": 520,
+          "h": 360,
+          "enterAt": 0,
+          "label": "SQUAD DEPLOY",
+          "pill": "/swarm",
+          "footer": "PARALLEL AGENTS",
+          "nodes": [
+            {
+              "label": "SWARM",
+              "x": 0.5,
+              "y": 0.46
+            },
+            {
+              "label": "A-01",
+              "x": 0.16,
+              "y": 0.3
+            },
+            {
+              "label": "A-02",
+              "x": 0.3,
+              "y": 0.74
+            },
+            {
+              "label": "A-03",
+              "x": 0.62,
+              "y": 0.2
+            },
+            {
+              "label": "A-04",
+              "x": 0.78,
+              "y": 0.68
+            },
+            {
+              "label": "A-05",
+              "x": 0.88,
+              "y": 0.34
+            }
+          ],
+          "edges": [
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              0,
+              3
+            ],
+            [
+              0,
+              4
+            ],
+            [
+              0,
+              5
+            ]
+          ],
+          "drawFrames": 24
+        }
+      ]
+    },
+    {
+      "id": "curvePlot",
+      "family": "data-panel",
+      "originWidgets": [
+        "W12"
+      ],
+      "component": "src/promo/bodies/CurvePlot.tsx",
+      "summary": "dashed 베이스라인(STANDARD ROUTE) 대비 재설계 곡선 draw-on + × 마커 + 끝 화살표.",
+      "props": {
+        "baselineLabel": "string? — 베이스라인 pill",
+        "points": "{x 0-1, y 0-1}[] (최소 2, 좌→우)",
+        "markers": "int[] — × 마커 point 인덱스 (기본 [])",
+        "drawFrames": "int (기본 36)"
+      },
+      "demos": [
+        {
+          "page": 3,
+          "type": "curvePlot",
+          "x": 720,
+          "y": 140,
+          "w": 520,
+          "h": 360,
+          "enterAt": 8,
+          "label": "KIMI DELTA ATTENTION",
+          "baselineLabel": "STANDARD ROUTE",
+          "points": [
+            {
+              "x": 0.06,
+              "y": 0.85
+            },
+            {
+              "x": 0.28,
+              "y": 0.55
+            },
+            {
+              "x": 0.46,
+              "y": 0.62
+            },
+            {
+              "x": 0.66,
+              "y": 0.34
+            },
+            {
+              "x": 0.9,
+              "y": 0.16
+            }
+          ],
+          "markers": [
+            1,
+            3
+          ],
+          "drawFrames": 40
+        }
+      ]
+    },
+    {
+      "id": "heatmapGrid",
+      "family": "data-panel",
+      "originWidgets": [
+        "W13"
+      ],
+      "component": "src/promo/bodies/HeatmapGrid.tsx",
+      "summary": "N×N 셀이 순차 점등되는 히트맵 + 우측 히어로 값 (BROWSECOMP 89.3).",
+      "props": {
+        "cols": "int 1–40",
+        "rows": "int 1–40",
+        "lit": "int — 최종 점등 셀 수",
+        "value": "string? — 우측 히어로 값",
+        "litFrames": "int (기본 36)"
+      },
+      "demos": [
+        {
+          "page": 3,
+          "type": "heatmapGrid",
+          "x": 1300,
+          "y": 170,
+          "w": 480,
+          "h": 290,
+          "enterAt": 16,
+          "label": "BROWSECOMP",
+          "cols": 7,
+          "rows": 6,
+          "lit": 38,
+          "value": "89.3",
+          "litFrames": 40
+        }
+      ]
+    },
+    {
+      "id": "particleField",
+      "family": "data-panel",
+      "originWidgets": [
+        "W14"
+      ],
+      "component": "src/promo/bodies/ParticleField.tsx",
+      "summary": "결정적 스캐터 도트가 순차 활성화되는 전문가 필드 + 라이브 카운터 (MoE 896 중 16).",
+      "props": {
+        "count": "int 1–1000 (기본 200) — 전체 도트 수",
+        "activeTarget": "int — 최종 활성 도트 수",
+        "counterLabel": "string? — 카운터 라벨",
+        "activateFrames": "int (기본 40)"
+      },
+      "demos": [
+        {
+          "page": 3,
+          "type": "particleField",
+          "x": 140,
+          "y": 580,
+          "w": 520,
+          "h": 360,
+          "enterAt": 24,
+          "label": "MOE EXPERTS · 896",
+          "count": 260,
+          "activeTarget": 16,
+          "counterLabel": "ROSTER",
+          "activateFrames": 44
+        }
+      ]
+    },
+    {
+      "id": "oscilloscope",
+      "family": "data-panel",
+      "originWidgets": [
+        "W15"
+      ],
+      "component": "src/promo/bodies/Oscilloscope.tsx",
+      "summary": "chirp 파형이 스크롤되는 메인 스코프 + 정지 레퍼런스 패널 + 하단 pill (중력파 데이터 분석).",
+      "props": {
+        "mainLabel": "string — 메인 패널 라벨",
+        "refLabel": "string? — 레퍼런스 패널 라벨",
+        "pill": "string? — 하단 pill"
+      },
+      "demos": [
+        {
+          "page": 3,
+          "type": "oscilloscope",
+          "x": 720,
+          "y": 580,
+          "w": 520,
+          "h": 360,
+          "enterAt": 30,
+          "mainLabel": "REC · MON-A · GW STRAIN FEED",
+          "refLabel": "MON-B · TEMPLATE BANK",
+          "pill": "LAB ASSISTANT · GRAVITATIONAL-WAVE RUN"
+        }
+      ]
+    },
+    {
+      "id": "flowDiagram",
+      "family": "data-panel",
+      "originWidgets": [
+        "W16"
+      ],
+      "component": "src/promo/bodies/FlowDiagram.tsx",
+      "summary": "스텝 박스가 순차 활성되는 플로우 (FETCH → COMPUTE → WRITE).",
+      "props": {
+        "steps": "string[] (최소 2)",
+        "stepFrames": "int (기본 14) — 스텝당 활성 지속"
+      },
+      "demos": [
+        {
+          "page": 3,
+          "type": "flowDiagram",
+          "x": 1300,
+          "y": 580,
+          "w": 480,
+          "h": 150,
+          "enterAt": 36,
+          "label": "KERNEL ANALYSIS",
+          "steps": [
+            "FETCH",
+            "COMPUTE",
+            "WRITE"
+          ],
+          "stepFrames": 16
+        }
+      ]
+    },
+    {
+      "id": "strataDiagram",
+      "family": "data-panel",
+      "originWidgets": [
+        "W17"
+      ],
+      "component": "src/promo/bodies/StrataDiagram.tsx",
+      "summary": "해치 지층 박스 + 하단 발광 튜브를 주행하는 도트 (10년 지층에 새 통로).",
+      "props": {
+        "title": "string — 예: TRANSFORMER ERA 2017-",
+        "dots": "int 1–8 (기본 3)",
+        "travelFrames": "int (기본 60)"
+      },
+      "demos": [
+        {
+          "page": 3,
+          "type": "strataDiagram",
+          "x": 1300,
+          "y": 780,
+          "w": 480,
+          "h": 180,
+          "enterAt": 44,
+          "title": "TRANSFORMER ERA 2017-",
+          "dots": 3,
+          "travelFrames": 60
+        }
+      ]
+    },
+    {
+      "id": "logCard",
+      "family": "ui-chrome",
+      "originWidgets": [
+        "W18"
+      ],
+      "component": "src/promo/bodies/LogCard.tsx",
+      "summary": "헤더 양끝(제목/● REC) + 타자기 활성 엔트리 + 고스트 슬롯 + 푸터 (MATCH RECORD).",
+      "props": {
+        "title": "string",
+        "rec": "boolean (기본 true)",
+        "activeEntry": "string — 타자기 입력 첫 엔트리",
+        "ghostCount": "int 0–8 (기본 3)",
+        "footer": "string?",
+        "typeFrames": "int (기본 30)"
+      },
+      "demos": [
+        {
+          "page": 4,
+          "type": "logCard",
+          "x": 140,
+          "y": 140,
+          "w": 560,
+          "h": 400,
+          "enterAt": 0,
+          "title": "SEASON 2026 · MATCH RECORD",
+          "rec": true,
+          "activeEntry": "CHALLENGER K3 SIGNED IN",
+          "ghostCount": 3,
+          "footer": "OBSERVATION LOG // NOW RECORDING",
+          "typeFrames": 32
+        }
+      ]
+    },
+    {
+      "id": "terminal",
+      "family": "ui-chrome",
+      "originWidgets": [
+        "W19"
+      ],
+      "component": "src/promo/bodies/Terminal.tsx",
+      "summary": "부트 라인 stagger + 프롬프트 타이핑 + 커서 블링크 + 완료 상태 라인 ($ kimi → K3 READY).",
+      "props": {
+        "header": "string?",
+        "bootLines": "string[] (기본 [])",
+        "prompt": "string (기본 $)",
+        "command": "string",
+        "status": "string? — 완료 후 표시",
+        "typeFrames": "int (기본 24)"
+      },
+      "demos": [
+        {
+          "page": 4,
+          "type": "terminal",
+          "x": 760,
+          "y": 140,
+          "w": 640,
+          "h": 400,
+          "enterAt": 6,
+          "label": "KIMI CODE · TERMINAL",
+          "header": "KIMI CODE — BOOT SEQUENCE",
+          "bootLines": [
+            "K3 CORE LINKED",
+            "AGENT RUNTIME OK"
+          ],
+          "prompt": "$",
+          "command": "kimi",
+          "status": "K3 READY",
+          "typeFrames": 26
+        }
+      ]
+    },
+    {
+      "id": "checklistPanel",
+      "family": "ui-chrome",
+      "originWidgets": [
+        "W20"
+      ],
+      "component": "src/promo/bodies/ChecklistPanel.tsx",
+      "summary": "행별 populate + status 플래그 패널 (CODING…SPREADSHEET READY — SCORING SYSTEM ONLINE).",
+      "props": {
+        "items": "{name, status(기본 READY)}[] (최소 1)",
+        "footer": "string?",
+        "populateFrames": "int (기본 8)"
+      },
+      "demos": [
+        {
+          "page": 4,
+          "type": "checklistPanel",
+          "x": 1460,
+          "y": 140,
+          "w": 320,
+          "h": 400,
+          "enterAt": 12,
+          "items": [
+            {
+              "name": "CODING",
+              "status": "READY"
+            },
+            {
+              "name": "AGENTS",
+              "status": "READY"
+            },
+            {
+              "name": "VISUAL",
+              "status": "READY"
+            },
+            {
+              "name": "TERMINAL",
+              "status": "READY"
+            },
+            {
+              "name": "BROWSE",
+              "status": "READY"
+            },
+            {
+              "name": "SPREADSHEET",
+              "status": "READY"
+            }
+          ],
+          "footer": "SCORING SYSTEM ONLINE",
+          "populateFrames": 7
+        }
+      ]
+    },
+    {
+      "id": "calloutPanel",
+      "family": "ui-chrome",
+      "originWidgets": [
+        "W21"
+      ],
+      "component": "src/promo/bodies/CalloutPanel.tsx",
+      "summary": "번호 콜아웃 패널 + 리더 라인 draw-on + 타깃 레티클 (OBSERVER · INSPECT).",
+      "props": {
+        "header": "string",
+        "items": "string[] (최소 1)",
+        "reticle": "{x 0-1, y 0-1}? — 타깃 지점",
+        "drawFrames": "int (기본 24)"
+      },
+      "demos": [
+        {
+          "page": 4,
+          "type": "calloutPanel",
+          "x": 140,
+          "y": 600,
+          "w": 640,
+          "h": 340,
+          "enterAt": 24,
+          "header": "OBSERVER · INSPECT",
+          "items": [
+            "3D CONSOLE MODEL",
+            "REAL HARDWARE REF",
+            "EMULATION LAYER"
+          ],
+          "reticle": {
+            "x": 0.14,
+            "y": 0.56
+          },
+          "drawFrames": 26
+        }
+      ]
+    },
+    {
+      "id": "platformSelector",
+      "family": "ui-chrome",
+      "originWidgets": [
+        "W22"
+      ],
+      "component": "src/promo/bodies/PlatformSelector.tsx",
+      "summary": "대형 선택 카드(코너 브래킷) + 옵션 스택 + 푸터 (WEB / APP·API — AVAILABLE NOW).",
+      "props": {
+        "primary": "string — 선택 항목",
+        "options": "string[] (최소 1)",
+        "footer": "string?",
+        "staggerFrames": "int (기본 10)"
+      },
+      "demos": [
+        {
+          "page": 4,
+          "type": "platformSelector",
+          "x": 860,
+          "y": 600,
+          "w": 920,
+          "h": 340,
+          "enterAt": 34,
+          "label": "PLATFORM SELECT",
+          "primary": "WEB",
+          "options": [
+            "APP",
+            "API"
+          ],
+          "footer": "AVAILABLE NOW",
+          "staggerFrames": 10
+        }
+      ]
+    },
+    {
+      "id": "kicker",
+      "family": "label-badge",
+      "originWidgets": [
+        "W23"
+      ],
+      "component": "src/promo/bodies/Kicker.tsx",
+      "summary": "좌상 대문자 모노 트래킹 오버라인 + 블루 틱 + 옵션 pill (전 씬 고정 슬롯).",
+      "props": {
+        "text": "string",
+        "tick": "boolean (기본 true) — 앞 블루 틱",
+        "pill": "string? — 뒤 pill 배지"
+      },
+      "demos": [
+        {
+          "page": 5,
+          "type": "kicker",
+          "x": 140,
+          "y": 130,
+          "w": 640,
+          "h": 50,
+          "enterAt": 0,
+          "text": "CHALLENGER // APPROACHING",
+          "tick": true,
+          "pill": "OPEN-SOURCE DIVISION"
+        }
+      ]
+    },
+    {
+      "id": "pillBadge",
+      "family": "label-badge",
+      "originWidgets": [
+        "W24"
+      ],
+      "component": "src/promo/bodies/PillBadge.tsx",
+      "summary": "tone(neutral·data·cta)별 보더 pill 배지 (TERMINAL BENCH 2.1 · TICKET BOOTH).",
+      "props": {
+        "text": "string",
+        "tone": "\"neutral\" | \"data\" | \"cta\" (기본 neutral)",
+        "glyph": "string? — 앞 글리프"
+      },
+      "demos": [
+        {
+          "page": 5,
+          "type": "pillBadge",
+          "x": 140,
+          "y": 210,
+          "w": 420,
+          "h": 60,
+          "enterAt": 4,
+          "text": "TERMINAL BENCH 2.1",
+          "tone": "data",
+          "glyph": "◈"
+        }
+      ]
+    },
+    {
+      "id": "sportsCallout",
+      "family": "label-badge",
+      "originWidgets": [
+        "W25"
+      ],
+      "component": "src/promo/bodies/SportsCallout.tsx",
+      "summary": "스포츠 콜아웃 — WINNER 골드 스탬프 / ×2 콤보 / BONUS ROUND 골드 배너 / UPGRADED 스탬프. 슬램-인 오버슈트.",
+      "props": {
+        "variant": "\"winner\" | \"multiKill\" | \"banner\" | \"stamp\"",
+        "text": "string",
+        "sub": "string? — multiKill 상단 소형"
+      },
+      "demos": [
+        {
+          "page": 5,
+          "type": "sportsCallout",
+          "x": 620,
+          "y": 120,
+          "w": 300,
+          "h": 170,
+          "enterAt": 8,
+          "variant": "winner",
+          "text": "WINNER"
+        },
+        {
+          "page": 5,
+          "type": "sportsCallout",
+          "x": 950,
+          "y": 120,
+          "w": 260,
+          "h": 170,
+          "enterAt": 14,
+          "variant": "multiKill",
+          "text": "×2",
+          "sub": "COMBO"
+        },
+        {
+          "page": 5,
+          "type": "sportsCallout",
+          "x": 140,
+          "y": 330,
+          "w": 520,
+          "h": 120,
+          "enterAt": 20,
+          "variant": "banner",
+          "text": "BONUS ROUND"
+        }
+      ]
+    },
+    {
+      "id": "marquee",
+      "family": "label-badge",
+      "originWidgets": [
+        "W26"
+      ],
+      "component": "src/promo/bodies/Marquee.tsx",
+      "summary": "풀폭 반복 텍스트 티커 — 프레임 결정적 등속 스크롤 (MATCH HIGHLIGHTS ▸ …).",
+      "props": {
+        "text": "string",
+        "separator": "string (기본 \" ▸ \")",
+        "speed": "number px/frame (기본 3)"
+      },
+      "demos": [
+        {
+          "page": 5,
+          "type": "marquee",
+          "x": 0,
+          "y": 520,
+          "w": 1920,
+          "h": 56,
+          "enterAt": 0,
+          "text": "MATCH HIGHLIGHTS",
+          "speed": 3
+        }
+      ]
+    },
+    {
+      "id": "splitFlap",
+      "family": "label-badge",
+      "originWidgets": [
+        "W27"
+      ],
+      "component": "src/promo/bodies/SplitFlap.tsx",
+      "summary": "글자 타일이 결정적 문자 순환 후 정착하는 스플릿플랩 보드 (PRICING).",
+      "props": {
+        "text": "string",
+        "staggerFrames": "int (기본 4) — 글자당 시작 지연",
+        "flipFrames": "int (기본 16) — 글자당 플립 지속"
+      },
+      "demos": [
+        {
+          "page": 2,
+          "type": "splitFlap",
+          "x": 520,
+          "y": 530,
+          "w": 560,
+          "h": 160,
+          "enterAt": 20,
+          "label": "TICKET BOOTH",
+          "text": "PRICING",
+          "staggerFrames": 4,
+          "flipFrames": 16
+        }
+      ]
+    },
+    {
+      "id": "timelineScrubber",
+      "family": "label-badge",
+      "originWidgets": [
+        "W28"
+      ],
+      "component": "src/promo/bodies/TimelineScrubber.tsx",
+      "summary": "기간 압축 스크러버 — from 라벨이 흐려지고 to 라벨이 블루로 등장 (2 WEEKS → 2 HOURS).",
+      "props": {
+        "fromLabel": "string",
+        "toLabel": "string",
+        "scrubFrames": "int (기본 40)"
+      },
+      "demos": [
+        {
+          "page": 2,
+          "type": "timelineScrubber",
+          "x": 1040,
+          "y": 790,
+          "w": 740,
+          "h": 160,
+          "enterAt": 34,
+          "label": "SCIENTIFIC CODING // MANUAL PACE",
+          "fromLabel": "2 WEEKS",
+          "toLabel": "2 HOURS",
+          "scrubFrames": 44
+        }
+      ]
+    },
+    {
+      "id": "frameBrackets",
+      "family": "label-badge",
+      "originWidgets": [
+        "W29"
+      ],
+      "component": "src/promo/bodies/FrameBrackets.tsx",
+      "summary": "4코너 프레이밍 브래킷 + 상단 양끝 라벨 + 중앙 라벨 (풀블리드 푸티지 프레임 — PRESS START).",
+      "props": {
+        "topLeft": "string?",
+        "topRight": "string?",
+        "centerLabel": "string?"
+      },
+      "demos": [
+        {
+          "page": 5,
+          "type": "frameBrackets",
+          "x": 140,
+          "y": 660,
+          "w": 700,
+          "h": 280,
+          "enterAt": 26,
+          "topLeft": "NOW SHOWING · WUXIA RPG",
+          "topRight": "TITLE SCREEN INCLUDED",
+          "centerLabel": "PRESS START"
+        }
+      ]
+    },
+    {
+      "id": "subtitle",
+      "family": "label-badge",
+      "originWidgets": [
+        "W31"
+      ],
+      "component": "src/promo/bodies/Subtitle.tsx",
+      "summary": "중앙 하단 자막 밴드 — 어둠 그라디언트 + 화이트 자막 (전 씬 고정 슬롯의 위젯판).",
+      "props": {
+        "text": "string"
+      },
+      "demos": [
+        {
+          "page": 5,
+          "type": "subtitle",
+          "x": 700,
+          "y": 330,
+          "w": 700,
+          "h": 110,
+          "enterAt": 22,
+          "text": "그리고 이 모든 것이, 공개됩니다"
+        }
+      ]
+    },
+    {
+      "id": "chevronBadges",
+      "family": "label-badge",
+      "originWidgets": [
+        "W32"
+      ],
+      "component": "src/promo/bodies/ChevronBadges.tsx",
+      "summary": "페넌트 배지 3분할 드롭-인 — 하이라이트 배지는 블루 필 + 골드 크라운 (CODING/AGENTS/VISUAL SOTA).",
+      "props": {
+        "items": "{label, sub?, highlight?}[] (최소 1)",
+        "staggerFrames": "int (기본 6)"
+      },
+      "demos": [
+        {
+          "page": 5,
+          "type": "chevronBadges",
+          "x": 1250,
+          "y": 110,
+          "w": 530,
+          "h": 270,
+          "enterAt": 6,
+          "items": [
+            {
+              "label": "CODING",
+              "sub": "SOTA",
+              "highlight": true
+            },
+            {
+              "label": "AGENTS",
+              "sub": "SOTA",
+              "highlight": false
+            },
+            {
+              "label": "VISUAL",
+              "sub": "SOTA",
+              "highlight": false
+            }
+          ],
+          "staggerFrames": 6
+        }
+      ]
+    },
+    {
+      "id": "dateFlip",
+      "family": "label-badge",
+      "originWidgets": [
+        "W33"
+      ],
+      "component": "src/promo/bodies/DateFlip.tsx",
+      "summary": "글자 rotateX 플립-인 날짜 히어로 + 블루 강조부 + 키커 (SEASON OPENER — JUL 27).",
+      "props": {
+        "text": "string — 예: JUL",
+        "accent": "string? — 블루 강조부 (예: 27)",
+        "kicker": "string?",
+        "flipFrames": "int (기본 12)"
+      },
+      "demos": [
+        {
+          "page": 2,
+          "type": "dateFlip",
+          "x": 1180,
+          "y": 530,
+          "w": 600,
+          "h": 220,
+          "enterAt": 26,
+          "text": "JUL",
+          "accent": "27",
+          "kicker": "SEASON OPENER",
+          "flipFrames": 12
+        }
+      ]
+    },
+    {
+      "id": "ticketProp",
+      "family": "label-badge",
+      "originWidgets": [
+        "W34"
+      ],
+      "component": "src/promo/bodies/TicketProp.tsx",
+      "summary": "티켓 카드 슬라이드-인 + 하이라이트 + UPGRADED 스탬프 슬램 (STANDARD → VIP EXPERIENCE).",
+      "props": {
+        "tickets": "{tier, classLabel?, highlight?}[] (최소 1)",
+        "stamp": "string? — 하이라이트 티켓 스탬프",
+        "slideFrames": "int (기본 16)"
+      },
+      "demos": [
+        {
+          "page": 2,
+          "type": "ticketProp",
+          "x": 140,
+          "y": 740,
+          "w": 800,
+          "h": 220,
+          "enterAt": 40,
+          "tickets": [
+            {
+              "tier": "STANDARD",
+              "highlight": false
+            },
+            {
+              "tier": "VIP EXPERIENCE",
+              "classLabel": "FABLE CLASS",
+              "highlight": true
+            }
+          ],
+          "stamp": "UPGRADED",
+          "slideFrames": 16
+        }
+      ]
+    },
+    {
+      "id": "heroTitle",
+      "family": "label-badge",
+      "originWidgets": [
+        "W3"
+      ],
+      "component": "src/promo/bodies/HeroTitle.tsx",
+      "summary": "키네틱 히어로 타이포 — 거대(scaleFrom)로 등장해 수축 정착 + 글로우. 원본 KIMI K3/SUPER HEAVYWEIGHT 타이틀 문법. flashAt에 enterAt+settleFrames 비트를 두면 정착 직후 플래시 리듬이 된다.",
+      "props": {
+        "text": "string — 1행 (화이트)",
+        "accent": "string? — 2행 (데이터 블루)",
+        "sub": "string? — 하단 트래킹 서브라인",
+        "underline": "boolean (기본 false) — 타입폭 언더라인",
+        "align": "\"center\" | \"left\" (기본 center)",
+        "scaleFrom": "number 1–3 (기본 1.5) — 등장 스케일",
+        "settleFrames": "int (기본 6) — 수축 정착 프레임"
+      },
+      "demos": [
+        {
+          "page": 6,
+          "type": "heroTitle",
+          "x": 260,
+          "y": 300,
+          "w": 1400,
+          "h": 480,
+          "enterAt": 10,
+          "text": "SUPER",
+          "accent": "HEAVYWEIGHT",
+          "sub": "LARGEST EVER RECORDED",
+          "underline": true,
+          "align": "left",
+          "scaleFrom": 1.5,
+          "settleFrames": 6
+        }
+      ]
+    },
+    {
+      "id": "sealStamp",
+      "family": "label-badge",
+      "originWidgets": [
+        "ORIG-SEAL"
+      ],
+      "component": "src/promo/bodies/SealStamp.tsx",
+      "summary": "낙관(落款) 스탬프 — 주사 인주 사각 도장이 높이 들렸다 내리찍히는 슬램. WINNER 스탬프의 감지금니식 대체 (P6-B 오리지널, KIMI census에 없음).",
+      "props": {
+        "text": "string 1–6자 — 인문(印文), 예: 完·落款·檢",
+        "sub": "string? — 하단 소형 라벨",
+        "style": "\"jumun\"(주사 필+음각 인문) | \"baekmun\"(테두리+주사 인문) (기본 jumun)",
+        "slamFrames": "int (기본 10)"
+      },
+      "demos": [
+        {
+          "page": 6,
+          "type": "sealStamp",
+          "x": 1380,
+          "y": 620,
+          "w": 300,
+          "h": 300,
+          "enterAt": 30,
+          "text": "完",
+          "sub": "VERIFIED",
+          "style": "jumun",
+          "slamFrames": 10
+        }
+      ]
+    },
+    {
+      "id": "logoLockup",
+      "family": "label-badge",
+      "originWidgets": [
+        "W36"
+      ],
+      "component": "src/promo/bodies/LogoLockup.tsx",
+      "summary": "아이콘 배지 + 워드마크 + 블루 언더라인 + 옵션 가랜드. dark/white 테마 (화이트 축하 아웃트로).",
+      "props": {
+        "wordmark": "string",
+        "icon": "string? — 아이콘 글자",
+        "sub": "string?",
+        "theme": "\"dark\" | \"white\" (기본 dark)",
+        "bunting": "boolean (기본 false) — 상단 가랜드"
+      },
+      "demos": [
+        {
+          "page": 5,
+          "type": "logoLockup",
+          "x": 980,
+          "y": 630,
+          "w": 800,
+          "h": 310,
+          "enterAt": 32,
+          "wordmark": "KIMI K3",
+          "icon": "K",
+          "sub": "FROM THE DARK SIDE OF THE MOON",
+          "theme": "white",
+          "bunting": true
+        }
+      ]
+    }
+  ]
+}

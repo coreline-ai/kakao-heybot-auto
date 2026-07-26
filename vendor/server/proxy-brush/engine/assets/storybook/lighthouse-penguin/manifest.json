@@ -1,0 +1,122 @@
+{
+  "project": "storybook-lighthouse-penguin",
+  "title": "겁쟁이 등대지기 펭귄",
+  "total_scenes": 10,
+  "target_resolution": "1080x1920",
+  "aspect_ratio": "9:16",
+  "generated_with": "built-in image_gen",
+  "upscaled_from": "941x1672 to 1080x1920 using Lanczos",
+  "style": "storybook illustration; warm ivory paper; closed dark-navy outlines; broad flat color regions; pen-to-brush ready",
+  "scenes": [
+    {
+      "scene": 1,
+      "description": "작은 펭귄 토리가 바닷가 등대에서 잔잔한 바다를 바라본다.",
+      "file": "assets/storybook/lighthouse-penguin/scene-01.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-navy outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 2,
+      "description": "먼바다에 먹구름이 몰려오고 작은 배들이 항구로 돌아온다.",
+      "file": "assets/storybook/lighthouse-penguin/scene-02.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-navy outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 3,
+      "description": "폭풍이 시작되며 등대의 불빛이 꺼진다.",
+      "file": "assets/storybook/lighthouse-penguin/scene-03.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-navy outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 4,
+      "description": "토리가 높은 등대 계단 앞에서 겁먹은 표정을 짓는다.",
+      "file": "assets/storybook/lighthouse-penguin/scene-04.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-navy outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 5,
+      "description": "할아버지 펭귄이 작은 등불과 용기를 건넨다.",
+      "file": "assets/storybook/lighthouse-penguin/scene-05.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-navy outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 6,
+      "description": "친구들이 밧줄을 잡고 토리를 응원한다.",
+      "file": "assets/storybook/lighthouse-penguin/scene-06.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-navy outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 7,
+      "description": "토리가 흔들리는 계단을 한 칸씩 올라간다.",
+      "file": "assets/storybook/lighthouse-penguin/scene-07.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-navy outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 8,
+      "description": "토리가 등대 꼭대기의 불씨에 작은 등불을 붙인다.",
+      "file": "assets/storybook/lighthouse-penguin/scene-08.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-navy outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 9,
+      "description": "등대 빛이 어두운 바다를 비추고 배가 항구를 찾는다.",
+      "file": "assets/storybook/lighthouse-penguin/scene-09.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-navy outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 10,
+      "description": "폭풍이 지나간 뒤 모두가 토리를 안아 주며 해돋이를 바라본다.",
+      "file": "assets/storybook/lighthouse-penguin/scene-10.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-navy outlines; broad flat color regions; pen-to-brush ready"
+    }
+  ]
+}

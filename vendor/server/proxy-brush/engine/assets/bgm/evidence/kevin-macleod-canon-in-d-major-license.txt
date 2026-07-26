@@ -1,0 +1,11 @@
+License record supplied with the audio by the user on 2026-07-14.
+
+Canon in D Major by Kevin MacLeod is licensed under Creative Commons
+Attribution 4.0 International (CC BY 4.0).
+
+License: https://creativecommons.org/licenses/by/4.0/
+Source: http://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100301
+Artist: http://incompetech.com/
+
+Planned changes: skip the initial 0.163 seconds of silence; normalize, duck
+under narration, fade out, and convert the mixed output to AAC.

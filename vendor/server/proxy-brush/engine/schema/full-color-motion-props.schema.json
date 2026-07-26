@@ -1,0 +1,339 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "projectId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string"
+    },
+    "format": {
+      "default": "youtube",
+      "type": "string",
+      "enum": [
+        "youtube",
+        "shorts"
+      ]
+    },
+    "audio": {
+      "default": null,
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "brush": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "default": "image",
+          "type": "string",
+          "enum": [
+            "image",
+            "pen"
+          ]
+        },
+        "src": {
+          "type": "string"
+        },
+        "w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "h": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "tipx": {
+          "type": "number"
+        },
+        "tipy": {
+          "type": "number"
+        },
+        "visible": {
+          "default": true,
+          "type": "boolean"
+        },
+        "opacity": {
+          "default": 1,
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "scenes": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "image": {
+            "type": "string",
+            "minLength": 1
+          },
+          "durationInFrames": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "movement": {
+            "default": "push-in",
+            "type": "string",
+            "enum": [
+              "push-in",
+              "push-out",
+              "pan-left",
+              "pan-right",
+              "rise",
+              "fall",
+              "arc-left",
+              "arc-right"
+            ]
+          },
+          "effect": {
+            "default": "none",
+            "type": "string",
+            "enum": [
+              "none",
+              "rays",
+              "mist",
+              "birds",
+              "stars",
+              "storm",
+              "sparkles",
+              "lanterns",
+              "fireflies",
+              "ripples",
+              "aurora",
+              "trail"
+            ]
+          },
+          "intensity": {
+            "default": 1,
+            "type": "number",
+            "minimum": 0.25,
+            "maximum": 2
+          },
+          "reveal": {
+            "default": {
+              "mode": "none",
+              "frames": 96
+            },
+            "type": "object",
+            "properties": {
+              "mode": {
+                "default": "none",
+                "type": "string",
+                "enum": [
+                  "none",
+                  "brush"
+                ]
+              },
+              "routes": {
+                "type": "string",
+                "minLength": 1
+              },
+              "frames": {
+                "default": 96,
+                "type": "integer",
+                "minimum": 30,
+                "maximum": 180
+              },
+              "cursor": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "default": "image",
+                    "type": "string",
+                    "enum": [
+                      "image",
+                      "pen"
+                    ]
+                  },
+                  "src": {
+                    "type": "string"
+                  },
+                  "w": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "h": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "tipx": {
+                    "type": "number"
+                  },
+                  "tipy": {
+                    "type": "number"
+                  },
+                  "visible": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "opacity": {
+                    "default": 1,
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                }
+              }
+            }
+          },
+          "cues": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "from": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "to": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "text",
+                "from",
+                "to"
+              ]
+            }
+          },
+          "captionsVisible": {
+            "default": true,
+            "type": "boolean"
+          },
+          "topTitle": {
+            "type": "object",
+            "properties": {
+              "kicker": {
+                "type": "string"
+              },
+              "lines": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "width": {
+                "type": "number"
+              },
+              "align": {
+                "default": "left",
+                "type": "string",
+                "enum": [
+                  "left",
+                  "center",
+                  "right"
+                ]
+              },
+              "enterAt": {
+                "default": 0,
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "accent": {
+                "type": "string"
+              },
+              "firstWordColor": {
+                "type": "string"
+              },
+              "color": {
+                "type": "string"
+              },
+              "fontSize": {
+                "type": "number"
+              },
+              "kickerFontSize": {
+                "type": "number"
+              },
+              "wash": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "lines"
+            ]
+          },
+          "subtitleStyle": {
+            "type": "object",
+            "properties": {
+              "bottom": {
+                "type": "number"
+              },
+              "fontSize": {
+                "type": "number"
+              },
+              "maxWidth": {
+                "type": "number"
+              },
+              "paddingX": {
+                "type": "number"
+              },
+              "paddingY": {
+                "type": "number"
+              },
+              "color": {
+                "type": "string"
+              },
+              "highlightColor": {
+                "type": "string"
+              },
+              "background": {
+                "type": "string"
+              },
+              "border": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "id",
+          "image",
+          "durationInFrames"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "projectId",
+    "scenes"
+  ]
+}

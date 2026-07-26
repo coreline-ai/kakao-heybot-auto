@@ -1,0 +1,25 @@
+# Python 3.11 core environment captured from the verified Brush baseline.
+attrs==26.1.0
+cffi==2.1.0
+imageio==2.37.3
+iniconfig==2.3.0
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+lazy-loader==0.5
+networkx==2.8.8
+numpy==1.26.4
+packaging==26.2
+pillow==12.3.0
+pluggy==1.6.0
+pycparser==3.0
+Pygments==2.20.0
+pytest==9.1.1
+PyYAML==6.0.3
+referencing==0.37.0
+rpds-py==2026.6.3
+scikit-image==0.24.0
+scipy==1.17.1
+setuptools==79.0.1
+soundfile==0.14.0
+tifffile==2026.3.3
+typing_extensions==4.16.0

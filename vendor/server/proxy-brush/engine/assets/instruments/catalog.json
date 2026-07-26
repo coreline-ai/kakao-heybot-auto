@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "instruments": [
+    {
+      "id": "noct-salamander-grand-v6-1a",
+      "title": "Noct-Salamander Grand Piano v6.1a",
+      "format": "sfz-wav",
+      "localRoot": "local-assets/instruments/noct-salamander-grand-v6-1a",
+      "source": {
+        "projectPage": "https://www.ir.isas.jaxa.jp/~cyamauch/AccurateSalamander/",
+        "downloadPage": "https://drive.google.com/file/d/1Mq_ohnKkyyU3GPSRHgk-ftBiuc0Ldq-r/view?usp=sharing",
+        "author": "Chisato Yamauchi",
+        "derivedFrom": "Salamander Grand Piano V3 by Alexander Holm"
+      },
+      "license": {
+        "name": "Creative Commons Attribution 3.0 Unported",
+        "url": "https://creativecommons.org/licenses/by/3.0/",
+        "attributionRequired": true,
+        "attributionText": "Piano samples: Noct-Salamander Grand Piano v6.1a by Chisato Yamauchi, derived from Salamander Grand Piano V3 by Alexander Holm, licensed under CC BY 3.0. Source: https://www.ir.isas.jaxa.jp/~cyamauch/AccurateSalamander/",
+        "modificationNotice": "The samples are used only as the instrument source for an original MIDI composition. The rendered composition is newly arranged, normalized, and exported; the source sample library is not redistributed."
+      },
+      "recording": {
+        "sampleRateHz": 48000,
+        "bitDepth": 24,
+        "fundamentalSampleCount": 480,
+        "velocityLayers": 16
+      },
+      "acquisition": {
+        "archiveFile": "archives/NoctSalamanderGrandPianoV6.1a_48khz24bit.zip",
+        "archiveSha256": "e759cd49326dd941034089fd7045bacc822a46bb6ea4bf1e13781ee3cde9e1e9",
+        "acquiredAt": "2026-07-17T12:15:37+09:00"
+      }
+    }
+  ]
+}

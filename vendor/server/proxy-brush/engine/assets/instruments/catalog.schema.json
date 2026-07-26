@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://brushvid.local/schema/instrument-catalog.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "instruments"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "instruments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "format",
+          "localRoot",
+          "source",
+          "license",
+          "recording",
+          "acquisition"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]+$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "format": {
+            "const": "sfz-wav"
+          },
+          "localRoot": {
+            "type": "string",
+            "pattern": "^local-assets/instruments/"
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "projectPage",
+              "downloadPage",
+              "author",
+              "derivedFrom"
+            ],
+            "properties": {
+              "projectPage": {
+                "type": "string",
+                "format": "uri"
+              },
+              "downloadPage": {
+                "type": "string",
+                "format": "uri"
+              },
+              "author": {
+                "type": "string",
+                "minLength": 1
+              },
+              "derivedFrom": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "license": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "url",
+              "attributionRequired",
+              "attributionText",
+              "modificationNotice"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "attributionRequired": {
+                "const": true
+              },
+              "attributionText": {
+                "type": "string",
+                "minLength": 1
+              },
+              "modificationNotice": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "recording": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sampleRateHz",
+              "bitDepth",
+              "fundamentalSampleCount",
+              "velocityLayers"
+            ],
+            "properties": {
+              "sampleRateHz": {
+                "const": 48000
+              },
+              "bitDepth": {
+                "const": 24
+              },
+              "fundamentalSampleCount": {
+                "const": 480
+              },
+              "velocityLayers": {
+                "const": 16
+              }
+            }
+          },
+          "acquisition": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "archiveFile",
+              "archiveSha256",
+              "acquiredAt"
+            ],
+            "properties": {
+              "archiveFile": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "archiveSha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "acquiredAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

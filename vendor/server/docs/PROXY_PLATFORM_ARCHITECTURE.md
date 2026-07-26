@@ -2,7 +2,7 @@
 
 - 작성일: 2026-07-25
 - 실행 위치: Mac mini
-- 상태: 구조·계약 설계, 런타임 구현 전
+- 상태: image/codex 구현·운영 중, draw/brush 구현 완료·기본 OFF
 
 ## 1. 핵심 구조
 
@@ -14,10 +14,13 @@
 
 2. Domain Proxy
    proxy-image
+   proxy-draw        # 펜 선화 → 브러시 채색, 기본 OFF
    proxy-video       # 향후
+   proxy-conversation # GLM 외부 text gateway
 
 3. Execution Engine Proxy
    proxy-codex
+   proxy-brush       # 고정 Remotion pen-brush renderer, 기본 OFF
    proxy-grok        # 향후
 ```
 
@@ -25,7 +28,9 @@
 PD20 Iris
   -> proxy-manager
        ├── /v1/image -> proxy-image -> proxy-codex -> Codex CLI
+       ├── /v1/draw  -> proxy-draw  -> proxy-codex -> proxy-brush
        └── /v1/video -> proxy-video -> proxy-grok  -> Grok CLI
+       └── /v1/conversation -> proxy-conversation -> proxy-codex/proxy-grok -> text CLI
 ```
 
 ## 2. 설계 원칙
@@ -49,8 +54,11 @@ PD20 Iris
 proxy-manager process
 proxy-image process
 proxy-codex process -> Codex CLI child
+proxy-draw process
+proxy-brush process -> Python/Remotion child
 proxy-video process
 proxy-grok process  -> Grok CLI child
+proxy-conversation process -> provider text relay
 ```
 
 - 이미지 생성 중 GLM 텍스트 대화와 다른 프록시는 계속 동작한다.
@@ -68,8 +76,11 @@ proxy-grok process  -> Grok CLI child
 | `proxy-manager` | edge/control | PD20 | route·registry·health·test·lifecycle | 각 proxy 상태 |
 | `proxy-image` | domain | manager 경유 | image job·prompt 정책·픽셀 QC·최종 PNG | `proxy-codex` |
 | `proxy-codex` | engine | 내부 전용 | Codex CLI·capability·전역 queue·workspace | Codex CLI |
+| `proxy-draw` | domain | manager 경유·기본 OFF | 방 scope job·제어된 PNG source·최종 MP4 QC | `proxy-codex`, `proxy-brush` |
+| `proxy-brush` | engine | 내부 전용·기본 OFF | 10초·1장면 pen outline → brush color renderer·QA | Python, Remotion, FFmpeg |
 | `proxy-video` | domain | manager 경유, 비활성 | video job·미디어 QC·최종 MP4 | `proxy-grok` |
 | `proxy-grok` | engine | 내부 전용, 비활성 | Grok CLI·capability·전역 queue·workspace | Grok CLI |
+| `proxy-conversation` | domain | manager 경유 | provider 선택·text contract·timeout·no-store relay | `proxy-codex`, `proxy-grok` |
 
 ## 4. 포트
 
@@ -80,6 +91,9 @@ proxy-grok process  -> Grok CLI child
 | `proxy-codex` | `4348` | 계획 |
 | `proxy-video` | `4357` | 향후·비활성 |
 | `proxy-grok` | `4358` | 향후·비활성 |
+| `proxy-draw` | `4359` | 기본 OFF |
+| `proxy-brush` | `4360` | 내부 전용·기본 OFF |
+| `proxy-conversation` | `4361` | manager gateway |
 
 PD20 ADB reverse는 manager 한 개만 사용한다.
 
@@ -119,6 +133,42 @@ PD20
 
 비디오는 현재 비활성이며 Grok CLI 실제 capability가 doctor와 canary를 통과한 뒤에만 활성화한다.
 
+### 펜브러쉬
+
+```text
+PD20
+ -> manager /v1/draw/jobs
+ -> draw job (chatId scope/idempotency)
+ -> codex internal job: controlled image.generate
+ -> draw source PNG QC
+ -> brush internal fixed pen-brush render + frame/MP4 QA
+ -> draw private artifact
+ -> manager binary stream
+ -> PD20
+ -> Kakao native video send
+```
+
+`proxy-brush`는 사용자의 prompt·YAML·CLI argument를 직접 받지 않는다. 10초·1 scene·세로
+규격은 renderer service에 고정하며, `proxy-draw`만 `draw` caller secret으로 source PNG와
+deterministic seed를 전달한다.
+
+### 텍스트 대화
+
+```text
+PD20 Iris
+ -> manager /v1/conversation/respond
+ -> proxy-conversation (engine=codex|grok)
+ -> provider internal conversation.respond.v1
+ -> text-only CLI runner
+ -> bounded text response
+ -> PD20 Iris
+ -> Kakao text send
+```
+
+GLM은 위 경로를 사용하지 않고 Android 내부 `GlmClient`에서 바로 처리한다. Codex/Grok의
+text queue는 각 provider의 image/video queue와 분리하며, conversation proxy는 응답을
+파일이나 SQLite에 저장하지 않는다.
+
 ## 6. Registry와 dependency
 
 manager registry는 모든 패키지를 관리하지만 외부 route는 `gateway` 프록시에만 부여한다.
@@ -128,6 +178,9 @@ image: gateway, /v1/image, dependencies=[codex]
 codex: internal, dependencies=[]
 video: gateway, /v1/video, dependencies=[grok], enabled=false
 grok:  internal, dependencies=[], enabled=false
+draw:  gateway, /v1/draw, dependencies=[codex, brush], enabled=false
+brush: internal, dependencies=[], enabled=false
+conversation: gateway, /v1/conversation, dependencies=[codex, grok], enabled=true
 ```
 
 검증 규칙:
@@ -147,10 +200,16 @@ Engine proxy는 CLI 명령을 그대로 노출하지 않는다.
 
 ```text
 proxy-codex
-  image.generate -> allowed caller: image
+  image.generate -> allowed callers: image, draw
+
+proxy-brush
+  pen-brush.render.v1 -> allowed caller: draw
 
 proxy-grok
   video.generate -> allowed caller: video
+
+proxy-codex / proxy-grok
+  conversation.respond.v1 -> allowed caller: conversation
 ```
 
 각 capability는 다음을 가진다.
@@ -178,6 +237,7 @@ proxy-grok
 ```text
 imageJobId -> codexJobId
 videoJobId -> grokJobId
+drawJobId  -> codexJobId -> brushJobId
 ```
 
 Domain proxy:
@@ -204,6 +264,8 @@ Queue 소유:
 - `proxy-codex`: Codex CLI 전체 동시성·caller 간 자원 보호
 - `proxy-video`: 비디오 접수 순서·방별 한도
 - `proxy-grok`: Grok CLI 전체 동시성
+- `proxy-draw`: 펜브러쉬 접수 순서·방별 한도·최종 MP4 보관
+- `proxy-brush`: 고정 renderer 한 건 실행
 
 각 queue의 concurrency와 pending limit는 서로 독립적으로 설정한다.
 

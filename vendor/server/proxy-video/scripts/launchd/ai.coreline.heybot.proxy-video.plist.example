@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>ai.coreline.heybot.proxy-video</string>
+  <key>ProgramArguments</key><array><string>/usr/local/bin/node</string><string>dist/src/index.js</string></array>
+  <key>WorkingDirectory</key><string>&lt;ABSOLUTE_PROXY_VIDEO_ROOT&gt;</string>
+  <key>EnvironmentVariables</key><dict>
+    <key>VIDEO_PROXY_HOST</key><string>127.0.0.1</string>
+    <key>VIDEO_PROXY_PORT</key><string>4357</string>
+    <key>VIDEO_PROXY_MANAGER_SECRET_FILE</key><string>&lt;ABSOLUTE_PROXY_VIDEO_ROOT&gt;/runtime/secrets/manager.secret</string>
+    <key>VIDEO_PROXY_GROK_BASE_URL</key><string>http://127.0.0.1:4358</string>
+    <key>VIDEO_PROXY_GROK_SECRET_FILE</key><string>&lt;ABSOLUTE_PROXY_VIDEO_ROOT&gt;/runtime/secrets/grok-upstream.secret</string>
+    <key>VIDEO_PROXY_FFPROBE_COMMAND</key><string>&lt;ABSOLUTE_FFPROBE_COMMAND&gt;</string>
+  </dict>
+  <key>RunAtLoad</key><true/><key>KeepAlive</key><true/><key>ThrottleInterval</key><integer>10</integer>
+  <key>StandardOutPath</key><string>&lt;ABSOLUTE_PROXY_VIDEO_ROOT&gt;/runtime/logs/launchd.out.log</string>
+  <key>StandardErrorPath</key><string>&lt;ABSOLUTE_PROXY_VIDEO_ROOT&gt;/runtime/logs/launchd.err.log</string>
+</dict></plist>

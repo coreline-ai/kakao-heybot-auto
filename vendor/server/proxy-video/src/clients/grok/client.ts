@@ -1,0 +1,13 @@
+import { readSecret } from '../../auth/auth.js';
+import type { VideoProxyConfig } from '../../config/config.js';
+export interface GrokJobResponse { jobId:string; status:'queued'|'running'|'succeeded'|'failed'|'cancelled'; error?:{code:string}; artifacts:Array<{artifactId:string;mediaType:string;bytes:number;sha256:string}>; }
+export class GrokClient {
+  readonly #secret:string;
+  constructor(private readonly config:VideoProxyConfig){this.#secret=readSecret(config.grokSecretFile);}
+  async readiness(signal?:AbortSignal):Promise<{ready:boolean;reason?:string}>{try{const r=await fetch(`${this.config.grokBaseUrl}/ready`,{signal});const b=await r.json() as {ready?:boolean;reason?:string};return {ready:r.ok&&b.ready===true,reason:b.reason};}catch{return {ready:false,reason:'GROK_UNAVAILABLE'};}}
+  async create(requestId:string,prompt:string,signal:AbortSignal):Promise<GrokJobResponse>{const r=await fetch(`${this.config.grokBaseUrl}/internal/v1/grok/jobs`,{method:'POST',signal,headers:this.headers('application/json'),body:JSON.stringify({requestId,capability:'video.generate',input:{prompt},artifactContract:{acceptedMediaTypes:['video/mp4'],maxArtifacts:1,maxBytesPerArtifact:this.config.videoMaxBytes}})});const b=await r.json() as GrokJobResponse&{error?:{code:string}};if(!r.ok)throw new Error(b.error?.code||'GROK_CREATE_FAILED');return b;}
+  async get(jobId:string,signal:AbortSignal):Promise<GrokJobResponse>{const r=await fetch(`${this.config.grokBaseUrl}/internal/v1/grok/jobs/${encodeURIComponent(jobId)}`,{signal,headers:this.headers()});const b=await r.json() as GrokJobResponse&{error?:{code:string}};if(!r.ok)throw new Error(b.error?.code||'GROK_STATUS_FAILED');return b;}
+  async download(jobId:string,_artifactId:string,signal:AbortSignal):Promise<Buffer>{const r=await fetch(`${this.config.grokBaseUrl}/internal/v1/grok/jobs/${encodeURIComponent(jobId)}/artifact`,{signal,headers:this.headers()});if(!r.ok||r.headers.get('content-type')!=='video/mp4')throw new Error('GROK_ARTIFACT_DOWNLOAD_FAILED');const declared=Number(r.headers.get('content-length')||0);if(declared>this.config.videoMaxBytes)throw new Error('VIDEO_SIZE_INVALID');const b=Buffer.from(await r.arrayBuffer());if(b.length>this.config.videoMaxBytes)throw new Error('VIDEO_SIZE_INVALID');return b;}
+  async cancel(jobId:string):Promise<void>{await fetch(`${this.config.grokBaseUrl}/internal/v1/grok/jobs/${encodeURIComponent(jobId)}`,{method:'DELETE',headers:this.headers()}).catch(()=>undefined);}
+  private headers(contentType?:string):Record<string,string>{return {authorization:`Bearer ${this.#secret}`,'x-heybot-service-id':this.config.grokServiceId,...(contentType?{'content-type':contentType}:{})};}
+}

@@ -25,7 +25,7 @@ export class CapabilityRegistry {
     }
     for (const capability of parsed.capabilities) {
       if (
-        capability.id !== "image.generate" ||
+        !["image.generate", "conversation.respond.v1"].includes(capability.id) ||
         !Array.isArray(capability.allowedCallers) ||
         capability.allowedCallers.length === 0
       ) {

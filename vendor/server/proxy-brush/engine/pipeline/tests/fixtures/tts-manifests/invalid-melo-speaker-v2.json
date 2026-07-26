@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "projectId": "bad-melo",
+  "engine": "melo-ko",
+  "voice": "kr-default",
+  "model": "myshell-ai/MeloTTS-Korean",
+  "modelRevision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "packageVersion": "0.1.2",
+  "language": "ko",
+  "nativeSampleRate": 44100,
+  "outputSampleRate": 44100,
+  "requestedSpeed": 1.0,
+  "appliedSpeed": 1.0,
+  "requestedTiming": "tts",
+  "appliedTiming": "tts",
+  "pauseMs": 300,
+  "durationSec": 1.0,
+  "sentenceCount": 1,
+  "audioSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "license": {
+    "model": "MIT",
+    "url": "https://example.com/melo-license",
+    "aiDisclosureRequired": true
+  },
+  "aiDisclosure": "AI 합성 음성",
+  "speaker": "fallback"
+}

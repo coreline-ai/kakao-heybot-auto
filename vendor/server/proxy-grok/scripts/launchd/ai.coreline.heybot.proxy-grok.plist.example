@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>ai.coreline.heybot.proxy-grok</string>
+  <key>ProgramArguments</key><array><string>/usr/local/bin/node</string><string>dist/src/index.js</string></array>
+  <key>WorkingDirectory</key><string>&lt;ABSOLUTE_PROXY_GROK_ROOT&gt;</string>
+  <key>EnvironmentVariables</key><dict>
+    <key>GROK_PROXY_HOST</key><string>127.0.0.1</string>
+    <key>GROK_PROXY_PORT</key><string>4358</string>
+    <key>GROK_PROXY_VIDEO_SECRET_FILE</key><string>&lt;ABSOLUTE_PROXY_GROK_ROOT&gt;/runtime/secrets/video-upstream.secret</string>
+    <key>GROK_PROXY_CLI_COMMAND</key><string>&lt;ABSOLUTE_GROK_CLI_COMMAND&gt;</string>
+    <key>GROK_PROXY_CLI_HOME</key><string>&lt;ABSOLUTE_GROK_CLI_HOME&gt;</string>
+    <key>GROK_PROXY_SESSION_ROOT</key><string>&lt;ABSOLUTE_GROK_SESSION_ROOT&gt;</string>
+  </dict>
+  <key>RunAtLoad</key><true/><key>KeepAlive</key><true/><key>ThrottleInterval</key><integer>10</integer>
+  <key>StandardOutPath</key><string>&lt;ABSOLUTE_PROXY_GROK_ROOT&gt;/runtime/logs/launchd.out.log</string>
+  <key>StandardErrorPath</key><string>&lt;ABSOLUTE_PROXY_GROK_ROOT&gt;/runtime/logs/launchd.err.log</string>
+</dict></plist>

@@ -1,130 +1,41 @@
-# HeyBot Grok Proxy (`proxy-grok`)
+# HeyBot Grok CLI Proxy (`proxy-grok`)
 
-Mac mini의 Grok CLI를 한 곳에서 실행하고, 허용된 `proxy-*` 패키지에 capability 기반 내부 Job API로 제공하기 위한 **공용 실행 엔진 프록시**다.
+공식 Grok CLI OAuth profile을 가진 Mac에서 `video.generate`만 고정 실행하는 내부 engine이다.
+PD20이나 카카오 방에는 직접 노출하지 않으며 `proxy-video` (`x-heybot-service-id: video`)만 접근할 수 있다.
 
-현재 상태는 **향후 비디오 생성을 위한 구조 예약·계약 설계 단계**다. Grok CLI 설치 상태, 실제 명령, 인증 방식과 비디오 생성 capability는 아직 검증하지 않았으며 구현 시 doctor 단계에서 확정한다.
+> API key·REST·웹 자동화 fallback은 구현하지 않는다. registry 기본값은 OFF다.
 
-## 전체 위치
+## 고정 실행 계약
 
-```text
-PD20 Iris
-  -> proxy-manager
-  -> proxy-video
-  -> proxy-grok
-  -> Grok CLI
-```
-
-`proxy-grok`는 PD20에 노출하지 않는다. 초기 허용 caller는 `video`, capability는 `video.generate`로 계획한다.
-
-## 단독 책임
-
-1. Grok CLI 경로·버전·인증·capability readiness를 확인한다.
-2. Grok 실행 전역 queue, timeout, cancel과 process 종료를 소유한다.
-3. job별 격리 workspace와 최소 child environment를 만든다.
-4. caller별 credential과 capability allowlist를 검증한다.
-5. CLI 출력을 로컬 원시 artifact로 정규화한다.
-6. 원시 artifact의 path confinement·크기·media type과 retention을 관리한다.
-
-## 소유하지 않는 책임
-
-- 카카오톡 방·호출어 정책
-- 사용자용 비디오 job 상태와 응답 문구
-- 비디오 duration·codec·해상도·재생 가능성 QC
-- 최종 비디오 장기 보관과 카카오 전송
-- 외부 `/v1/video` route
-- 임의 shell·argv·env·workdir·output path 실행
-
-비디오 도메인 책임은 `proxy-video`가 담당한다.
-
-## 예정 구조
-
-```text
-proxy-grok/
-├── README.md
-├── .env.example
-├── config/
-│   └── capabilities.example.json
-├── package.json
-├── package-lock.json
-├── tsconfig.json
-├── src/
-│   ├── index.ts
-│   ├── config/
-│   ├── http/
-│   ├── auth/
-│   ├── capabilities/
-│   ├── jobs/
-│   ├── queue/
-│   ├── cli/
-│   ├── workspace/
-│   ├── artifacts/
-│   └── observability/
-├── scripts/
-│   ├── doctor.sh
-│   ├── start.sh
-│   ├── stop.sh
-│   ├── self-test.sh
-│   ├── bootstrap_grok_cli.sh
-│   └── launchd/
-├── test/
-│   ├── unit/
-│   ├── integration/
-│   ├── contract/
-│   └── fixtures/
-└── runtime/
-```
+- absolute `GROK_PROXY_CLI_COMMAND`만 실행한다.
+- 작업별 private workspace에서 `grok -p`와 `--output-format json --max-turns 8 --no-memory --no-subagents`를 고정 사용한다.
+- 최소 child environment(`HOME`, 제한된 `PATH`, `TERM`, `NO_COLOR`)만 전달한다.
+- stdout/stderr은 1 MiB로 제한하고, 취소/timeout은 detached process group에 `SIGTERM` 후 `SIGKILL`을 보낸다.
+- CLI JSON의 session ID와 `videos/*.mp4` 상대 link 한 개만 수용한다. session root 안에서 `realpath` confinement 후 runtime artifact로 atomic copy 한다.
+- raw prompt, CLI stdout/stderr, OAuth token/profile 경로는 HTTP 응답·로그에 넣지 않는다.
 
 ## 내부 API
 
 ```text
 POST   /internal/v1/grok/jobs
 GET    /internal/v1/grok/jobs/:jobId
-GET    /internal/v1/grok/jobs/:jobId/artifacts/:artifactId
+GET    /internal/v1/grok/jobs/:jobId/artifact
 DELETE /internal/v1/grok/jobs/:jobId
-
-GET    /health
-GET    /ready
 POST   /internal/v1/self-test/readiness
-POST   /internal/v1/self-test/capabilities/:capabilityId
+POST   /internal/v1/self-test/capabilities/video.generate  (x-confirm-cost: true)
 ```
 
-예정 요청:
+요청은 `capability: "video.generate"`와 bounded `input.prompt`만 허용한다. 큐는 concurrency 1, pending 2다.
 
-```json
-{
-  "requestId": "video-01J...",
-  "capability": "video.generate",
-  "input": {
-    "prompt": "비 오는 미래 도시를 달리는 작은 로봇"
-  },
-  "artifactContract": {
-    "acceptedMediaTypes": ["video/mp4"],
-    "maxArtifacts": 1,
-    "maxBytesPerArtifact": 536870912
-  }
-}
-```
+## 운영 전 조건
 
-실제 Grok CLI 명령과 출력 형식은 지금 가정하지 않는다. capability adapter가 검증된 CLI 동작을 위 내부 계약으로 정규화한다.
+1. 전용 OS profile에서 운영자가 공식 `grok login`을 수동 완료한다.
+2. CLI command, CLI home, session root을 절대 경로로 설정하고 secrets file 권한을 제한한다.
+3. `proxy-grok` → `proxy-video` → manager registry는 순서대로 readiness만 검사한다.
+4. 비용 승인 후 private-room canary 한 건과 native Kakao 영상 전달을 확인해야 enable한다.
 
-## 독립 프로세스와 Engine Queue
+## 검증 상태
 
-`proxy-grok`는 `proxy-codex`와 별도 OS process·queue·CLI child를 사용한다.
-
-```text
-GROK_PROXY_QUEUE_CONCURRENCY=1
-GROK_PROXY_QUEUE_MAX_PENDING=4
-GROK_PROXY_QUEUE_WAIT_TIMEOUT_MS=1800000
-```
-
-따라서 Codex 이미지 생성과 Grok 비디오 생성은 병렬 실행할 수 있다. 한 engine의 queue full·timeout·CLI hang이 다른 engine의 queue에 영향을 주면 안 된다.
-
-## 인증과 격리
-
-- caller마다 별도 credential 사용
-- 초기 caller `video`만 `video.generate` 허용
-- manager 상태·테스트 credential 별도
-- Grok 인증정보는 `proxy-grok`만 접근
-- 다른 패키지의 source 또는 runtime 파일 직접 참조 금지
-
-상위 구조는 [proxy-manager](../proxy-manager/README.md), 비디오 도메인은 [proxy-video](../proxy-video/README.md), 전체 구조는 [프록시 플랫폼 아키텍처](../docs/PROXY_PLATFORM_ARCHITECTURE.md)와 [병렬 실행·Queue 모델](../docs/PROXY_CONCURRENCY_AND_QUEUE_MODEL.md)을 따른다.
+- TypeScript build·unit test 완료
+- 실제 OAuth CLI에서 `videos/1.mp4` 6초 H.264 artifact 사전 확인
+- ZDR 오류 재시도 정책, real launchd service profile, native Kakao E2E는 enable 전 별도 검증 대상

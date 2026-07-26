@@ -1,0 +1,104 @@
+{
+  "title": "조금 느린 달팽이의 배달",
+  "format": "shorts-storybook",
+  "aspect_ratio": "9:16",
+  "target_resolution": "1080x1920",
+  "style": "cream paper, thin closed ink outlines, flat separable colors, pen-to-brush ready",
+  "characters": {
+    "snail_mail_carrier": "golden-brown/orange body, blue mailbag, deep teal spiral shell, tiny round spectacles",
+    "recipient_friend": "chestnut-brown field mouse, mustard-yellow scarf, round blue button"
+  },
+  "generated_at": "2026-07-13T10:38:26.620869+00:00",
+  "scenes": [
+    {
+      "scene": 1,
+      "description": "달팽이 우체부가 생일 편지를 등에 메고 숲길을 출발",
+      "file": "assets/storybook/snail-mail/scene-01.png",
+      "resolution": "1080x1920",
+      "mode": "RGB",
+      "generated_source_resolution": "941x1672",
+      "upscaled_to_target": true
+    },
+    {
+      "scene": 2,
+      "description": "거대한 나무뿌리가 숲길을 막아 달팽이가 멈춤",
+      "file": "assets/storybook/snail-mail/scene-02.png",
+      "resolution": "1080x1920",
+      "mode": "RGB",
+      "generated_source_resolution": "941x1672",
+      "upscaled_to_target": true
+    },
+    {
+      "scene": 3,
+      "description": "달팽이가 나무뿌리 아래 작은 틈으로 조심스럽게 통과",
+      "file": "assets/storybook/snail-mail/scene-03.png",
+      "resolution": "1080x1920",
+      "mode": "RGB",
+      "generated_source_resolution": "941x1672",
+      "upscaled_to_target": true
+    },
+    {
+      "scene": 4,
+      "description": "갑작스러운 비에 생일 편지가 젖을 위기",
+      "file": "assets/storybook/snail-mail/scene-04.png",
+      "resolution": "1080x1920",
+      "mode": "RGB",
+      "generated_source_resolution": "941x1672",
+      "upscaled_to_target": true
+    },
+    {
+      "scene": 5,
+      "description": "달팽이가 껍데기로 편지를 감싸 보호",
+      "file": "assets/storybook/snail-mail/scene-05.png",
+      "resolution": "1080x1920",
+      "mode": "RGB",
+      "generated_source_resolution": "941x1672",
+      "upscaled_to_target": true
+    },
+    {
+      "scene": 6,
+      "description": "개미들이 나뭇잎을 이어 진흙 웅덩이 위 다리를 제작",
+      "file": "assets/storybook/snail-mail/scene-06.png",
+      "resolution": "1080x1920",
+      "mode": "RGB",
+      "generated_source_resolution": "941x1672",
+      "upscaled_to_target": true
+    },
+    {
+      "scene": 7,
+      "description": "달팽이가 진흙길에서 미끄러졌다가 다시 전진",
+      "file": "assets/storybook/snail-mail/scene-07.png",
+      "resolution": "1080x1920",
+      "mode": "RGB",
+      "generated_source_resolution": "941x1672",
+      "upscaled_to_target": true
+    },
+    {
+      "scene": 8,
+      "description": "반딧불이들이 밤길을 밝혀 달팽이를 안내",
+      "file": "assets/storybook/snail-mail/scene-08.png",
+      "resolution": "1080x1920",
+      "mode": "RGB",
+      "generated_source_resolution": "941x1672",
+      "upscaled_to_target": true
+    },
+    {
+      "scene": 9,
+      "description": "달팽이가 생일 장식이 있는 숲속 오두막에 도착",
+      "file": "assets/storybook/snail-mail/scene-09.png",
+      "resolution": "1080x1920",
+      "mode": "RGB",
+      "generated_source_resolution": "941x1672",
+      "upscaled_to_target": true
+    },
+    {
+      "scene": 10,
+      "description": "달팽이가 갈색 들쥐 친구에게 편지를 건네고 포옹",
+      "file": "assets/storybook/snail-mail/scene-10.png",
+      "resolution": "1080x1920",
+      "mode": "RGB",
+      "generated_source_resolution": "941x1672",
+      "upscaled_to_target": true
+    }
+  ]
+}

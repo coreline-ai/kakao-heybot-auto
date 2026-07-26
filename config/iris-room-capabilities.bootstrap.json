@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "revision": 2,
+  "rooms": [
+    {
+      "reference": "R01",
+      "chatId": "18480337854645134",
+      "label": "코어라인 AI 연구소",
+      "textEnabled": true,
+      "generalConversationEnabled": true,
+      "imageEnabled": true,
+      "videoEnabled": true,
+      "penBrushEnabled": true
+    },
+    {
+      "reference": "R02",
+      "chatId": "18393359886930036",
+      "label": "윤자동과 함께 하는 업무자동화",
+      "textEnabled": false,
+      "generalConversationEnabled": false,
+      "imageEnabled": false,
+      "videoEnabled": false,
+      "penBrushEnabled": false
+    },
+    {
+      "reference": "R03",
+      "chatId": "18243496625741211",
+      "label": "주식은 완전 노가다다 뭐빌렸어",
+      "textEnabled": true,
+      "generalConversationEnabled": true,
+      "imageEnabled": true,
+      "videoEnabled": false,
+      "penBrushEnabled": false
+    },
+    {
+      "reference": "R04",
+      "chatId": "18226456888539938",
+      "label": "주식으로 연봉 월급 만큼 벌자 (초보방)",
+      "textEnabled": true,
+      "generalConversationEnabled": true,
+      "imageEnabled": true,
+      "videoEnabled": false,
+      "penBrushEnabled": false
+    }
+  ]
+}

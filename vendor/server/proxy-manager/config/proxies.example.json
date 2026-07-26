@@ -2,6 +2,21 @@
   "schemaVersion": 1,
   "proxies": [
     {
+      "id": "conversation",
+      "enabled": false,
+      "exposure": "gateway",
+      "routePrefix": "/v1/conversation",
+      "targetBaseUrl": "http://127.0.0.1:4361",
+      "healthPath": "/health",
+      "readyPath": "/ready",
+      "readinessTestPath": "/v1/self-test/readiness",
+      "canaryTestPath": "/v1/self-test/readiness",
+      "canaryRequiresExplicitConfirmation": false,
+      "managerClientSecretFile": "./runtime/secrets/proxy-conversation.secret",
+      "launchdLabel": "ai.coreline.heybot.proxy-conversation",
+      "dependencies": ["codex", "grok"]
+    },
+    {
       "id": "image",
       "enabled": true,
       "exposure": "gateway",

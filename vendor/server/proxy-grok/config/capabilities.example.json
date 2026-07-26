@@ -4,14 +4,30 @@
     {
       "id": "video.generate",
       "enabled": false,
-      "allowedCallers": ["video"],
+      "allowedCallers": [
+        "video"
+      ],
       "inputSchema": "video-generate-v1",
       "modelEnv": "GROK_VIDEO_MODEL",
       "timeoutMs": 1800000,
       "maxArtifacts": 1,
-      "acceptedMediaTypes": ["video/mp4"],
-      "maxBytesPerArtifact": 536870912,
+      "acceptedMediaTypes": [
+        "video/mp4"
+      ],
+      "maxBytesPerArtifact": 52428800,
       "canaryRequiresExplicitConfirmation": true
+    },
+    {
+      "id": "conversation.respond.v1",
+      "enabled": true,
+      "allowedCallers": ["conversation"],
+      "inputSchema": "conversation-respond-v1",
+      "modelEnv": "GROK_TEXT_MODEL",
+      "timeoutMs": 90000,
+      "maxArtifacts": 0,
+      "acceptedMediaTypes": [],
+      "maxBytesPerArtifact": 0,
+      "canaryRequiresExplicitConfirmation": false
     }
   ]
 }

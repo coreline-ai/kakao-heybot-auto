@@ -18,6 +18,16 @@ let codexServer: Server;
 let baseUrl: string;
 let image: Buffer;
 
+async function closeServer(server: Server): Promise<void> {
+  // Close fetch keep-alive sockets as well as the listening socket so the
+  // Node test runner has no active HTTP handles after this file completes.
+  server.closeIdleConnections();
+  server.closeAllConnections();
+  await new Promise<void>((resolvePromise, reject) =>
+    server.close((error) => (error ? reject(error) : resolvePromise())),
+  );
+}
+
 before(async () => {
   const png = new PNG({ width: 256, height: 256 });
   for (let y = 0; y < 256; y += 1) {
@@ -93,11 +103,9 @@ before(async () => {
 });
 
 after(async () => {
-  await new Promise<void>((resolvePromise) =>
-    imageContext.server.close(() => resolvePromise()),
-  );
+  await closeServer(imageContext.server);
   await imageContext.shutdown();
-  await new Promise<void>((resolvePromise) => codexServer.close(() => resolvePromise()));
+  await closeServer(codexServer);
 });
 
 function headers(): Record<string, string> {

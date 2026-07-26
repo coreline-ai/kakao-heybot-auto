@@ -1,0 +1,31 @@
+{
+  "story_id": "storybook-star-seed",
+  "title": "별씨앗을 피운 아이",
+  "format": "9:16 vertical",
+  "final_resolution": "1080x1920",
+  "generated_with": "built-in image_gen",
+  "postprocess": "Lanczos upscale from generated 941x1672 PNGs to 1080x1920",
+  "style_constraints": [
+    "children's picture-book illustration",
+    "thin dark-brown contours",
+    "broad separated color regions for pen-to-brush rendering",
+    "cream paper / indigo night palette",
+    "no text, logo, watermark, or border"
+  ],
+  "character_continuity": {
+    "child": "warm brown skin, round face, short dark-brown hair, mustard-yellow hooded coat, teal scarf, brown boots",
+    "fox": "small red fox, cream muzzle and chest, teal neckerchief"
+  },
+  "scenes": [
+    {"scene": 1, "description": "달빛 아래 아이가 작은 금빛 별씨앗을 발견하고 여우가 곁에서 바라본다.", "file": "scene-01.png", "path": "assets/storybook/star-seed/scene-01.png", "resolution": "1080x1920"},
+    {"scene": 2, "description": "아이가 언덕에 작은 구멍을 파고 별씨앗을 심는다.", "file": "scene-02.png", "path": "assets/storybook/star-seed/scene-02.png", "resolution": "1080x1920"},
+    {"scene": 3, "description": "땅에서 작은 금빛 별싹이 올라오고 아이와 여우가 감탄한다.", "file": "scene-03.png", "path": "assets/storybook/star-seed/scene-03.png", "resolution": "1080x1920"},
+    {"scene": 4, "description": "거센 바람에 별싹이 휘어지고 아이와 여우가 걱정한다.", "file": "scene-04.png", "path": "assets/storybook/star-seed/scene-04.png", "resolution": "1080x1920"},
+    {"scene": 5, "description": "아이가 나뭇가지 지지대를 세우고 여우가 가지를 잡아 준다.", "file": "scene-05.png", "path": "assets/storybook/star-seed/scene-05.png", "resolution": "1080x1920"},
+    {"scene": 6, "description": "여우가 둥근 돌로 별싹 주변에 작은 울타리를 만든다.", "file": "scene-06.png", "path": "assets/storybook/star-seed/scene-06.png", "resolution": "1080x1920"},
+    {"scene": 7, "description": "가뭄으로 땅이 갈라지고 별싹의 빛이 약해진다.", "file": "scene-07.png", "path": "assets/storybook/star-seed/scene-07.png", "resolution": "1080x1920"},
+    {"scene": 8, "description": "아이와 여우가 이슬을 모아 별싹에 물을 준다.", "file": "scene-08.png", "path": "assets/storybook/star-seed/scene-08.png", "resolution": "1080x1920"},
+    {"scene": 9, "description": "별싹이 커다란 황금빛 별꽃으로 활짝 피어난다.", "file": "scene-09.png", "path": "assets/storybook/star-seed/scene-09.png", "resolution": "1080x1920"},
+    {"scene": 10, "description": "마을 사람들이 별꽃 아래에서 등불 축제를 열고 아이와 여우가 기뻐한다.", "file": "scene-10.png", "path": "assets/storybook/star-seed/scene-10.png", "resolution": "1080x1920"}
+  ]
+}

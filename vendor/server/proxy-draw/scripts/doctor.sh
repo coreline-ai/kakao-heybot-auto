@@ -1,0 +1,10 @@
+#!/bin/bash
+set -euo pipefail
+: "${DRAW_PROXY_MANAGER_SECRET_FILE:?set DRAW_PROXY_MANAGER_SECRET_FILE}"
+: "${DRAW_PROXY_CODEX_SECRET_FILE:?set DRAW_PROXY_CODEX_SECRET_FILE}"
+: "${DRAW_PROXY_BRUSH_SECRET_FILE:?set DRAW_PROXY_BRUSH_SECRET_FILE}"
+test -s "$DRAW_PROXY_MANAGER_SECRET_FILE"
+test -s "$DRAW_PROXY_CODEX_SECRET_FILE"
+test -s "$DRAW_PROXY_BRUSH_SECRET_FILE"
+command -v ffprobe >/dev/null
+printf 'proxy-draw configuration ready\n'

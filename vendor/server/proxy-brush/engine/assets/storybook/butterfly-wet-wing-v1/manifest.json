@@ -1,0 +1,137 @@
+{
+  "project": "butterfly-wet-wing-v1",
+  "title": "한쪽 날개가 젖은 나비",
+  "total_scenes": 10,
+  "target_resolution": "1080x1920",
+  "aspect_ratio": "9:16",
+  "generated_with": "built-in image_gen",
+  "upscaled_from": "941x1672 to 1080x1920 using Lanczos",
+  "style": "storybook illustration; continuous full-bleed scene; thin closed dark outlines; separated flat color regions; pen-to-brush ready",
+  "fixed_characters": {
+    "miru": "small butterfly; sky-blue and violet wings; cream body; large warm brown eyes",
+    "ladybug": "friendly red shell with black spots",
+    "bee": "friendly golden body with black stripes and small pale-blue wings"
+  },
+  "scenes": [
+    {
+      "scene": 1,
+      "description": "미루가 봄꽃밭 위를 즐겁게 날아다닌다.",
+      "prompt": "Create a NEW high-resolution vertical storybook illustration for scene 1. Keep Miru fixed: small butterfly, sky-blue and violet wings, cream body, large warm brown eyes. Keep the same friendly red ladybug with black spots and golden bee with black stripes when present. Full-bleed continuous 9:16 scene, no outer frame, mat, card, white margin, letterbox, title or caption. Thin crisp closed dark outlines, medium-to-large separated flat color regions, pen-to-brush-ready. No text, letters, numbers, logo, watermark, grain, speckles, fog, gradients, or tiny detail noise. Scene description: A small butterfly named Miru flies happily above a spring flower meadow.",
+      "file": "assets/storybook/butterfly-wet-wing-v1/scene-01.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "7cb265188d73a32e9a55f99d1c5e5f60b000becaebed930f75c41c2ee810c44f"
+    },
+    {
+      "scene": 2,
+      "description": "봄비가 내리고 미루의 한쪽 날개가 젖어 아래로 처진다.",
+      "prompt": "Create a NEW high-resolution vertical storybook illustration for scene 2. Keep Miru fixed: small butterfly, sky-blue and violet wings, cream body, large warm brown eyes. Keep the same friendly red ladybug with black spots and golden bee with black stripes when present. Full-bleed continuous 9:16 scene, no outer frame, mat, card, white margin, letterbox, title or caption. Thin crisp closed dark outlines, medium-to-large separated flat color regions, pen-to-brush-ready. No text, letters, numbers, logo, watermark, grain, speckles, fog, gradients, or tiny detail noise. Scene description: Spring rain soaks one of Miru’s wings while the other stays open.",
+      "file": "assets/storybook/butterfly-wet-wing-v1/scene-02.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "99236cd3fcbff372a69341d091d256e568211f7a521e3ef7ec51321baf6bbd9e"
+    },
+    {
+      "scene": 3,
+      "description": "미루가 넓은 잎 아래에서 젖은 날개를 안고 슬퍼한다.",
+      "prompt": "Create a NEW high-resolution vertical storybook illustration for scene 3. Keep Miru fixed: small butterfly, sky-blue and violet wings, cream body, large warm brown eyes. Keep the same friendly red ladybug with black spots and golden bee with black stripes when present. Full-bleed continuous 9:16 scene, no outer frame, mat, card, white margin, letterbox, title or caption. Thin crisp closed dark outlines, medium-to-large separated flat color regions, pen-to-brush-ready. No text, letters, numbers, logo, watermark, grain, speckles, fog, gradients, or tiny detail noise. Scene description: Miru sits sadly beneath a broad leaf with one wet wing drooping.",
+      "file": "assets/storybook/butterfly-wet-wing-v1/scene-03.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "1f28176889d1f759c21c5cb853f89f92d16ebf3ab8fa5fcbfa6abf80537bdbc0"
+    },
+    {
+      "scene": 4,
+      "description": "무당벌레와 벌 친구가 잎 아래의 미루를 발견한다.",
+      "prompt": "Create a NEW high-resolution vertical storybook illustration for scene 4. Keep Miru fixed: small butterfly, sky-blue and violet wings, cream body, large warm brown eyes. Keep the same friendly red ladybug with black spots and golden bee with black stripes when present. Full-bleed continuous 9:16 scene, no outer frame, mat, card, white margin, letterbox, title or caption. Thin crisp closed dark outlines, medium-to-large separated flat color regions, pen-to-brush-ready. No text, letters, numbers, logo, watermark, grain, speckles, fog, gradients, or tiny detail noise. Scene description: A red black-spotted ladybug and golden black-striped bee discover Miru.",
+      "file": "assets/storybook/butterfly-wet-wing-v1/scene-04.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "138645537e7a98173549fda1337d1fa3497211fde68d6f5c74b73ebb9208344d"
+    },
+    {
+      "scene": 5,
+      "description": "친구들이 큰 잎을 바람막이로 들어 미루를 보호한다.",
+      "prompt": "Create a NEW high-resolution vertical storybook illustration for scene 5. Keep Miru fixed: small butterfly, sky-blue and violet wings, cream body, large warm brown eyes. Keep the same friendly red ladybug with black spots and golden bee with black stripes when present. Full-bleed continuous 9:16 scene, no outer frame, mat, card, white margin, letterbox, title or caption. Thin crisp closed dark outlines, medium-to-large separated flat color regions, pen-to-brush-ready. No text, letters, numbers, logo, watermark, grain, speckles, fog, gradients, or tiny detail noise. Scene description: The friends hold a large leaf as a windbreak to protect Miru.",
+      "file": "assets/storybook/butterfly-wet-wing-v1/scene-05.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "ce6c8b9abfcf239fda85b433c3ead3803eda84a3566d7dd486ef3d2a05b59684"
+    },
+    {
+      "scene": 6,
+      "description": "햇살이 날개를 말리지만 미루는 아직 무거움을 느낀다.",
+      "prompt": "Create a NEW high-resolution vertical storybook illustration for scene 6. Keep Miru fixed: small butterfly, sky-blue and violet wings, cream body, large warm brown eyes. Keep the same friendly red ladybug with black spots and golden bee with black stripes when present. Full-bleed continuous 9:16 scene, no outer frame, mat, card, white margin, letterbox, title or caption. Thin crisp closed dark outlines, medium-to-large separated flat color regions, pen-to-brush-ready. No text, letters, numbers, logo, watermark, grain, speckles, fog, gradients, or tiny detail noise. Scene description: Sunlight dries Miru’s wing, but it still feels heavy.",
+      "file": "assets/storybook/butterfly-wet-wing-v1/scene-06.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "36cbdc40acea60c8c09138ab73b0bb7a5974c23e5c0b5ed1be18c81047c7acb9"
+    },
+    {
+      "scene": 7,
+      "description": "미루가 꽃에서 꽃으로 짧은 비행을 연습한다.",
+      "prompt": "Create a NEW high-resolution vertical storybook illustration for scene 7. Keep Miru fixed: small butterfly, sky-blue and violet wings, cream body, large warm brown eyes. Keep the same friendly red ladybug with black spots and golden bee with black stripes when present. Full-bleed continuous 9:16 scene, no outer frame, mat, card, white margin, letterbox, title or caption. Thin crisp closed dark outlines, medium-to-large separated flat color regions, pen-to-brush-ready. No text, letters, numbers, logo, watermark, grain, speckles, fog, gradients, or tiny detail noise. Scene description: Miru practices short flights from flower to flower.",
+      "file": "assets/storybook/butterfly-wet-wing-v1/scene-07.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "17a3c03732c67ccb5ae26e5a36b93b5b1e7f08f89d1b906dcd101510eb443c15"
+    },
+    {
+      "scene": 8,
+      "description": "친구들이 민들레 솜을 가져와 젖은 날개를 돕는다.",
+      "prompt": "Create a NEW high-resolution vertical storybook illustration for scene 8. Keep Miru fixed: small butterfly, sky-blue and violet wings, cream body, large warm brown eyes. Keep the same friendly red ladybug with black spots and golden bee with black stripes when present. Full-bleed continuous 9:16 scene, no outer frame, mat, card, white margin, letterbox, title or caption. Thin crisp closed dark outlines, medium-to-large separated flat color regions, pen-to-brush-ready. No text, letters, numbers, logo, watermark, grain, speckles, fog, gradients, or tiny detail noise. Scene description: The friends bring dandelion fluff to support the recovering wing.",
+      "file": "assets/storybook/butterfly-wet-wing-v1/scene-08.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "df92856f7aefa46d5c1881a031260d248c020cbc0f79e5e879d36dbdbb2685d5"
+    },
+    {
+      "scene": 9,
+      "description": "미루가 두 날개를 활짝 펴고 높이 날아오른다.",
+      "prompt": "Create a NEW high-resolution vertical storybook illustration for scene 9. Keep Miru fixed: small butterfly, sky-blue and violet wings, cream body, large warm brown eyes. Keep the same friendly red ladybug with black spots and golden bee with black stripes when present. Full-bleed continuous 9:16 scene, no outer frame, mat, card, white margin, letterbox, title or caption. Thin crisp closed dark outlines, medium-to-large separated flat color regions, pen-to-brush-ready. No text, letters, numbers, logo, watermark, grain, speckles, fog, gradients, or tiny detail noise. Scene description: Miru opens both wings and flies high above the meadow.",
+      "file": "assets/storybook/butterfly-wet-wing-v1/scene-09.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "093e54815cc7ded17251e35bfa305fb7a0073e6fd59629507554c02003dc0a4b"
+    },
+    {
+      "scene": 10,
+      "description": "무지개 꽃밭에서 미루와 친구들이 함께 춤춘다.",
+      "prompt": "Create a NEW high-resolution vertical storybook illustration for scene 10. Keep Miru fixed: small butterfly, sky-blue and violet wings, cream body, large warm brown eyes. Keep the same friendly red ladybug with black spots and golden bee with black stripes when present. Full-bleed continuous 9:16 scene, no outer frame, mat, card, white margin, letterbox, title or caption. Thin crisp closed dark outlines, medium-to-large separated flat color regions, pen-to-brush-ready. No text, letters, numbers, logo, watermark, grain, speckles, fog, gradients, or tiny detail noise. Scene description: Miru, the ladybug and bee dance together in a rainbow flower meadow.",
+      "file": "assets/storybook/butterfly-wet-wing-v1/scene-10.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "dbcf74806b9129c9603dac9158f1e705d29a1005b24843a7df64e771fbaddcd1"
+    }
+  ]
+}

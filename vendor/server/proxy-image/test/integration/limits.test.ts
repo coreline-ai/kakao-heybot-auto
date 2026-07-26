@@ -8,6 +8,14 @@ import { test } from "node:test";
 import { loadImageProxyConfig } from "../../src/config/config.js";
 import { createImageServer } from "../../src/http/server.js";
 
+async function closeServer(server: Server): Promise<void> {
+  server.closeIdleConnections();
+  server.closeAllConnections();
+  await new Promise<void>((resolvePromise, reject) =>
+    server.close((error) => (error ? reject(error) : resolvePromise())),
+  );
+}
+
 test("enforces per-room and total pending limits while a Codex job is running", async () => {
   const root = mkdtempSync(resolve(tmpdir(), "proxy-image-limits-"));
   const managerSecret = "m".repeat(48);
@@ -111,10 +119,8 @@ test("enforces per-room and total pending limits while a Codex job is running", 
     assert.equal(full.status, 429);
     assert.equal(((await full.json()) as any).error.code, "IMAGE_QUEUE_FULL");
   } finally {
-    await new Promise<void>((resolvePromise) =>
-      image.server.close(() => resolvePromise()),
-    );
+    await closeServer(image.server);
     await image.shutdown();
-    await new Promise<void>((resolvePromise) => codex.close(() => resolvePromise()));
+    await closeServer(codex);
   }
 });

@@ -1,0 +1,642 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "pixabay-gentle-piano-meditation",
+      "title": "Gentle Piano Meditation",
+      "artist": "NaturesEye",
+      "source": "pixabay",
+      "sourcePage": "https://pixabay.com/music/meditationspiritual-gentle-piano-meditation-9692/",
+      "durationSec": 920.376,
+      "localPath": "local-assets/bgm/pixabay-gentle-piano-meditation/original.mp3",
+      "downloaded": true,
+      "sha256": "3dfbe4726a4917eea70614294e5d7c537968c0f5694f4810ac8cbd446c4896d2",
+      "license": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/",
+        "downloadedAt": "2026-07-12",
+        "checkedAt": "2026-07-12",
+        "contentIdStatus": "not-displayed",
+        "evidenceFiles": [
+          "evidence/source-page.png",
+          "evidence/license.png"
+        ]
+      },
+      "tags": [
+        "piano",
+        "gentle",
+        "calm",
+        "ambient"
+      ],
+      "recommendedSkills": [],
+      "youtubeAllowed": false
+    },
+    {
+      "id": "pixabay-piano-dreamcloud-meditation",
+      "title": "Piano Dreamcloud Meditation",
+      "artist": "NaturesEye",
+      "source": "pixabay",
+      "sourcePage": "https://pixabay.com/music/meditationspiritual-piano-dreamcloud-meditation-179215/",
+      "durationSec": 913.056,
+      "localPath": "local-assets/bgm/pixabay-piano-dreamcloud-meditation/original.mp3",
+      "downloaded": true,
+      "sha256": "0ccaaf40aa4b4734e5d172ec5260996ccbec8dd515b9801086679c2d4fdd96b9",
+      "license": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/",
+        "downloadedAt": "2026-07-12",
+        "checkedAt": "2026-07-12",
+        "contentIdStatus": "not-displayed",
+        "evidenceFiles": [
+          "evidence/source-page.png",
+          "evidence/license.png"
+        ]
+      },
+      "tags": [
+        "piano",
+        "dreamy",
+        "drawing",
+        "meditation"
+      ],
+      "recommendedSkills": [],
+      "youtubeAllowed": false
+    },
+    {
+      "id": "pixabay-autumn-sky-meditation",
+      "title": "Autumn Sky Meditation",
+      "artist": "NaturesEye",
+      "source": "pixabay",
+      "sourcePage": "https://pixabay.com/music/meditationspiritual-autumn-sky-meditation-7618/",
+      "durationSec": 974.544,
+      "localPath": "local-assets/bgm/pixabay-autumn-sky-meditation/original.mp3",
+      "downloaded": true,
+      "sha256": "8997409dbdf9ffaf2872373f359082497eb9eadf471cd6d6cd79cfc590e573a7",
+      "license": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/",
+        "downloadedAt": "2026-07-12",
+        "checkedAt": "2026-07-12",
+        "contentIdStatus": "not-displayed",
+        "evidenceFiles": [
+          "evidence/source-page.png",
+          "evidence/license.png"
+        ]
+      },
+      "tags": [
+        "autumn",
+        "emotional",
+        "piano",
+        "calm"
+      ],
+      "recommendedSkills": [],
+      "youtubeAllowed": false
+    },
+    {
+      "id": "pixabay-quiet-contemplation-meditation",
+      "title": "Quiet Contemplation Meditation",
+      "artist": "NaturesEye",
+      "source": "pixabay",
+      "sourcePage": "https://pixabay.com/music/meditationspiritual-quiet-contemplation-meditation-283536/",
+      "durationSec": 661.211,
+      "localPath": "local-assets/bgm/pixabay-quiet-contemplation-meditation/original.mp3",
+      "downloaded": true,
+      "sha256": "5f68f20ee139c9e52fce7549f304f2dee7b532156ea708e82806e00b4ce392bc",
+      "license": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/",
+        "downloadedAt": "2026-07-12",
+        "checkedAt": "2026-07-12",
+        "contentIdStatus": "not-displayed",
+        "evidenceFiles": [
+          "evidence/source-page.png",
+          "evidence/license.png"
+        ]
+      },
+      "tags": [
+        "quiet",
+        "narration",
+        "contemplative",
+        "minimal"
+      ],
+      "recommendedSkills": [],
+      "youtubeAllowed": false
+    },
+    {
+      "id": "pixabay-slow-boat-meditation",
+      "title": "Slow Boat Meditation",
+      "artist": "NaturesEye",
+      "source": "pixabay",
+      "sourcePage": "https://pixabay.com/music/meditationspiritual-slow-boat-meditation-7744/",
+      "durationSec": 983.256,
+      "localPath": "local-assets/bgm/pixabay-slow-boat-meditation/original.mp3",
+      "downloaded": true,
+      "sha256": "956120bd65809fcf21bf592758d3515a7ea482c2c2345d408fa233dea115cf93",
+      "license": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/",
+        "downloadedAt": "2026-07-12",
+        "checkedAt": "2026-07-12",
+        "contentIdStatus": "not-displayed",
+        "evidenceFiles": [
+          "evidence/source-page.png",
+          "evidence/license.png"
+        ]
+      },
+      "tags": [
+        "watercolor",
+        "landscape",
+        "slow",
+        "water"
+      ],
+      "recommendedSkills": [],
+      "youtubeAllowed": false
+    },
+    {
+      "id": "pixabay-summer-breeze-meditation",
+      "title": "Summer Breeze Meditation",
+      "artist": "NaturesEye",
+      "source": "pixabay",
+      "sourcePage": "https://pixabay.com/music/meditationspiritual-summer-breeze-meditation-8606/",
+      "durationSec": 975.6,
+      "localPath": "local-assets/bgm/pixabay-summer-breeze-meditation/original.mp3",
+      "downloaded": true,
+      "sha256": "414943bdba709eb9d13717f24555a03725fe19ecea623e1bb89282bd657696b5",
+      "license": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/",
+        "downloadedAt": "2026-07-12",
+        "checkedAt": "2026-07-12",
+        "contentIdStatus": "not-displayed",
+        "evidenceFiles": [
+          "evidence/source-page.png",
+          "evidence/license.png"
+        ]
+      },
+      "tags": [
+        "bright",
+        "soft",
+        "summer",
+        "healing"
+      ],
+      "recommendedSkills": [],
+      "youtubeAllowed": false
+    },
+    {
+      "id": "pixabay-ambient-meditation-003",
+      "title": "Ambient Meditation Number 003",
+      "artist": "NaturesEye",
+      "source": "pixabay",
+      "sourcePage": "https://pixabay.com/music/meditationspiritual-ambient-meditation-number-003-10772/",
+      "durationSec": 1019.328,
+      "localPath": "local-assets/bgm/pixabay-ambient-meditation-003/original.mp3",
+      "downloaded": true,
+      "sha256": "a988f2ee84de00e203414d8c90742f229842b77f28a6b21a46109ff2ce1b0cbd",
+      "license": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/",
+        "downloadedAt": "2026-07-12",
+        "checkedAt": "2026-07-12",
+        "contentIdStatus": "not-displayed",
+        "evidenceFiles": [
+          "evidence/source-page.png",
+          "evidence/license.png"
+        ]
+      },
+      "tags": [
+        "ambient",
+        "long",
+        "meditation",
+        "minimal"
+      ],
+      "recommendedSkills": [],
+      "youtubeAllowed": false
+    },
+    {
+      "id": "pixabay-summer-rain-meditation",
+      "title": "Summer Rain Meditation",
+      "artist": "NaturesEye",
+      "source": "pixabay",
+      "sourcePage": "https://pixabay.com/music/meditationspiritual-summer-rain-meditation-109413/",
+      "durationSec": 1324.752,
+      "localPath": "local-assets/bgm/pixabay-summer-rain-meditation/original.mp3",
+      "downloaded": true,
+      "sha256": "2e31c804d2f27e94146ad0e6d90cecc545589cfca5b2d61632a8985d0ef40800",
+      "license": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/",
+        "downloadedAt": "2026-07-12",
+        "checkedAt": "2026-07-12",
+        "contentIdStatus": "not-displayed",
+        "evidenceFiles": [
+          "evidence/source-page.png",
+          "evidence/license.png"
+        ]
+      },
+      "tags": [
+        "rain",
+        "nature",
+        "long",
+        "soft"
+      ],
+      "recommendedSkills": [],
+      "youtubeAllowed": false
+    },
+    {
+      "id": "pixabay-ocean-choir-meditation",
+      "title": "Ocean Choir Meditation",
+      "artist": "NaturesEye",
+      "source": "pixabay",
+      "sourcePage": "https://pixabay.com/music/meditationspiritual-ocean-choir-meditation-8234/",
+      "durationSec": 1079.208,
+      "localPath": "local-assets/bgm/pixabay-ocean-choir-meditation/original.mp3",
+      "downloaded": true,
+      "sha256": "cbc6bd48b8aae692b17b255b07932e570396f6e88eb4941209b18ccde2ccd5f5",
+      "license": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/",
+        "downloadedAt": "2026-07-12",
+        "checkedAt": "2026-07-12",
+        "contentIdStatus": "not-displayed",
+        "evidenceFiles": [
+          "evidence/source-page.png",
+          "evidence/license.png"
+        ]
+      },
+      "tags": [
+        "ocean",
+        "mystical",
+        "choir",
+        "water"
+      ],
+      "recommendedSkills": [],
+      "youtubeAllowed": false
+    },
+    {
+      "id": "pixabay-digital-ambient-meditation",
+      "title": "Digital Ambient for Meditation",
+      "artist": "Amurich",
+      "source": "pixabay",
+      "sourcePage": "https://pixabay.com/music/meditationspiritual-digital-ambient-for-meditation-15967/",
+      "durationSec": 709.564,
+      "localPath": "local-assets/bgm/pixabay-digital-ambient-meditation/original.mp3",
+      "downloaded": true,
+      "sha256": "cc54e19d1e2761032203f382aa72114e5074c92f06beeefeddc79fef83fb132d",
+      "license": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/",
+        "downloadedAt": "2026-07-12",
+        "checkedAt": "2026-07-12",
+        "contentIdStatus": "not-displayed",
+        "evidenceFiles": [
+          "evidence/source-page.png",
+          "evidence/license.png"
+        ]
+      },
+      "tags": [
+        "digital",
+        "modern",
+        "line-art",
+        "ambient"
+      ],
+      "recommendedSkills": [],
+      "youtubeAllowed": false
+    },
+    {
+      "id": "youtube-chris-zabriskie-chance-luck-finale",
+      "title": "Chance, Luck, Errors in Nature, Fate, Destruction As a Finale",
+      "artist": "Chris Zabriskie",
+      "source": "youtube-audio-library",
+      "sourcePage": "https://www.chriszabriskie.com/reappear/",
+      "artistPage": "https://www.chriszabriskie.com/",
+      "durationSec": 656.475,
+      "localPath": "local-assets/bgm/youtube-chris-zabriskie-chance-luck-finale/original.mp3",
+      "downloaded": true,
+      "sha256": "8cf9c430d8c347bb272c1b4f596165b213bcf150bfe5a7e22231e8df516528e3",
+      "license": {
+        "name": "Creative Commons Attribution 4.0 International",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "downloadedAt": "2026-07-12",
+        "checkedAt": "2026-07-12",
+        "contentIdStatus": "not-displayed",
+        "attributionRequired": true,
+        "attributionText": "Chance, Luck, Errors in Nature, Fate, Destruction As a Finale by Chris Zabriskie is licensed under a Creative Commons Attribution 4.0 license.\nhttps://creativecommons.org/licenses/by/4.0/\nSource: https://www.chriszabriskie.com/reappear/\nArtist: https://www.chriszabriskie.com/\nChanges: Audio may be trimmed, normalized, faded, or mixed for this video.",
+        "modificationNotice": "Audio may be trimmed, normalized, faded, or mixed for this video.",
+        "evidenceFiles": [
+          "evidence/source-page.html",
+          "evidence/license.html"
+        ]
+      },
+      "tags": [
+        "ambient",
+        "cinematic",
+        "nature",
+        "finale",
+        "youtube-audio-library",
+        "cc-by-4.0"
+      ],
+      "recommendedSkills": [
+        "brush-video",
+        "pen-video",
+        "pen-brush-video"
+      ],
+      "youtubeAllowed": true
+    },
+    {
+      "id": "youtube-chris-zabriskie-fight-for-your-honor",
+      "title": "I Am a Man Who Will Fight for Your Honor",
+      "artist": "Chris Zabriskie",
+      "source": "youtube-audio-library",
+      "sourcePage": "http://chriszabriskie.com/honor/",
+      "artistPage": "http://chriszabriskie.com/",
+      "durationSec": 686.48,
+      "localPath": "local-assets/bgm/chris-zabriskie-i-am-a-man-who-will-fight-for-your-honor/original.mp3",
+      "downloaded": true,
+      "sha256": "b73d0926d71bd264ac8b774b0dd6594539fd1ac05979bd076d7e04f1326f7193",
+      "license": {
+        "name": "Creative Commons Attribution 4.0 International",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "downloadedAt": "2026-07-12",
+        "checkedAt": "2026-07-12",
+        "contentIdStatus": "not-displayed",
+        "attributionRequired": true,
+        "attributionText": "I Am a Man Who Will Fight for Your Honor by Chris Zabriskie is licensed under a Creative Commons Attribution 4.0 license.\nhttps://creativecommons.org/licenses/by/4.0/\nSource: http://chriszabriskie.com/honor/\nArtist: http://chriszabriskie.com/\nChanges: The first 600 seconds were used with fade-in, fade-out, loudness normalization, and AAC conversion for this video.",
+        "modificationNotice": "The first 600 seconds were used with fade-in, fade-out, loudness normalization, and AAC conversion for this video.",
+        "evidenceFiles": [
+          "evidence/source-page.html",
+          "evidence/license.html"
+        ]
+      },
+      "tags": [
+        "ambient",
+        "cinematic",
+        "youtube-audio-library",
+        "cc-by-4.0"
+      ],
+      "recommendedSkills": [
+        "brush-video",
+        "dark-random-brush-video"
+      ],
+      "youtubeAllowed": true
+    },
+    {
+      "id": "youtube-jesse-gallagher-satya-yuga",
+      "title": "Satya Yuga",
+      "artist": "Jesse Gallagher",
+      "source": "youtube-audio-library",
+      "sourcePage": "https://jessegallagher.tv/project/satya-yuga/",
+      "artistPage": "https://jessegallagher.tv/",
+      "durationSec": 671.104,
+      "localPath": "local-assets/bgm/youtube-jesse-gallagher-satya-yuga/original.mp3",
+      "downloaded": true,
+      "sha256": "db582a48ec696368449d17a11054997f4fa5725f2c4d107d1deca0e1977504e1",
+      "license": {
+        "name": "YouTube Audio Library license",
+        "url": "https://support.google.com/youtube/answer/3376882?hl=en",
+        "downloadedAt": "2026-07-13",
+        "checkedAt": "2026-07-13",
+        "contentIdStatus": "not-displayed",
+        "attributionRequired": true,
+        "attributionText": "Music: Satya Yuga by Jesse Gallagher\nSource: YouTube Audio Library\nArtist: https://jessegallagher.tv/\nChanges: 3.4 seconds of source pre-roll were removed; the following 600 seconds were normalized, faded, and converted to AAC for this video.",
+        "modificationNotice": "3.4 seconds of source pre-roll were removed; the following 600 seconds were normalized, faded, and converted to AAC for this video.",
+        "evidenceFiles": [
+          "evidence/source-page.html",
+          "evidence/license.html"
+        ]
+      },
+      "tags": [
+        "ambient",
+        "meditation",
+        "space",
+        "youtube-audio-library"
+      ],
+      "recommendedSkills": [
+        "brush-video",
+        "pen-brush-video",
+        "shorts-brush",
+        "storybook-full-touch-video"
+      ],
+      "youtubeAllowed": true
+    },
+    {
+      "id": "youtube-kevin-macleod-almost-in-f-tranquillity",
+      "title": "Almost in F - Tranquillity",
+      "artist": "Kevin MacLeod",
+      "source": "artist-site",
+      "sourcePage": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100394",
+      "artistPage": "https://incompetech.com/",
+      "durationSec": 1962.057143,
+      "localPath": "local-assets/bgm/youtube-kevin-macleod-almost-in-f-tranquillity/original.mp3",
+      "downloaded": true,
+      "sha256": "c314a737b2a736df2b1692eeb1195925a14476161bc539f2ad05e1257d8f4f0c",
+      "license": {
+        "name": "Creative Commons Attribution 4.0 International",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "downloadedAt": "2026-07-13",
+        "checkedAt": "2026-07-13",
+        "contentIdStatus": "not-displayed",
+        "attributionRequired": true,
+        "attributionText": "Almost in F - Tranquillity by Kevin MacLeod is licensed under a Creative Commons Attribution 4.0 license.\nhttps://creativecommons.org/licenses/by/4.0/\nSource: http://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100394\nArtist: http://incompetech.com/\nChanges: The initial 0.65 seconds of silence were skipped; the following 600 seconds were normalized, faded, ducked under narration, mixed, and converted to AAC for this video.",
+        "modificationNotice": "The initial 0.65 seconds of silence were skipped; the following 600 seconds were normalized, faded, ducked under narration, mixed, and converted to AAC for this video.",
+        "evidenceFiles": [
+          "evidence/source-page.html",
+          "evidence/license.html"
+        ]
+      },
+      "tags": [
+        "calm",
+        "classical",
+        "piano",
+        "storybook",
+        "cc-by-4.0"
+      ],
+      "recommendedSkills": [
+        "brush-video",
+        "pen-brush-video",
+        "storybook-full-touch-video"
+      ],
+      "youtubeAllowed": true
+    },
+    {
+      "id": "artist-site-chris-zabriskie-i-need-to-start-writing-things-down",
+      "title": "I Need to Start Writing Things Down",
+      "artist": "Chris Zabriskie",
+      "source": "artist-site",
+      "sourcePage": "http://chriszabriskie.com/darkglow/",
+      "artistPage": "http://chriszabriskie.com/",
+      "durationSec": 431.667,
+      "localPath": "local-assets/bgm/artist-site-chris-zabriskie-i-need-to-start-writing-things-down/original.mp3",
+      "downloaded": true,
+      "sha256": "3b0b66a62cba41207889a5ca996d09a59119b9dc86ff2fc592c88040448881df",
+      "license": {
+        "name": "Creative Commons Attribution 4.0 International",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "downloadedAt": "2026-07-14",
+        "checkedAt": "2026-07-14",
+        "contentIdStatus": "not-displayed",
+        "attributionRequired": true,
+        "attributionText": "I Need to Start Writing Things Down by Chris Zabriskie is licensed under a Creative Commons Attribution 4.0 license.\nhttps://creativecommons.org/licenses/by/4.0/\nSource: http://chriszabriskie.com/darkglow/\nArtist: http://chriszabriskie.com/\nChanges: The initial 0.294 seconds of silence are skipped; the following audio is normalized, mixed under narration, and converted to AAC for this video.",
+        "modificationNotice": "The initial 0.294 seconds of silence are skipped; the following audio is normalized, mixed under narration, and converted to AAC for this video.",
+        "evidenceFiles": [
+          "evidence/source-page.txt",
+          "evidence/license.txt"
+        ]
+      },
+      "tags": [
+        "ambient",
+        "calm",
+        "storybook",
+        "cc-by-4.0"
+      ],
+      "recommendedSkills": [
+        "pen-brush-video",
+        "storybook-full-touch-video"
+      ],
+      "youtubeAllowed": true
+    },
+    {
+      "id": "artist-site-kevin-macleod-canon-in-d-major",
+      "title": "Canon in D Major",
+      "artist": "Kevin MacLeod",
+      "source": "artist-site",
+      "sourcePage": "http://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100301",
+      "artistPage": "http://incompetech.com/",
+      "durationSec": 355.683,
+      "localPath": "local-assets/bgm/artist-site-kevin-macleod-canon-in-d-major/original.mp3",
+      "downloaded": true,
+      "sha256": "9db6f7eca213e58de9af472ddd793a28c429dcfe1feca30927df76920f2991d6",
+      "license": {
+        "name": "Creative Commons Attribution 4.0 International",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "downloadedAt": "2026-07-14",
+        "checkedAt": "2026-07-14",
+        "contentIdStatus": "not-displayed",
+        "attributionRequired": true,
+        "attributionText": "Canon in D Major by Kevin MacLeod is licensed under a Creative Commons Attribution 4.0 license.\nhttps://creativecommons.org/licenses/by/4.0/\nSource: http://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100301\nArtist: http://incompetech.com/\nChanges: The initial 0.163 seconds of silence are skipped; the following audio is normalized, mixed under narration, and converted to AAC for this video.",
+        "modificationNotice": "The initial 0.163 seconds of silence are skipped; the following audio is normalized, mixed under narration, and converted to AAC for this video.",
+        "evidenceFiles": [
+          "evidence/source-page.txt",
+          "evidence/license.txt"
+        ]
+      },
+      "tags": [
+        "classical",
+        "calm",
+        "storybook",
+        "cc-by-4.0"
+      ],
+      "recommendedSkills": [
+        "pen-brush-video",
+        "storybook-full-touch-video"
+      ],
+      "youtubeAllowed": true
+    },
+    {
+      "id": "youtube-chris-haugen-morning-mandolin",
+      "title": "Morning Mandolin",
+      "artist": "Chris Haugen",
+      "source": "youtube-audio-library",
+      "sourcePage": "https://www.youtube.com/audiolibrary",
+      "durationSec": 219.299,
+      "localPath": "local-assets/bgm/youtube-chris-haugen-morning-mandolin/original.mp3",
+      "downloaded": true,
+      "sha256": "ca673a07c6ccd15a9e19b4dd5ebf2652f52276be06f0bf066f0b42e7736d18fa",
+      "license": {
+        "name": "YouTube Audio Library license",
+        "url": "https://support.google.com/youtube/answer/3376882?hl=en",
+        "downloadedAt": "2026-07-15",
+        "checkedAt": "2026-07-15",
+        "contentIdStatus": "not-displayed",
+        "attributionRequired": true,
+        "attributionText": "Music: Morning Mandolin by Chris Haugen\nSource: YouTube Audio Library\nChanges: Audio was normalized, crossfaded, and mixed for this video.",
+        "modificationNotice": "Audio was normalized, crossfaded, and mixed for this video.",
+        "evidenceFiles": [
+          "evidence/source-page.txt",
+          "evidence/license.txt"
+        ]
+      },
+      "tags": [
+        "acoustic",
+        "bright",
+        "morning",
+        "city",
+        "youtube-audio-library"
+      ],
+      "recommendedSkills": [
+        "brush-video"
+      ],
+      "youtubeAllowed": true
+    },
+    {
+      "id": "youtube-aakash-gandhi-dreamland",
+      "title": "Dreamland",
+      "artist": "Aakash Gandhi",
+      "source": "youtube-audio-library",
+      "sourcePage": "https://www.youtube.com/audiolibrary",
+      "durationSec": 180.0,
+      "localPath": "local-assets/bgm/youtube-aakash-gandhi-dreamland/original.mp3",
+      "downloaded": true,
+      "sha256": "c38859047005762e9ae78417e819b2dd53fa4a8355d882922ad5150a08db9713",
+      "license": {
+        "name": "YouTube Audio Library license",
+        "url": "https://support.google.com/youtube/answer/3376882?hl=en",
+        "downloadedAt": "2026-07-15",
+        "checkedAt": "2026-07-15",
+        "contentIdStatus": "not-displayed",
+        "attributionRequired": true,
+        "attributionText": "Music: Dreamland by Aakash Gandhi\nSource: YouTube Audio Library\nChanges: Audio was normalized, crossfaded, and mixed for this video.",
+        "modificationNotice": "Audio was normalized, crossfaded, and mixed for this video.",
+        "evidenceFiles": [
+          "evidence/source-page.txt",
+          "evidence/license.txt"
+        ]
+      },
+      "tags": [
+        "piano",
+        "ambient",
+        "dreamy",
+        "calm",
+        "youtube-audio-library"
+      ],
+      "recommendedSkills": [
+        "brush-video"
+      ],
+      "youtubeAllowed": true
+    },
+    {
+      "id": "youtube-wayne-jones-a-quiet-thought",
+      "title": "A Quiet Thought",
+      "artist": "Wayne Jones",
+      "source": "youtube-audio-library",
+      "sourcePage": "https://www.youtube.com/audiolibrary",
+      "durationSec": 116.923,
+      "localPath": "local-assets/bgm/youtube-wayne-jones-a-quiet-thought/original.mp3",
+      "downloaded": true,
+      "sha256": "9c9fab20c674d497ac86ada564f45900ec1c7f0e50ea54a18886b154730d4264",
+      "license": {
+        "name": "YouTube Audio Library license",
+        "url": "https://support.google.com/youtube/answer/3376882?hl=en",
+        "downloadedAt": "2026-07-15",
+        "checkedAt": "2026-07-15",
+        "contentIdStatus": "not-displayed",
+        "attributionRequired": true,
+        "attributionText": "Music: A Quiet Thought by Wayne Jones\nSource: YouTube Audio Library\nChanges: Audio was normalized, crossfaded, and mixed for this video.",
+        "modificationNotice": "Audio was normalized, crossfaded, and mixed for this video.",
+        "evidenceFiles": [
+          "evidence/source-page.txt",
+          "evidence/license.txt"
+        ]
+      },
+      "tags": [
+        "piano",
+        "strings",
+        "quiet",
+        "reflective",
+        "youtube-audio-library"
+      ],
+      "recommendedSkills": [
+        "brush-video"
+      ],
+      "youtubeAllowed": true
+    }
+  ]
+}
