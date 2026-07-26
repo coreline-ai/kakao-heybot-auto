@@ -1,0 +1,113 @@
+{
+  "project": "storybook-broken-brush-rainbow",
+  "title": "부러진 붓의 무지개",
+  "style": "pen-to-brush friendly children’s picture-book illustration",
+  "canvas": {
+    "width": 1080,
+    "height": 1920,
+    "aspect_ratio": "9:16",
+    "color_mode": "RGB"
+  },
+  "scenes": [
+    {
+      "scene": 1,
+      "description": "숲 미술대회 준비",
+      "file": "assets/storybook/broken-brush/scene-01.png",
+      "width": 1080,
+      "height": 1920,
+      "mode": "RGB",
+      "format": "PNG",
+      "upscaled_from": "image_gen built-in output via Lanczos to 1080x1920"
+    },
+    {
+      "scene": 2,
+      "description": "붓 손잡이가 부러짐",
+      "file": "assets/storybook/broken-brush/scene-02.png",
+      "width": 1080,
+      "height": 1920,
+      "mode": "RGB",
+      "format": "PNG",
+      "upscaled_from": "image_gen built-in output via Lanczos to 1080x1920"
+    },
+    {
+      "scene": 3,
+      "description": "깃털 붓의 잉크 번짐",
+      "file": "assets/storybook/broken-brush/scene-03.png",
+      "width": 1080,
+      "height": 1920,
+      "mode": "RGB",
+      "format": "PNG",
+      "upscaled_from": "image_gen built-in output via Lanczos to 1080x1920"
+    },
+    {
+      "scene": 4,
+      "description": "친구들이 나뭇가지·꽃잎·풀잎을 모음",
+      "file": "assets/storybook/broken-brush/scene-04.png",
+      "width": 1080,
+      "height": 1920,
+      "mode": "RGB",
+      "format": "PNG",
+      "upscaled_from": "image_gen built-in output via Lanczos to 1080x1920"
+    },
+    {
+      "scene": 5,
+      "description": "새 붓을 함께 제작",
+      "file": "assets/storybook/broken-brush/scene-05.png",
+      "width": 1080,
+      "height": 1920,
+      "mode": "RGB",
+      "format": "PNG",
+      "upscaled_from": "image_gen built-in output via Lanczos to 1080x1920"
+    },
+    {
+      "scene": 6,
+      "description": "색이 엉뚱하게 섞임",
+      "file": "assets/storybook/broken-brush/scene-06.png",
+      "width": 1080,
+      "height": 1920,
+      "mode": "RGB",
+      "format": "PNG",
+      "upscaled_from": "image_gen built-in output via Lanczos to 1080x1920"
+    },
+    {
+      "scene": 7,
+      "description": "바람에 그림이 날려 얼룩 발생",
+      "file": "assets/storybook/broken-brush/scene-07.png",
+      "width": 1080,
+      "height": 1920,
+      "mode": "RGB",
+      "format": "PNG",
+      "upscaled_from": "image_gen built-in output via Lanczos to 1080x1920"
+    },
+    {
+      "scene": 8,
+      "description": "얼룩을 구름과 꽃으로 변환",
+      "file": "assets/storybook/broken-brush/scene-08.png",
+      "width": 1080,
+      "height": 1920,
+      "mode": "RGB",
+      "format": "PNG",
+      "upscaled_from": "image_gen built-in output via Lanczos to 1080x1920"
+    },
+    {
+      "scene": 9,
+      "description": "그림 속 무지개 완성",
+      "file": "assets/storybook/broken-brush/scene-09.png",
+      "width": 1080,
+      "height": 1920,
+      "mode": "RGB",
+      "format": "PNG",
+      "upscaled_from": "image_gen built-in output via Lanczos to 1080x1920"
+    },
+    {
+      "scene": 10,
+      "description": "동물들이 웃으며 축하",
+      "file": "assets/storybook/broken-brush/scene-10.png",
+      "width": 1080,
+      "height": 1920,
+      "mode": "RGB",
+      "format": "PNG",
+      "upscaled_from": "image_gen built-in output via Lanczos to 1080x1920"
+    }
+  ]
+}

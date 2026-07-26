@@ -1,0 +1,137 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "promo-widgets catalog",
+  "description": "다크 프로모 위젯 자산 카탈로그 — 위젯의 발견·호출을 위한 색인. demos는 PromoWidgetSchema(src/promo/schema.ts)를 통과해야 하며, 갤러리가 단일 근원으로 사용한다.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "origin",
+    "designTokens",
+    "widgetSchema",
+    "registry",
+    "widgets"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "origin": {
+      "type": "string",
+      "minLength": 1,
+      "description": "위젯 census의 근거 분석 문서 경로"
+    },
+    "designTokens": {
+      "type": "string",
+      "minLength": 1
+    },
+    "widgetSchema": {
+      "type": "string",
+      "minLength": 1
+    },
+    "registry": {
+      "type": "string",
+      "minLength": 1
+    },
+    "widgets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "family",
+          "originWidgets",
+          "component",
+          "summary",
+          "props",
+          "demos"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9]*$",
+            "description": "PromoWidgetSchema type 리터럴과 일치"
+          },
+          "family": {
+            "type": "string",
+            "enum": [
+              "meter",
+              "bar",
+              "ranking",
+              "hero-number",
+              "data-panel",
+              "ui-chrome",
+              "label-badge"
+            ]
+          },
+          "originWidgets": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^(W[0-9]+[ab]?|ORIG-[A-Z0-9-]+)$"
+            },
+            "description": "분석 문서의 W-번호 매핑 또는 ORIG-*(이 레포 오리지널 위젯)"
+          },
+          "component": {
+            "type": "string",
+            "pattern": "^src/promo/.+\\.tsx$"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "props": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "propName → 타입·기본값 설명 (문서용)"
+          },
+          "demos": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "x",
+                "y",
+                "w",
+                "h"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "page": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "갤러리 페이지 (배치 메타 — PromoWidgetSchema parse 전에 분리)"
+                },
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "w": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "h": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            },
+            "description": "갤러리 데모 — 각 항목의 type은 상위 id와 같아야 한다 (pytest에서 검증)"
+          }
+        }
+      }
+    }
+  }
+}

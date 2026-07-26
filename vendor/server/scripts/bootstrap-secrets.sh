@@ -30,7 +30,7 @@ write_pair() {
   chmod 600 "$first" "$second"
 }
 
-for package in proxy-manager proxy-image proxy-codex; do
+for package in proxy-manager proxy-image proxy-codex proxy-video proxy-grok proxy-draw proxy-brush proxy-conversation; do
   mkdir -p "$ROOT/$package/runtime/secrets"
   chmod 700 "$ROOT/$package/runtime" "$ROOT/$package/runtime/secrets"
 done
@@ -55,7 +55,43 @@ write_pair \
   "$ROOT/proxy-manager/runtime/secrets/proxy-codex.secret" \
   "$ROOT/proxy-codex/runtime/secrets/manager.secret"
 write_pair \
+  "$ROOT/proxy-manager/runtime/secrets/proxy-video.secret" \
+  "$ROOT/proxy-video/runtime/secrets/manager.secret"
+write_pair \
+  "$ROOT/proxy-video/runtime/secrets/grok-upstream.secret" \
+  "$ROOT/proxy-grok/runtime/secrets/video-upstream.secret"
+write_pair \
+  "$ROOT/proxy-manager/runtime/secrets/proxy-draw.secret" \
+  "$ROOT/proxy-draw/runtime/secrets/manager.secret"
+write_pair \
   "$ROOT/proxy-image/runtime/secrets/codex-upstream.secret" \
   "$ROOT/proxy-codex/runtime/secrets/callers/image.secret"
+write_pair \
+  "$ROOT/proxy-draw/runtime/secrets/codex-upstream.secret" \
+  "$ROOT/proxy-codex/runtime/secrets/callers/draw.secret"
+write_pair \
+  "$ROOT/proxy-draw/runtime/secrets/brush-upstream.secret" \
+  "$ROOT/proxy-brush/runtime/secrets/draw-upstream.secret"
+write_pair \
+  "$ROOT/proxy-manager/runtime/secrets/proxy-conversation.secret" \
+  "$ROOT/proxy-conversation/runtime/secrets/manager.secret"
+write_pair \
+  "$ROOT/proxy-conversation/runtime/secrets/codex-conversation.secret" \
+  "$ROOT/proxy-codex/runtime/secrets/callers/conversation.secret"
+write_pair \
+  "$ROOT/proxy-conversation/runtime/secrets/grok-conversation.secret" \
+  "$ROOT/proxy-grok/runtime/secrets/grok-conversation.secret"
+
+# These secrets are used by the manager's authenticated health contract.  The
+# internal grok/brush readiness endpoints are deliberately unauthenticated but
+# the manager still requires a private credential file for every enabled entry.
+for secret_file in \
+  "$ROOT/proxy-manager/runtime/secrets/proxy-grok.secret" \
+  "$ROOT/proxy-manager/runtime/secrets/proxy-brush.secret"; do
+  if [[ "$FORCE" == "true" || ! -s "$secret_file" ]]; then
+    secret >"$secret_file"
+  fi
+  chmod 600 "$secret_file"
+done
 
 printf '%s\n' "Proxy secrets are present with separate route/admin/internal roles."

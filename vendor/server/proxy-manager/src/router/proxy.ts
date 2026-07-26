@@ -77,9 +77,21 @@ export async function forwardGatewayRequest(
         upstreamResponse.once("error", reject);
       },
     );
-    upstream.setTimeout(config.connectTimeoutMs, () => {
+    // `ClientRequest#setTimeout` is an inactivity timeout, not a connect-only
+    // timeout. A synchronous conversation response may legitimately take
+    // longer than the TCP connect budget, so keep the two budgets separate.
+    const connectTimer = setTimeout(() => {
       upstream.destroy(new Error("UPSTREAM_CONNECT_TIMEOUT"));
+    }, config.connectTimeoutMs);
+    upstream.once("socket", (socket) => {
+      const clearConnectTimer = (): void => clearTimeout(connectTimer);
+      socket.once("connect", clearConnectTimer);
+      if (!socket.connecting) clearConnectTimer();
     });
+    upstream.setTimeout(config.streamIdleTimeoutMs, () => {
+      upstream.destroy(new Error("UPSTREAM_STREAM_IDLE_TIMEOUT"));
+    });
+    upstream.once("response", () => clearTimeout(connectTimer));
     upstream.once("error", reject);
     upstream.end(body);
   });

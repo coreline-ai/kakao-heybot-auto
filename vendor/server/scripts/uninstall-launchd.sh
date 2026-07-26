@@ -7,7 +7,11 @@ for label in \
   ai.coreline.heybot.proxy-watchdog \
   ai.coreline.heybot.proxy-manager \
   ai.coreline.heybot.proxy-image \
-  ai.coreline.heybot.proxy-codex; do
+  ai.coreline.heybot.proxy-codex \
+  ai.coreline.heybot.proxy-video \
+  ai.coreline.heybot.proxy-grok \
+  ai.coreline.heybot.proxy-draw \
+  ai.coreline.heybot.proxy-brush; do
   launchctl bootout "$DOMAIN/$label" 2>/dev/null || true
   rm -f "$DESTINATION/$label.plist"
 done

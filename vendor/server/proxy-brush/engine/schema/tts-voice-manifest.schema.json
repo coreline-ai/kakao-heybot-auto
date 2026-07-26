@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://brush-remotion-video.local/schema/tts-voice-manifest.schema.json",
+  "title": "BrushRemotionVideo TTS voice manifest",
+  "oneOf": [
+    { "$ref": "#/$defs/supertonicV1" },
+    { "$ref": "#/$defs/engineV2" }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "url", "aiDisclosureRequired"],
+      "properties": {
+        "model": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "format": "uri" },
+        "aiDisclosureRequired": { "const": true }
+      }
+    },
+    "commonV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "projectId", "engine", "voice", "model", "modelRevision",
+        "packageVersion", "language", "nativeSampleRate", "outputSampleRate",
+        "requestedSpeed", "appliedSpeed", "requestedTiming", "appliedTiming", "pauseMs",
+        "durationSec", "sentenceCount", "audioSha256", "license", "aiDisclosure"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 2 },
+        "projectId": { "type": "string", "minLength": 1 },
+        "engine": { "enum": ["melo-ko", "qwen3-base"] },
+        "voice": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "modelRevision": { "type": "string", "minLength": 1 },
+        "packageVersion": { "type": "string", "minLength": 1 },
+        "language": { "const": "ko" },
+        "nativeSampleRate": { "type": "integer", "minimum": 1 },
+        "outputSampleRate": { "const": 44100 },
+        "requestedSpeed": { "type": "number", "minimum": 0.7, "maximum": 2.0 },
+        "appliedSpeed": { "type": "number", "minimum": 0.7, "maximum": 2.0 },
+        "speedAppliedBy": { "type": "string", "minLength": 1 },
+        "requestedTiming": { "const": "tts" },
+        "appliedTiming": { "const": "tts" },
+        "pauseMs": { "type": "integer", "minimum": 0 },
+        "durationSec": { "type": "number", "exclusiveMinimum": 0 },
+        "sentenceCount": { "type": "integer", "minimum": 1 },
+        "audioSha256": { "$ref": "#/$defs/sha256" },
+        "license": { "$ref": "#/$defs/license" },
+        "aiDisclosure": { "type": "string", "minLength": 1 },
+        "speaker": { "type": "string", "minLength": 1 },
+        "referenceVoiceId": { "type": "string", "minLength": 1 },
+        "referenceAudioSha256": { "$ref": "#/$defs/sha256" },
+        "referenceTranscriptSha256": { "$ref": "#/$defs/sha256" },
+        "xVectorOnlyMode": { "const": false },
+        "ttsCacheSchemaVersion": { "const": 1 },
+        "adapterVersion": { "type": "string", "minLength": 1 },
+        "normalizerVersion": { "type": "string", "minLength": 1 }
+      }
+    },
+    "meloV2": {
+      "allOf": [
+        { "$ref": "#/$defs/commonV2" },
+        {
+          "type": "object",
+          "properties": {
+            "engine": { "const": "melo-ko" },
+            "voice": { "const": "kr-default" },
+            "speaker": { "const": "KR" }
+          },
+          "required": ["speaker"]
+        }
+      ]
+    },
+    "qwenV2": {
+      "allOf": [
+        { "$ref": "#/$defs/commonV2" },
+        {
+          "type": "object",
+          "properties": {
+            "engine": { "const": "qwen3-base" },
+            "referenceVoiceId": { "type": "string", "minLength": 1 },
+            "referenceAudioSha256": { "$ref": "#/$defs/sha256" },
+            "referenceTranscriptSha256": { "$ref": "#/$defs/sha256" },
+            "xVectorOnlyMode": { "const": false }
+          },
+          "required": [
+            "referenceVoiceId", "referenceAudioSha256", "referenceTranscriptSha256", "xVectorOnlyMode"
+          ]
+        }
+      ]
+    },
+    "engineV2": {
+      "oneOf": [
+        { "$ref": "#/$defs/meloV2" },
+        { "$ref": "#/$defs/qwenV2" }
+      ]
+    },
+    "supertonicV1": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schemaVersion", "engine", "projectId"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "engine": { "const": "supertonic" },
+        "projectId": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

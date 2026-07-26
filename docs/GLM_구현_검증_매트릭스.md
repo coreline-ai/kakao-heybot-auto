@@ -23,7 +23,7 @@
 | 기존 Iris 이미지 발신 | `Replier.sendPhoto()` | PD20 `/reply` 이미지 후 자체 `type=2` 로그 1건 확인 | 완료 |
 | DBObserver·WebSocket·Webhook | `ObserverHelper` | PD20 텍스트 이벤트가 WebSocket과 ADB reverse 경유 임시 로컬 Webhook에 모두 수신됨 | 완료 |
 | 안전한 기동·롤백 | `scripts/start_iris_glm_pd20.sh`, 운영 문서 | 토큰 미주입 시 배포·기동 전에 안전 중단, GLM 비활성 재기동 성공 | 완료 |
-| 빌드 품질 | `vendor/Iris` Gradle | `:app:testDebugUnitTest :app:assembleRelease` 성공, 단위 테스트 100개 성공 | 완료 |
+| 빌드 품질 | `vendor/android` Gradle | `:app:testDebugUnitTest :app:assembleRelease` 성공, 단위 테스트 100개 성공 | 완료 |
 
 ## 실 GLM 호출 및 발신 E2E 기록
 

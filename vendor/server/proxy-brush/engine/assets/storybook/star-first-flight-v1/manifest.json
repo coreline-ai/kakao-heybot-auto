@@ -1,0 +1,224 @@
+{
+  "project": "star-first-flight-v1",
+  "title_ko": "겁이 많은 작은 별의 첫 비행",
+  "total_scenes": 10,
+  "target_resolution": "1080x1920",
+  "aspect_ratio": "9:16",
+  "generated_with": "built-in image_gen",
+  "normalization": "All generated images were center-cropped/fitted to 1080x1920 RGB PNG and quantized to 128 colors with no dithering for flatter brush-fill regions.",
+  "contact_sheet": "contact-sheet.png",
+  "style_constraints": {
+    "canvas": "1080x1920 px, 9:16 portrait, full bleed",
+    "render_style": "storybook illustration prepared for pen-outline then brush-color reveal",
+    "linework": "thin crisp dark closed outlines with large flat color regions",
+    "color": "deep blue night sky, warm golden character and light path, restrained flat palette",
+    "exclusions": [
+      "no text",
+      "no lettering",
+      "no logo",
+      "no watermark",
+      "no frame",
+      "no mat",
+      "no white margin",
+      "no black letterbox",
+      "no card layout",
+      "no gradients",
+      "no fog",
+      "no particle overlay"
+    ],
+    "character": "Lumi is a small warm-gold star with round friendly eyes and a soft golden glow; keep the same face, palette, and storybook personality in every scene",
+    "fill_ready": "clear separated regions suitable for random diagonal/vertical brush-fill animation"
+  },
+  "scenes": [
+    {
+      "scene": 1,
+      "description_ko": "루미가 구름 위에서 날기를 꿈꾼다.",
+      "prompt_summary": "Lumi, a small golden five-point star with warm round eyes, sits on a cloud-top under a deep blue night sky and dreams of flying.",
+      "file": "assets/storybook/star-first-flight-v1/scene-01.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "a757b8a52e70082305fb23d02bfec198a047bf95472b2a37002a3a920b533af4",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed_bbox": true,
+        "edge_not_uniform": true,
+        "edge_std": 53.72,
+        "edge_unique_colors": 100
+      }
+    },
+    {
+      "scene": 2,
+      "description_ko": "친구 별들이 하늘을 날고 루미가 바라본다.",
+      "prompt_summary": "Friendly little stars fly in a gentle arc across the night sky while Lumi watches from the cloud, excited but still grounded.",
+      "file": "assets/storybook/star-first-flight-v1/scene-02.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "148ea71ef693e08b381df2be460c6655a3fd1c8a831be928b1ecdeacb9770e57",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed_bbox": true,
+        "edge_not_uniform": true,
+        "edge_std": 54.3,
+        "edge_unique_colors": 78
+      }
+    },
+    {
+      "scene": 3,
+      "description_ko": "루미가 겁을 내며 구름 가장자리에서 망설인다.",
+      "prompt_summary": "Lumi hesitates at the cloud edge, looking frightened as the flying star friends pass in the distance.",
+      "file": "assets/storybook/star-first-flight-v1/scene-03.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "67be17dcb05a9aa752640cabee2402cdfad5aa4b52954b1f150af5c2d2e1485d",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed_bbox": true,
+        "edge_not_uniform": true,
+        "edge_std": 62.82,
+        "edge_unique_colors": 105
+      }
+    },
+    {
+      "scene": 4,
+      "description_ko": "달이 루미에게 용기를 건넨다.",
+      "prompt_summary": "A calm crescent moon leans close to Lumi and offers gentle encouragement in the quiet night sky.",
+      "file": "assets/storybook/star-first-flight-v1/scene-04.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "808039f5f37e8d53e94fc3f348fd23541fcae996ec6d36c11057eb3842c587ae",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed_bbox": true,
+        "edge_not_uniform": true,
+        "edge_std": 68.68,
+        "edge_unique_colors": 102
+      }
+    },
+    {
+      "scene": 5,
+      "description_ko": "루미가 낮게 떠오르며 첫 비행을 연습한다.",
+      "prompt_summary": "Lumi makes a careful low first flight above the cloud, practicing with a few cheering star friends below.",
+      "file": "assets/storybook/star-first-flight-v1/scene-05.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "be38c4f7d703f6d26d6408b3143f96aebf706c9834b0cb9d874248400537da1d",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed_bbox": true,
+        "edge_not_uniform": true,
+        "edge_std": 71.83,
+        "edge_unique_colors": 100
+      }
+    },
+    {
+      "scene": 6,
+      "description_ko": "차가운 바람이 루미를 밀어낸다.",
+      "prompt_summary": "A cool blue wind pushes Lumi sideways during practice; curved wind strokes show the challenge without obscuring the character.",
+      "file": "assets/storybook/star-first-flight-v1/scene-06.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "8459dc9bf45b620cfa474b36e590d7463ccc1ff3fb0d35b2e750f636c313ba67",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed_bbox": true,
+        "edge_not_uniform": true,
+        "edge_std": 71.15,
+        "edge_unique_colors": 96
+      }
+    },
+    {
+      "scene": 7,
+      "description_ko": "루미가 자기 빛을 믿고 힘을 낸다.",
+      "prompt_summary": "Lumi trusts its own warm golden light, glowing brighter and holding steady against the night wind.",
+      "file": "assets/storybook/star-first-flight-v1/scene-07.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "abed7d5be1b2bb5342adff8158c349b4dd2e12b93982d88030752e36e04d311a",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed_bbox": true,
+        "edge_not_uniform": true,
+        "edge_std": 57.42,
+        "edge_unique_colors": 76
+      }
+    },
+    {
+      "scene": 8,
+      "description_ko": "루미가 황금빛 빛길을 만든다.",
+      "prompt_summary": "Lumi creates a clear golden path of light through the sky, and the friendly stars follow behind.",
+      "file": "assets/storybook/star-first-flight-v1/scene-08.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "42f7365fb7fc6ad30e4984eba64300961c292bd99d1e94166d83fd8d11457566",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed_bbox": true,
+        "edge_not_uniform": true,
+        "edge_std": 64.63,
+        "edge_unique_colors": 118
+      }
+    },
+    {
+      "scene": 9,
+      "description_ko": "루미가 친구 별들 사이를 날아간다.",
+      "prompt_summary": "Lumi now flies confidently among the friendly stars along the golden path, joyful and brave.",
+      "file": "assets/storybook/star-first-flight-v1/scene-09.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "25b5e14a50c0aca9139345dde1ec5cdbdc67b9f76a283503fef08d4e6e87c939",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed_bbox": true,
+        "edge_not_uniform": true,
+        "edge_std": 72.28,
+        "edge_unique_colors": 128
+      }
+    },
+    {
+      "scene": 10,
+      "description_ko": "루미가 새 별자리의 중심에서 빛난다.",
+      "prompt_summary": "Lumi shines at the center of a newly formed constellation, connected to the other stars by warm golden lines.",
+      "file": "assets/storybook/star-first-flight-v1/scene-10.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "c1b42d6218a736d28b01d889707db4300cbc8156156f671f6571f46b45367600",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed_bbox": true,
+        "edge_not_uniform": true,
+        "edge_std": 68.47,
+        "edge_unique_colors": 84
+      }
+    }
+  ]
+}

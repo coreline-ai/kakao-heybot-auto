@@ -1,0 +1,10 @@
+License record for user-supplied MP3 (2026-07-15).
+
+YouTube Audio Library license reference:
+https://support.google.com/youtube/answer/3376882?hl=en
+
+YouTube's Audio Library provides production music for videos. The exact track card
+should be checked in YouTube Studio; this project keeps conservative attribution:
+Music: Morning Mandolin by Chris Haugen
+Source: YouTube Audio Library
+Changes: Audio was normalized, crossfaded, and mixed for this video.

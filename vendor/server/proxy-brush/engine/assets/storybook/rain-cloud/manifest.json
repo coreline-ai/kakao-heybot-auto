@@ -1,0 +1,24 @@
+{
+  "title": "비를 잃어버린 구름",
+  "slug": "rain-cloud",
+  "generation": {
+    "tool": "built-in image_gen",
+    "style": "children's storybook illustration, pen-to-brush friendly",
+    "final_resolution": "1080x1920",
+    "source_resolution": "941x1672",
+    "upscale": "Lanczos resize to 1080x1920",
+    "format": "PNG RGB"
+  },
+  "scenes": [
+    {"scene": 1, "description": "작은 구름 몽글이가 푸른 하늘을 떠다니며 마을과 꽃밭을 내려다본다.", "file": "assets/storybook/rain-cloud/scene-01.png", "resolution": "1080x1920"},
+    {"scene": 2, "description": "햇볕 아래 마을의 꽃과 나무가 시들고 몽글이가 걱정스럽게 바라본다.", "file": "assets/storybook/rain-cloud/scene-02.png", "resolution": "1080x1920"},
+    {"scene": 3, "description": "몽글이가 애써도 작은 파란 물방울 하나만 떨어진다.", "file": "assets/storybook/rain-cloud/scene-03.png", "resolution": "1080x1920"},
+    {"scene": 4, "description": "강한 바람이 몽글이를 산 너머로 밀어낸다.", "file": "assets/storybook/rain-cloud/scene-04.png", "resolution": "1080x1920"},
+    {"scene": 5, "description": "산꼭대기의 큰 구름이 몽글이에게 안개를 모으는 방법을 가르친다.", "file": "assets/storybook/rain-cloud/scene-05.png", "resolution": "1080x1920"},
+    {"scene": 6, "description": "파란 새와 노란 나비가 몽글이를 시원한 초록 골짜기로 안내한다.", "file": "assets/storybook/rain-cloud/scene-06.png", "resolution": "1080x1920"},
+    {"scene": 7, "description": "몽글이가 친구 구름들과 만나 더 크고 포근한 구름이 된다.", "file": "assets/storybook/rain-cloud/scene-07.png", "resolution": "1080x1920"},
+    {"scene": 8, "description": "커진 몽글이가 마을 꽃밭에 처음으로 부드러운 비를 내린다.", "file": "assets/storybook/rain-cloud/scene-08.png", "resolution": "1080x1920"},
+    {"scene": 9, "description": "비를 맞은 마을 꽃밭이 싱싱한 초록과 알록달록한 꽃으로 되살아난다.", "file": "assets/storybook/rain-cloud/scene-09.png", "resolution": "1080x1920"},
+    {"scene": 10, "description": "비 갠 뒤 몽글이와 마을이 커다란 무지개 아래에서 축제를 연다.", "file": "assets/storybook/rain-cloud/scene-10.png", "resolution": "1080x1920"}
+  ]
+}

@@ -13,24 +13,50 @@ fi
 
 NODE_BIN="$(command -v node)"
 CODEX_BIN="$(command -v codex)"
+FFPROBE_BIN="$(command -v ffprobe)"
 ADB_BIN="${ADB:-$HOME/Library/Android/sdk/platform-tools/adb}"
+GROK_CLI_COMMAND="${GROK_PROXY_CLI_COMMAND:-$HOME/.grok/bin/grok}"
+GROK_CLI_HOME="${GROK_PROXY_CLI_HOME:-$HOME}"
+GROK_SESSION_ROOT="${GROK_PROXY_SESSION_ROOT:-$HOME/.grok/sessions}"
 PATH_VALUE="$(dirname "$NODE_BIN"):$(dirname "$CODEX_BIN"):$(dirname "$ADB_BIN"):/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+
+[[ -x "$GROK_CLI_COMMAND" ]] || { printf '%s\n' "Grok CLI is not executable: $GROK_CLI_COMMAND" >&2; exit 1; }
+[[ -d "$GROK_CLI_HOME" && -d "$GROK_SESSION_ROOT" ]] || {
+  printf '%s\n' 'Grok CLI home/session root is not ready.' >&2
+  exit 1
+}
 
 if [[ "$RENDER_ONLY" == "false" ]]; then
   for label in \
     ai.coreline.heybot.proxy-watchdog \
     ai.coreline.heybot.proxy-manager \
     ai.coreline.heybot.proxy-image \
-    ai.coreline.heybot.proxy-codex; do
+    ai.coreline.heybot.proxy-codex \
+    ai.coreline.heybot.proxy-video \
+    ai.coreline.heybot.proxy-grok \
+    ai.coreline.heybot.proxy-draw \
+    ai.coreline.heybot.proxy-brush \
+    ai.coreline.heybot.proxy-conversation; do
     launchctl bootout "$DOMAIN/$label" 2>/dev/null || true
   done
 fi
 
 "$ROOT/scripts/bootstrap-secrets.sh"
-for package in proxy-codex proxy-image proxy-manager; do
+for package in proxy-codex proxy-image proxy-grok proxy-video proxy-draw proxy-manager proxy-conversation; do
   (cd "$ROOT/$package" && npm run build >/dev/null)
   mkdir -p "$ROOT/$package/runtime/logs" "$ROOT/$package/runtime/state"
 done
+if ! "$ROOT/proxy-brush/scripts/doctor.sh" >/dev/null; then
+  printf '%s\n' "proxy-brush runtime is not ready. Run proxy-brush/scripts/bootstrap-engine.sh before installing launchd." >&2
+  exit 1
+fi
+if ! GROK_PROXY_CLI_COMMAND="$GROK_CLI_COMMAND" \
+  GROK_PROXY_CLI_HOME="$GROK_CLI_HOME" \
+  GROK_PROXY_SESSION_ROOT="$GROK_SESSION_ROOT" \
+  "$ROOT/proxy-grok/scripts/doctor.sh" >/dev/null; then
+  printf '%s\n' 'proxy-grok runtime is not ready. Complete the local Grok CLI login first.' >&2
+  exit 1
+fi
 mkdir -p "$DESTINATION" "$ROOT/runtime/watchdog" "$MIRROR_ROOT/scripts"
 chmod 700 "$ROOT/runtime" "$ROOT/runtime/watchdog" "$MIRROR_ROOT"
 
@@ -59,9 +85,31 @@ sync_package() {
   find "$target/runtime/secrets" -type f -exec chmod 600 {} +
 }
 
-for id in codex image manager; do
+for id in codex image grok video draw manager conversation; do
   sync_package "$id"
 done
+
+sync_brush_package() {
+  local source="$ROOT/proxy-brush"
+  local target="$MIRROR_ROOT/proxy-brush"
+  mkdir -p "$target/runtime"
+  /usr/bin/rsync -a --delete "$source/src/" "$target/src/"
+  /usr/bin/rsync -a --delete "$source/scripts/" "$target/scripts/"
+  /usr/bin/rsync -a --delete "$source/engine/" "$target/engine/"
+  /usr/bin/rsync -a --delete "$source/runtime/python-venv/" "$target/runtime/python-venv/"
+  /usr/bin/rsync -a --delete "$source/runtime/remotion-browser/" "$target/runtime/remotion-browser/"
+  cp "$source/package.json" "$source/.env.example" "$source/requirements-core.lock" \
+    "$source/engine-manifest.sha256" "$target/"
+  mkdir -p "$target/runtime/jobs" "$target/runtime/logs" "$target/runtime/models" "$target/runtime/secrets"
+  /usr/bin/rsync -a --delete "$source/runtime/secrets/" "$target/runtime/secrets/"
+  # browser.json contains an absolute executable path, so regenerate it after
+  # copying the runtime into the isolated launchd mirror.
+  node "$target/scripts/ensure-remotion-browser.mjs" >/dev/null
+  chmod 700 "$target" "$target/runtime" "$target/runtime/secrets"
+  find "$target/runtime/secrets" -type f -exec chmod 600 {} +
+}
+
+sync_brush_package
 cp \
   "$ROOT/scripts/watchdog.sh" \
   "$ROOT/scripts/rotate-logs.sh" \
@@ -83,10 +131,30 @@ write_proxy_plist() {
   local package="$MIRROR_ROOT/proxy-${id}"
   local output="$DESTINATION/${label}.plist"
   local extra_environment=""
+  local entry="$package/dist/src/index.js"
   if [[ "$id" == "codex" ]]; then
     extra_environment="
       <key>CODEX_CLI_BIN</key>
       <string>$(xml_escape "$CODEX_BIN")</string>"
+  elif [[ "$id" == "brush" ]]; then
+    entry="$package/src/index.mjs"
+    extra_environment="
+      <key>PEN_BRUSH_PROXY_ENABLED</key>
+      <string>true</string>"
+  elif [[ "$id" == "grok" ]]; then
+    extra_environment="
+      <key>GROK_PROXY_CLI_COMMAND</key>
+      <string>$(xml_escape "$GROK_CLI_COMMAND")</string>
+      <key>GROK_PROXY_CLI_HOME</key>
+      <string>$(xml_escape "$GROK_CLI_HOME")</string>
+      <key>GROK_PROXY_SESSION_ROOT</key>
+      <string>$(xml_escape "$GROK_SESSION_ROOT")</string>
+      <key>GROK_PROXY_CONVERSATION_SECRET_FILE</key>
+      <string>$(xml_escape "$MIRROR_ROOT/proxy-grok/runtime/secrets/grok-conversation.secret")</string>"
+  elif [[ "$id" == "video" ]]; then
+    extra_environment="
+      <key>VIDEO_PROXY_FFPROBE_COMMAND</key>
+      <string>$(xml_escape "$FFPROBE_BIN")</string>"
   fi
   cat >"$output" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -98,7 +166,7 @@ write_proxy_plist() {
   <key>ProgramArguments</key>
   <array>
     <string>$(xml_escape "$NODE_BIN")</string>
-    <string>$(xml_escape "$package/dist/src/index.js")</string>
+    <string>$(xml_escape "$entry")</string>
   </array>
   <key>WorkingDirectory</key>
   <string>$(xml_escape "$package")</string>
@@ -176,7 +244,7 @@ EOF
   plutil -lint "$output" >/dev/null
 }
 
-for id in codex image manager; do
+for id in grok video codex image brush draw conversation manager; do
   write_proxy_plist "$id"
 done
 write_watchdog_plist
@@ -189,14 +257,24 @@ fi
 for label in \
   ai.coreline.heybot.proxy-codex \
   ai.coreline.heybot.proxy-image \
+  ai.coreline.heybot.proxy-grok \
+  ai.coreline.heybot.proxy-video \
+  ai.coreline.heybot.proxy-brush \
+  ai.coreline.heybot.proxy-draw \
+  ai.coreline.heybot.proxy-conversation \
   ai.coreline.heybot.proxy-manager \
   ai.coreline.heybot.proxy-watchdog; do
   launchctl bootstrap "$DOMAIN" "$DESTINATION/$label.plist"
 done
 
 for label in \
+  ai.coreline.heybot.proxy-grok \
+  ai.coreline.heybot.proxy-video \
   ai.coreline.heybot.proxy-codex \
   ai.coreline.heybot.proxy-image \
+  ai.coreline.heybot.proxy-brush \
+  ai.coreline.heybot.proxy-draw \
+  ai.coreline.heybot.proxy-conversation \
   ai.coreline.heybot.proxy-manager; do
   launchctl kickstart -k "$DOMAIN/$label"
 done

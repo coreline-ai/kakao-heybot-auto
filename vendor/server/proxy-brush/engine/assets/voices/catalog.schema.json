@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://brushvid.local/schema/voice-catalog.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "voicePackVersion", "engine", "aliases", "nativeVoices",
+    "baseStyleSha256", "aiDisclosure", "license", "voices"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "voicePackVersion": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "packageVersion", "model", "language", "sampleRate", "defaultSpeed"],
+      "properties": {
+        "name": {"const": "supertonic"},
+        "packageVersion": {"type": "string", "minLength": 1},
+        "model": {"const": "supertonic-3"},
+        "language": {"const": "ko"},
+        "sampleRate": {"const": 44100},
+        "defaultSpeed": {"type": "number", "minimum": 0.7, "maximum": 2.0}
+      }
+    },
+    "aliases": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["F1", "F2", "F3", "F4", "F5"],
+      "properties": {
+        "F1": {"const": "female-01"},
+        "F2": {"const": "female-02"},
+        "F3": {"const": "female-03"},
+        "F4": {"const": "female-04"},
+        "F5": {"const": "female-05"}
+      }
+    },
+    "nativeVoices": {
+      "type": "array",
+      "prefixItems": [
+        {"const": "F1"}, {"const": "F2"}, {"const": "F3"}, {"const": "F4"}, {"const": "F5"},
+        {"const": "M1"}, {"const": "M2"}, {"const": "M3"}, {"const": "M4"}, {"const": "M5"}
+      ],
+      "items": false,
+      "minItems": 10,
+      "maxItems": 10
+    },
+    "baseStyleSha256": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["F1", "F2", "F3", "F4", "F5"],
+      "properties": {
+        "F1": {"$ref": "#/$defs/sha256"},
+        "F2": {"$ref": "#/$defs/sha256"},
+        "F3": {"$ref": "#/$defs/sha256"},
+        "F4": {"$ref": "#/$defs/sha256"},
+        "F5": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "aiDisclosure": {"type": "string", "minLength": 1},
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "url", "aiDisclosureRequired"],
+      "properties": {
+        "model": {"const": "OpenRAIL-M"},
+        "url": {"type": "string", "format": "uri"},
+        "aiDisclosureRequired": {"const": true}
+      }
+    },
+    "voices": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {"$ref": "#/$defs/voice"}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "components": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 2,
+      "propertyNames": {"pattern": "^F[1-5]$"},
+      "additionalProperties": {"type": "number", "exclusiveMinimum": 0, "maximum": 1}
+    },
+    "preview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path", "sha256", "durationSec", "codec", "sampleRate", "channels",
+        "peakDbfs", "activeRmsDbfs", "clippedSamples"
+      ],
+      "properties": {
+        "path": {"type": "string", "pattern": "^assets/voices/previews/female-[0-9]{2}\\.mp3$"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "durationSec": {"const": 10.0},
+        "codec": {"const": "mp3"},
+        "sampleRate": {"const": 44100},
+        "channels": {"const": 1},
+        "peakDbfs": {"type": "number", "maximum": -1.0},
+        "activeRmsDbfs": {"type": "number", "minimum": -24.0, "maximum": -16.0},
+        "clippedSamples": {"const": 0}
+      }
+    },
+    "voice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "displayName", "badge", "kind", "components", "recommendedSpeed",
+        "pitch", "pace", "pitchHz", "summary", "useCases", "recommendedSkills", "preview"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^female-(0[1-9]|10)$"},
+        "displayName": {"type": "string", "minLength": 1},
+        "badge": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["builtin", "blend"]},
+        "components": {"$ref": "#/$defs/components"},
+        "recommendedSpeed": {"type": "number", "minimum": 0.7, "maximum": 2.0},
+        "pitch": {"type": "string", "minLength": 1},
+        "pace": {"type": "string", "minLength": 1},
+        "pitchHz": {"type": "integer", "minimum": 100, "maximum": 400},
+        "summary": {"type": "string", "minLength": 1},
+        "useCases": {"type": "array", "minItems": 1, "items": {"type": "string"}, "uniqueItems": true},
+        "recommendedSkills": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "preview": {"$ref": "#/$defs/preview"}
+      }
+    }
+  }
+}

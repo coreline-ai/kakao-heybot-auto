@@ -1,0 +1,215 @@
+{
+  "project": "crab-sandcastle-v1",
+  "title_ko": "작은 게의 모래성 대회",
+  "total_scenes": 10,
+  "target_resolution": "1080x1920",
+  "aspect_ratio": "9:16",
+  "generated_with": "built-in image_gen",
+  "normalization": "Generated sources were fitted to 1080x1920 RGB PNG and quantized to 128 colors with no dithering for flatter brush-fill regions.",
+  "contact_sheet": "contact-sheet.png",
+  "style_constraints": {
+    "canvas": "1080x1920 px, 9:16 portrait, full bleed",
+    "linework": "thin crisp dark-brown closed outlines",
+    "color_regions": "medium-to-large separated flat color regions",
+    "character_lock": "Kong-i is a small orange crab with round eyes, a blue-striped shell hat, and a tiny wooden shovel; starfish and purple-shell hermit crab friends remain consistent",
+    "brush_ready": "clean regions for random diagonal/vertical brush coloring",
+    "avoid": [
+      "frame",
+      "outer border",
+      "mat",
+      "white margin",
+      "card layout",
+      "letterbox",
+      "text",
+      "logo",
+      "watermark",
+      "micro-dots",
+      "fog",
+      "mist",
+      "particles",
+      "gradients"
+    ]
+  },
+  "scenes": [
+    {
+      "scene": 1,
+      "description_ko": "모래성 대회에 참가한 콩이",
+      "prompt_summary": "Kong-i, a tiny orange crab in a blue-striped shell hat, signs up for the beach sandcastle contest with a tiny wooden shovel; starfish and hermit crab friends nearby.",
+      "file": "assets/storybook/crab-sandcastle-v1/scene-01.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "649c9aa5dc13e2e2c137082c1adcde00e50e7604ada70be3c248a8f514dba10a",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed": true,
+        "edge_not_uniform": true,
+        "edge_std": 77.21
+      }
+    },
+    {
+      "scene": 2,
+      "description_ko": "작고 정성스러운 모래성 만들기",
+      "prompt_summary": "Kong-i carefully builds a small detailed sandcastle while the starfish and hermit crab friends cheer on the sunny shore.",
+      "file": "assets/storybook/crab-sandcastle-v1/scene-02.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "52677a159b443670c862ed4beb156e00ee6280415bf8d7f13f70b968c2524755",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed": true,
+        "edge_not_uniform": true,
+        "edge_std": 77.85
+      }
+    },
+    {
+      "scene": 3,
+      "description_ko": "큰 파도에 모래성이 무너짐",
+      "prompt_summary": "A large foamy turquoise wave crashes into and breaks Kong-i’s sandcastle; Kong-i stays safe and looks shocked.",
+      "file": "assets/storybook/crab-sandcastle-v1/scene-03.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "82c055af1448afdd52e69563ff07c2e1eb8518989be3347100ccb760f1c11a17",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed": true,
+        "edge_not_uniform": true,
+        "edge_std": 81.67
+      }
+    },
+    {
+      "scene": 4,
+      "description_ko": "바위 뒤에서 슬퍼하는 콩이",
+      "prompt_summary": "Kong-i sits sadly behind a rounded beach rock and looks at the broken castle while friends stay close.",
+      "file": "assets/storybook/crab-sandcastle-v1/scene-04.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "6564ce7c97e891b80c3683a5dd8941436cb97e32d4626bc8ecf1264b3ec739ff",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed": true,
+        "edge_not_uniform": true,
+        "edge_std": 81.47
+      }
+    },
+    {
+      "scene": 5,
+      "description_ko": "파도 길을 관찰하는 콩이",
+      "prompt_summary": "Kong-i studies how the shoreline wave flows around rocks and sand, discovering a better building path.",
+      "file": "assets/storybook/crab-sandcastle-v1/scene-05.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "42f824b915c0b443c1fd84f4df597241b7c0f02e325b7ec33ca1232555af9aad",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed": true,
+        "edge_not_uniform": true,
+        "edge_std": 82.15
+      }
+    },
+    {
+      "scene": 6,
+      "description_ko": "친구들이 조개와 해초를 가져옴",
+      "prompt_summary": "Starfish and hermit crab friends bring shells, seaweed, and smooth stones to help Kong-i rebuild.",
+      "file": "assets/storybook/crab-sandcastle-v1/scene-06.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "d92a330949f8e0b1f2de1cedafad24b2c98a2a6362af17af7749985b6f5e56df",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed": true,
+        "edge_not_uniform": true,
+        "edge_std": 83.67
+      }
+    },
+    {
+      "scene": 7,
+      "description_ko": "둥근 벽과 물길 새 설계",
+      "prompt_summary": "Kong-i and friends build a rounded-wall sandcastle with channels that guide water around it.",
+      "file": "assets/storybook/crab-sandcastle-v1/scene-07.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "da961d6d1237c5caa048f3c76be85224004858abbbc42cfa633eb7cf64558110",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed": true,
+        "edge_not_uniform": true,
+        "edge_std": 81.9
+      }
+    },
+    {
+      "scene": 8,
+      "description_ko": "큰 파도도 버티는 새 모래성",
+      "prompt_summary": "A huge wave arrives, but the new rounded castle and water channels hold firm.",
+      "file": "assets/storybook/crab-sandcastle-v1/scene-08.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "1e13a4518c02c75de9f0d49807585f9ca9ca67bbca291e1ffda6b3aad06cc742",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed": true,
+        "edge_not_uniform": true,
+        "edge_std": 84.84
+      }
+    },
+    {
+      "scene": 9,
+      "description_ko": "바다 친구들이 성에서 놂",
+      "prompt_summary": "Sea friends play happily inside and around the sturdy sandcastle village.",
+      "file": "assets/storybook/crab-sandcastle-v1/scene-09.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "a0b5a4fbe2d9dd3909c4adf897960417773ffa2554bce1da5c28c48573c6c733",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed": true,
+        "edge_not_uniform": true,
+        "edge_std": 85.72
+      }
+    },
+    {
+      "scene": 10,
+      "description_ko": "모두가 즐기는 모래 마을 축하",
+      "prompt_summary": "Kong-i, starfish, and hermit crab friends celebrate together around the successful sand village.",
+      "file": "assets/storybook/crab-sandcastle-v1/scene-10.png",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "color_mode": "RGB",
+      "sha256": "9039b16885d43c14c8a9f8bb01d71089274dc50c4449641637f07ed165d58573",
+      "checks": {
+        "resolution": true,
+        "rgb": true,
+        "full_bleed": true,
+        "edge_not_uniform": true,
+        "edge_std": 81.6
+      }
+    }
+  ]
+}

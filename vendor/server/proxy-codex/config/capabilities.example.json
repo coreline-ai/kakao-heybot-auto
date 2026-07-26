@@ -4,7 +4,7 @@
     {
       "id": "image.generate",
       "enabled": true,
-      "allowedCallers": ["image"],
+      "allowedCallers": ["image", "draw"],
       "inputSchema": "image-generate-v1",
       "modelEnv": "CODEX_IMAGE_MODEL",
       "timeoutMs": 360000,
@@ -12,6 +12,18 @@
       "acceptedMediaTypes": ["image/png"],
       "maxBytesPerArtifact": 12582912,
       "canaryRequiresExplicitConfirmation": true
+    },
+    {
+      "id": "conversation.respond.v1",
+      "enabled": true,
+      "allowedCallers": ["conversation"],
+      "inputSchema": "conversation-respond-v1",
+      "modelEnv": "CODEX_TEXT_MODEL",
+      "timeoutMs": 90000,
+      "maxArtifacts": 0,
+      "acceptedMediaTypes": [],
+      "maxBytesPerArtifact": 0,
+      "canaryRequiresExplicitConfirmation": false
     }
   ]
 }

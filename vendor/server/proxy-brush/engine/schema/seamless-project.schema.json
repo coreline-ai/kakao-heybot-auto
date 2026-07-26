@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://brush-remotion-video.local/schema/seamless-project.schema.json",
+  "title": "Seamless Short Video project.yaml (draft)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["project", "generator", "scenes"],
+  "properties": {
+    "project": {
+      "type": "object",
+      "required": ["id", "scene_count", "scene_duration", "aspect_ratio"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "total_duration": { "type": "number", "minimum": 0 },
+        "scene_count": { "type": "integer", "minimum": 1, "maximum": 18 },
+        "scene_duration": { "type": "number", "minimum": 0.1 },
+        "aspect_ratio": { "type": "string" },
+        "transition_mode": { "type": "string" },
+        "dialogue": { "type": "boolean" },
+        "status": { "type": "string" },
+        "skill_contract": { "type": "string" }
+      }
+    },
+    "generator": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "max_duration_sec": { "type": "number" },
+        "aspect": { "type": "string" },
+        "supports_exact_start_frame": {
+          "type": ["string", "boolean"],
+          "description": "true | partial | unknown"
+        }
+      }
+    },
+    "character_lock": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string" },
+        "reference": { "type": "string" }
+      }
+    },
+    "scenes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^scene_[0-9]{2}$" },
+          "start_image": { "type": "string" },
+          "source_video": { "type": "string" },
+          "handoff_frame": { "type": "string" },
+          "qa_status": { "type": "string" },
+          "start_image_source": { "type": "string" },
+          "handoff_meta": { "type": "object" }
+        }
+      }
+    },
+    "assembly": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["head_trim", "auto_head_trim", "tail_discard", "hard_cut", "timeline_overlap"]
+        },
+        "head_trim_sec": { "type": "number", "minimum": 0 },
+        "head_trim_max_sec": { "type": "number", "minimum": 0 },
+        "unique_content_sec": { "type": "number" },
+        "final_duration_sec": { "type": "number" }
+      }
+    },
+    "content": {
+      "type": "object",
+      "properties": {
+        "unique_sec": {},
+        "bridge_sec": { "type": "number" },
+        "join_window_sec": { "type": "number" },
+        "script_sec": { "type": "number" }
+      }
+    },
+    "retry": {
+      "type": "object",
+      "properties": {
+        "max_per_scene": { "type": "integer", "minimum": 1 },
+        "immutable_completed": { "type": "boolean" }
+      }
+    }
+  }
+}

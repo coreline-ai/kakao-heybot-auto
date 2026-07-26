@@ -37,8 +37,6 @@ case "$*" in
   *" reverse tcp:4340 tcp:4340")
     touch "$state_dir/reverse-present"
     ;;
-  *" forward tcp:3000 tcp:3000")
-    ;;
   *)
     printf 'unexpected fake adb command: %s\n' "$*" >&2
     exit 64
@@ -113,8 +111,9 @@ run_watchdog FAKE_NOW=100 FAKE_ADB_STATE=device FAKE_CURL_STATUS=ok
 assert_equals '100' "$(<"$TEST_ROOT/runtime/watchdog/started-at")" 'started timestamp'
 assert_equals '0' "$(<"$TEST_ROOT/runtime/watchdog/consecutive-failures")" 'initial failure count'
 assert_count 'kickstart' '0' "$FAKE_STATE/launchctl.log"
+assert_count 'forward tcp:3000 tcp:3000' '0' "$FAKE_STATE/adb.log"
 
-# A disconnected PD20 must not attempt reverse/forward operations.
+# A disconnected PD20 must not attempt reverse operations.
 rm -f "$FAKE_STATE/reverse-present" "$FAKE_STATE/adb.log"
 run_watchdog FAKE_NOW=101 FAKE_ADB_STATE=offline FAKE_CURL_STATUS=ok
 assert_count 'reverse tcp:4340 tcp:4340' '0' "$FAKE_STATE/adb.log"
@@ -133,10 +132,11 @@ run_watchdog FAKE_NOW=202 FAKE_ADB_STATE=offline FAKE_CURL_STATUS=fail
 assert_count 'kickstart' '0' "$FAKE_STATE/launchctl.log"
 run_watchdog FAKE_NOW=203 FAKE_ADB_STATE=offline FAKE_CURL_STATUS=fail
 assert_equals '0' "$(<"$TEST_ROOT/runtime/watchdog/consecutive-failures")" 'threshold reset'
-assert_count 'kickstart' '3' "$FAKE_STATE/launchctl.log"
-assert_equals 'kickstart -k gui/'"$(id -u)"'/ai.coreline.heybot.proxy-codex' "$(sed -n '1p' "$FAKE_STATE/launchctl.log")" 'restart codex first'
-assert_equals 'kickstart -k gui/'"$(id -u)"'/ai.coreline.heybot.proxy-image' "$(sed -n '2p' "$FAKE_STATE/launchctl.log")" 'restart image second'
-assert_equals 'kickstart -k gui/'"$(id -u)"'/ai.coreline.heybot.proxy-manager' "$(sed -n '3p' "$FAKE_STATE/launchctl.log")" 'restart manager third'
+assert_count 'kickstart' '7' "$FAKE_STATE/launchctl.log"
+assert_equals 'kickstart -k gui/'"$(id -u)"'/ai.coreline.heybot.proxy-grok' "$(sed -n '1p' "$FAKE_STATE/launchctl.log")" 'restart grok first'
+assert_equals 'kickstart -k gui/'"$(id -u)"'/ai.coreline.heybot.proxy-video' "$(sed -n '2p' "$FAKE_STATE/launchctl.log")" 'restart video second'
+assert_equals 'kickstart -k gui/'"$(id -u)"'/ai.coreline.heybot.proxy-codex' "$(sed -n '3p' "$FAKE_STATE/launchctl.log")" 'restart codex third'
+assert_equals 'kickstart -k gui/'"$(id -u)"'/ai.coreline.heybot.proxy-manager' "$(sed -n '7p' "$FAKE_STATE/launchctl.log")" 'restart manager last'
 
 # Reverse can be restored on a later connected watchdog interval as well.
 run_watchdog FAKE_NOW=204 FAKE_ADB_STATE=device FAKE_CURL_STATUS=ok

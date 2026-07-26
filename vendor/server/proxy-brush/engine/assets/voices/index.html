@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Supertonic 여성 음성팩 1.0.0</title>
+<style>
+:root{--ink:#172238;--navy:#263b68;--gold:#c8922d;--paper:#f5f0e7;--line:#d9cfbe}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#faf7f1,#eee7dc);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+header{padding:48px max(24px,6vw) 34px;background:#172238;color:white;border-bottom:5px solid var(--gold)}h1{margin:0 0 12px;font-size:clamp(30px,5vw,56px)}header p{max-width:900px;line-height:1.7;color:#dbe2ef}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}button{border:0;border-radius:999px;padding:11px 17px;background:var(--gold);color:#172238;font-weight:850;cursor:pointer}
+main{width:min(1160px,92vw);margin:30px auto 60px}.notice{background:#fffaf1;border:1px solid var(--line);padding:16px 20px;border-radius:16px;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.voice-card{display:flex;gap:16px;background:white;border:1px solid var(--line);border-radius:19px;padding:20px;box-shadow:0 8px 26px #3a302118}
+.number{display:grid;place-items:center;flex:0 0 46px;height:46px;border-radius:14px;background:#e8dfcf;color:var(--navy);font-weight:900}.voice-main{min-width:0;flex:1}.title-row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}h2{font-size:21px;margin:2px 0 5px}.title-row span{background:#f5e6bd;color:#62450b;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800}p{line-height:1.6}.metrics{color:#687181;font-size:13px}.use{background:#f3f5f9;padding:8px 10px;border-radius:9px;font-size:13px}audio{width:100%}
+table{width:100%;border-collapse:collapse;background:white;margin:28px 0;border-radius:16px;overflow:hidden}th,td{padding:13px;border-bottom:1px solid #ece5da;text-align:left}thead th{background:#202e4a;color:white}
+@media(max-width:760px){.grid{grid-template-columns:1fr}table{display:block;overflow:auto}}
+</style></head><body>
+<header><h1>Supertonic 여성 음성팩 v1.0.0</h1><p>공식 F1~F5와 여성 style vector만 사용한 결정적 혼합 5종입니다. 프로젝트에서는 <code>female-01</code>~<code>female-10</code>을 사용합니다.</p><div class="toolbar"><button id="playAll">10종 순서대로 듣기</button><button id="stopAll">모두 정지</button></div></header>
+<main><section class="notice"><b>AI 음성 고지</b><br>이 콘텐츠의 내레이션은 Supertonic AI 합성 음성으로 제작되었습니다.</section>
+<table><thead><tr><th>ID</th><th>이름</th><th>구성</th><th>추천</th></tr></thead><tbody><tr><th>female-01</th><td>여성 01 · F1</td><td>F1 100%</td><td>일반 내레이션 · 교육 · 설명 영상</td></tr><tr><th>female-02</th><td>여성 02 · F2</td><td>F2 100%</td><td>쇼츠 · 홍보 · 밝은 교육 콘텐츠</td></tr><tr><th>female-03</th><td>여성 03 · F3</td><td>F3 100%</td><td>감성 내레이션 · 다큐 · 차분한 이야기</td></tr><tr><th>female-04</th><td>여성 04 · F4</td><td>F4 100%</td><td>정보 요약 · 튜토리얼 · 빠른 쇼츠</td></tr><tr><th>female-05</th><td>여성 05 · F5</td><td>F5 100%</td><td>명상 · 힐링 · 수면 · 잔잔한 동화</td></tr><tr><th>female-06</th><td>여성 06 · F1+F3</td><td>F1 65% + F3 35%</td><td>장편 교육 · 다큐 · 안정적인 해설</td></tr><tr><th>female-07</th><td>여성 07 · F2+F4</td><td>F2 60% + F4 40%</td><td>쇼츠 · 제품 소개 · 핵심 정보 전달</td></tr><tr><th>female-08</th><td>여성 08 · F3+F5</td><td>F3 50% + F5 50%</td><td>동화 · 감성 에세이 · 힐링 영상</td></tr><tr><th>female-09</th><td>여성 09 · F4+F1</td><td>F4 65% + F1 35%</td><td>전문 설명 · 가이드 · 기업·교육 영상</td></tr><tr><th>female-10</th><td>여성 10 · F5+F2</td><td>F5 60% + F2 40%</td><td>스토리텔링 · 강조형 장편 내레이션 · 생활 콘텐츠</td></tr></tbody></table>
+<section class="grid">
+        <article class="voice-card" id="female-01">
+          <div class="number">01</div>
+          <div class="voice-main">
+            <div class="title-row"><h2>여성 01 · F1</h2><span>범용 추천</span></div>
+            <p class="metrics"><code>female-01</code> · F1 100% · 중간 199Hz · 여유</p>
+            <p>따뜻하고 부드러운 균형형. 강조가 과하지 않아 오래 듣기 편합니다.</p>
+            <p class="use"><b>추천:</b> 일반 내레이션 · 교육 · 설명 영상</p>
+            <audio controls preload="metadata" src="previews/female-01.mp3"></audio>
+          </div>
+        </article>
+        <article class="voice-card" id="female-02">
+          <div class="number">02</div>
+          <div class="voice-main">
+            <div class="title-row"><h2>여성 02 · F2</h2><span>가장 밝음</span></div>
+            <p class="metrics"><code>female-02</code> · F2 100% · 매우 높음 238Hz · 빠름</p>
+            <p>밝고 생동감 있으며 억양 변화가 가장 큰 활기찬 목소리입니다.</p>
+            <p class="use"><b>추천:</b> 쇼츠 · 홍보 · 밝은 교육 콘텐츠</p>
+            <audio controls preload="metadata" src="previews/female-02.mp3"></audio>
+          </div>
+        </article>
+        <article class="voice-card" id="female-03">
+          <div class="number">03</div>
+          <div class="voice-main">
+            <div class="title-row"><h2>여성 03 · F3</h2><span>공기감</span></div>
+            <p class="metrics"><code>female-03</code> · F3 100% · 낮음 176Hz · 가장 느림</p>
+            <p>낮은 기본음에 고역과 공기감이 강해 섬세하고 차분하게 들립니다.</p>
+            <p class="use"><b>추천:</b> 감성 내레이션 · 다큐 · 차분한 이야기</p>
+            <audio controls preload="metadata" src="previews/female-03.mp3"></audio>
+          </div>
+        </article>
+        <article class="voice-card" id="female-04">
+          <div class="number">04</div>
+          <div class="voice-main">
+            <div class="title-row"><h2>여성 04 · F4</h2><span>가장 빠름</span></div>
+            <p class="metrics"><code>female-04</code> · F4 100% · 중고음 205Hz · 매우 빠름</p>
+            <p>군더더기 없이 또렷하고 빠르게 핵심을 전달하는 목소리입니다.</p>
+            <p class="use"><b>추천:</b> 정보 요약 · 튜토리얼 · 빠른 쇼츠</p>
+            <audio controls preload="metadata" src="previews/female-04.mp3"></audio>
+          </div>
+        </article>
+        <article class="voice-card" id="female-05">
+          <div class="number">05</div>
+          <div class="voice-main">
+            <div class="title-row"><h2>여성 05 · F5</h2><span>가장 안정적</span></div>
+            <p class="metrics"><code>female-05</code> · F5 100% · 가장 낮음 170Hz · 보통</p>
+            <p>낮고 포근하며 억양 변화가 적어 안정감과 편안함이 큽니다.</p>
+            <p class="use"><b>추천:</b> 명상 · 힐링 · 수면 · 잔잔한 동화</p>
+            <audio controls preload="metadata" src="previews/female-05.mp3"></audio>
+          </div>
+        </article>
+        <article class="voice-card" id="female-06">
+          <div class="number">06</div>
+          <div class="voice-main">
+            <div class="title-row"><h2>여성 06 · F1+F3</h2><span>장편 추천</span></div>
+            <p class="metrics"><code>female-06</code> · F1 65% + F3 35% · 중저음 182Hz · 느림</p>
+            <p>F1의 따뜻함과 F3의 차분함을 결합해 편안하면서도 표현력이 살아 있습니다.</p>
+            <p class="use"><b>추천:</b> 장편 교육 · 다큐 · 안정적인 해설</p>
+            <audio controls preload="metadata" src="previews/female-06.mp3"></audio>
+          </div>
+        </article>
+        <article class="voice-card" id="female-07">
+          <div class="number">07</div>
+          <div class="voice-main">
+            <div class="title-row"><h2>여성 07 · F2+F4</h2><span>쇼츠 추천</span></div>
+            <p class="metrics"><code>female-07</code> · F2 60% + F4 40% · 높음 211Hz · 매우 빠름</p>
+            <p>밝은 음역과 빠른 전달력을 결합한 또렷하고 활기찬 목소리입니다.</p>
+            <p class="use"><b>추천:</b> 쇼츠 · 제품 소개 · 핵심 정보 전달</p>
+            <audio controls preload="metadata" src="previews/female-07.mp3"></audio>
+          </div>
+        </article>
+        <article class="voice-card" id="female-08">
+          <div class="number">08</div>
+          <div class="voice-main">
+            <div class="title-row"><h2>여성 08 · F3+F5</h2><span>동화 추천</span></div>
+            <p class="metrics"><code>female-08</code> · F3 50% + F5 50% · 낮음 172Hz · 느림</p>
+            <p>낮고 부드러우면서 공기감이 있어 감성적이고 시적인 분위기가 납니다.</p>
+            <p class="use"><b>추천:</b> 동화 · 감성 에세이 · 힐링 영상</p>
+            <audio controls preload="metadata" src="previews/female-08.mp3"></audio>
+          </div>
+        </article>
+        <article class="voice-card" id="female-09">
+          <div class="number">09</div>
+          <div class="voice-main">
+            <div class="title-row"><h2>여성 09 · F4+F1</h2><span>전문 해설</span></div>
+            <p class="metrics"><code>female-09</code> · F4 65% + F1 35% · 중간 197Hz · 매우 빠름</p>
+            <p>빠르지만 과하게 밝지 않은 중립적 톤으로 신뢰감과 전달력이 좋습니다.</p>
+            <p class="use"><b>추천:</b> 전문 설명 · 가이드 · 기업·교육 영상</p>
+            <audio controls preload="metadata" src="previews/female-09.mp3"></audio>
+          </div>
+        </article>
+        <article class="voice-card" id="female-10">
+          <div class="number">10</div>
+          <div class="voice-main">
+            <div class="title-row"><h2>여성 10 · F5+F2</h2><span>강조형</span></div>
+            <p class="metrics"><code>female-10</code> · F5 60% + F2 40% · 낮음 171Hz · 빠름</p>
+            <p>낮고 따뜻한 기본 톤에 밝은 억양과 큰 강약 변화가 더해졌습니다.</p>
+            <p class="use"><b>추천:</b> 스토리텔링 · 강조형 장편 내레이션 · 생활 콘텐츠</p>
+            <audio controls preload="metadata" src="previews/female-10.mp3"></audio>
+          </div>
+        </article></section></main>
+<script>const a=[...document.querySelectorAll('audio')];document.getElementById('playAll').onclick=()=>{let i=0;a.forEach(x=>{x.pause();x.currentTime=0});const n=()=>{if(i>=a.length)return;const x=a[i++];x.onended=n;x.play()};n()};document.getElementById('stopAll').onclick=()=>a.forEach(x=>{x.pause();x.currentTime=0});</script>
+</body></html>

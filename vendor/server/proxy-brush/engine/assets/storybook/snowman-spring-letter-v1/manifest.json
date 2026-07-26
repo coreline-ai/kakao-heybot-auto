@@ -1,0 +1,30 @@
+{
+  "storyNumber": 4,
+  "project": "snowman-spring-letter-v1",
+  "title": "눈사람의 봄 편지",
+  "totalScenes": 10,
+  "resolution": "1080x1920",
+  "aspectRatio": "9:16",
+  "generation": {
+    "engine": "built-in image_gen",
+    "style": "high quality Korean children's storybook gouache, closed dark-brown contours, broad separated color zones",
+    "canvasContract": "continuous edge-to-edge storybook scene with no outer frame, mat, white margin, letterbox, text, logo or watermark",
+    "brushReadiness": "large closed regions for seeded freehand diagonal and vertical brush reveal"
+  },
+  "characters": {
+    "nuni": "three-round snowman, carrot nose, coal-button eyes, sky-blue knitted scarf, tiny red bucket hat",
+    "mina": "seven-year-old child, black braided hair, coral winter coat, navy mittens, yellow boots"
+  },
+  "scenes": [
+    {"scene": 1, "file": "scene-01.png", "description": "Mina and Nuni build a snow lantern in the winter garden."},
+    {"scene": 2, "file": "scene-02.png", "description": "Spring sunlight begins to melt the snow, making Nuni worry."},
+    {"scene": 3, "file": "scene-03.png", "description": "Nuni quietly worries beside a melting snow patch."},
+    {"scene": 4, "file": "scene-04.png", "description": "Mina writes a spring letter while Nuni holds flower seeds."},
+    {"scene": 5, "file": "scene-05.png", "description": "Mina and Nuni plant a neat row of flower seeds."},
+    {"scene": 6, "file": "scene-06.png", "description": "Nuni's meltwater helps Mina water the growing seeds."},
+    {"scene": 7, "file": "scene-07.png", "description": "Fresh sprouts rise as Nuni becomes a small snow mound."},
+    {"scene": 8, "file": "scene-08.png", "description": "Mina ties Nuni's scarf and hat to a garden stake beside sprouts."},
+    {"scene": 9, "file": "scene-09.png", "description": "The garden blooms into a vivid spring flower celebration."},
+    {"scene": 10, "file": "scene-10.png", "description": "Flower petals form a gentle symbolic snowman smile above Mina."}
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "projectId": "qwen",
+  "engine": "qwen3-base",
+  "voice": "local-reference",
+  "model": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+  "modelRevision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "packageVersion": "qwen-tts==0.1.1",
+  "language": "ko",
+  "nativeSampleRate": 24000,
+  "outputSampleRate": 44100,
+  "requestedSpeed": 1.0,
+  "appliedSpeed": 1.0,
+  "requestedTiming": "tts",
+  "appliedTiming": "tts",
+  "pauseMs": 300,
+  "durationSec": 1.0,
+  "sentenceCount": 1,
+  "audioSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "license": {
+    "model": "Apache-2.0",
+    "url": "https://example.com/qwen-license",
+    "aiDisclosureRequired": true
+  },
+  "aiDisclosure": "AI 합성 음성",
+  "referenceVoiceId": "local-reference",
+  "referenceAudioSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "referenceTranscriptSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "xVectorOnlyMode": false
+}

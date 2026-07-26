@@ -1,0 +1,1686 @@
+{
+  "schemaVersion": 1,
+  "fixtureVersion": "1.0.0",
+  "cases": [
+    {
+      "id": "canonical-01-1",
+      "input": "카메라는 가만히 두고 보여줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "static-shot",
+      "expectedCanonicalNo": 1,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "startComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-01-2",
+      "input": "구도를 고정한 채 장면을 담아줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "static-shot",
+      "expectedCanonicalNo": 1,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "startComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-02-1",
+      "input": "오른쪽으로 천천히 훑어줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "pan-right",
+      "expectedCanonicalNo": 2,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-02-2",
+      "input": "카메라 시선을 오른쪽으로 돌려줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "pan-right",
+      "expectedCanonicalNo": 2,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-03-1",
+      "input": "왼쪽으로 화면을 훑어줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "pan-left",
+      "expectedCanonicalNo": 3,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-03-2",
+      "input": "카메라를 왼쪽으로 돌려 반대편을 보여줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "pan-left",
+      "expectedCanonicalNo": 3,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-04-1",
+      "input": "오른쪽으로 확 휙 넘겨줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "whip-pan-right",
+      "expectedCanonicalNo": 4,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "screenDirection",
+        "continuity"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-04-2",
+      "input": "빠른 오른쪽 휩팬으로 다음 장면을 연결해줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "whip-pan-right",
+      "expectedCanonicalNo": 4,
+      "expectedCompatibility": "simulated",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "screenDirection",
+        "continuity"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-05-1",
+      "input": "왼쪽으로 확 휙 넘겨줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "whip-pan-left",
+      "expectedCanonicalNo": 5,
+      "expectedCompatibility": "simulated",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "screenDirection",
+        "continuity"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-05-2",
+      "input": "빠른 왼쪽 휩팬으로 장면 전환해줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "whip-pan-left",
+      "expectedCanonicalNo": 5,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "screenDirection",
+        "continuity"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-06-1",
+      "input": "아래에서 위로 올려다봐 줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "tilt-up",
+      "expectedCanonicalNo": 6,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-06-2",
+      "input": "카메라 시선을 위로 천천히 들어줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "tilt-up",
+      "expectedCanonicalNo": 6,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-07-1",
+      "input": "위에서 아래로 내려다보며 보여줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "tilt-down",
+      "expectedCanonicalNo": 7,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-07-2",
+      "input": "카메라 시선을 아래로 천천히 내려줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "tilt-down",
+      "expectedCanonicalNo": 7,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-08-1",
+      "input": "인물에게 천천히 당겨줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "slow-zoom-in",
+      "expectedCanonicalNo": 8,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-08-2",
+      "input": "서서히 가까이 확대해서 집중시켜줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "slow-zoom-in",
+      "expectedCanonicalNo": 8,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-09-1",
+      "input": "천천히 멀어지며 주변을 보여줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "slow-zoom-out",
+      "expectedCanonicalNo": 9,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-09-2",
+      "input": "서서히 화각을 넓혀 장소를 공개해줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "slow-zoom-out",
+      "expectedCanonicalNo": 9,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-10-1",
+      "input": "피사체로 빠르게 확대해줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "fast-zoom-in",
+      "expectedCanonicalNo": 10,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-10-2",
+      "input": "발견한 디테일을 확 당겨 보여줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "fast-zoom-in",
+      "expectedCanonicalNo": 10,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-11-1",
+      "input": "확 멀어져서 전체 상황을 보여줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "fast-zoom-out",
+      "expectedCanonicalNo": 11,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-11-2",
+      "input": "빠르게 줌 아웃해 반전을 공개해줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "fast-zoom-out",
+      "expectedCanonicalNo": 11,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-12-1",
+      "input": "결정적인 부분을 순간적으로 확 당겨줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "crash-zoom-in",
+      "expectedCanonicalNo": 12,
+      "expectedCompatibility": "simulated",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-12-2",
+      "input": "충격적으로 초고속 확대해줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "crash-zoom-in",
+      "expectedCanonicalNo": 12,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-13-1",
+      "input": "앞의 물체를 스치며 빠르게 들어가 줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "push-fast-passby",
+      "expectedCanonicalNo": 13,
+      "expectedCompatibility": "simulated",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "distance",
+        "startComposition",
+        "endComposition",
+        "continuity"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-13-2",
+      "input": "전경을 지나 공간 안으로 밀고 들어가 줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "push-fast-passby",
+      "expectedCanonicalNo": 13,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "distance",
+        "startComposition",
+        "endComposition",
+        "continuity"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-14-1",
+      "input": "피사체 오른쪽으로 반원을 그리며 보여줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "arc-right",
+      "expectedCanonicalNo": 14,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-14-2",
+      "input": "거리를 유지하고 오른쪽 곡선으로 돌아줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "arc-right",
+      "expectedCanonicalNo": 14,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-15-1",
+      "input": "피사체 왼쪽으로 반원을 그리며 보여줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "arc-left",
+      "expectedCanonicalNo": 15,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-15-2",
+      "input": "거리를 유지하고 왼쪽 곡선으로 돌아줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "arc-left",
+      "expectedCanonicalNo": 15,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-16-1",
+      "input": "위에서 봤을 때 시계 방향으로 한 바퀴 돌아줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "orbit-clockwise",
+      "expectedCanonicalNo": 16,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "durationSec",
+        "continuity"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-16-2",
+      "input": "피사체 중심으로 오른쪽 방향 오비트해줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "orbit-clockwise",
+      "expectedCanonicalNo": 16,
+      "expectedCompatibility": "external-required",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "durationSec",
+        "continuity"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-17-1",
+      "input": "위에서 봤을 때 반시계 방향으로 돌아줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "orbit-counterclockwise",
+      "expectedCanonicalNo": 17,
+      "expectedCompatibility": "external-required",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "durationSec",
+        "continuity"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-17-2",
+      "input": "피사체 중심으로 왼쪽 방향 오비트해줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "orbit-counterclockwise",
+      "expectedCanonicalNo": 17,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "durationSec",
+        "continuity"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-18-1",
+      "input": "걷는 인물을 같은 속도로 따라가 줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "tracking-shot",
+      "expectedCanonicalNo": 18,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "subjectLock",
+        "stabilization"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-18-2",
+      "input": "피사체와 보조를 맞추며 추적해줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "tracking-shot",
+      "expectedCanonicalNo": 18,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "subjectLock",
+        "stabilization"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-19-1",
+      "input": "인물 뒤에서 어깨 너머로 따라가 줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "follow-over-shoulder",
+      "expectedCanonicalNo": 19,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "subjectLock"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-19-2",
+      "input": "주인공의 여정을 뒤에서 쫓아가 줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "follow-over-shoulder",
+      "expectedCanonicalNo": 19,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "subjectLock"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-20-1",
+      "input": "걸어오는 인물을 정면에서 보며 뒤로 가 줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "reverse-tracking-walk-talk",
+      "expectedCanonicalNo": 20,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "subjectLock",
+        "stabilization"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-20-2",
+      "input": "대화하는 사람 앞에서 후진하며 따라가 줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "reverse-tracking-walk-talk",
+      "expectedCanonicalNo": 20,
+      "expectedCompatibility": "external-required",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "subjectLock",
+        "stabilization"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-21-1",
+      "input": "인물 옆에서 나란히 따라가 줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "side-tracking",
+      "expectedCanonicalNo": 21,
+      "expectedCompatibility": "external-required",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "screenDirection",
+        "subjectLock"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-21-2",
+      "input": "측면 구도를 유지하며 평행 이동해줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "side-tracking",
+      "expectedCanonicalNo": 21,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "screenDirection",
+        "subjectLock"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-22-1",
+      "input": "바닥 가까이에서 발걸음을 따라가 줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "low-tracking",
+      "expectedCanonicalNo": 22,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "focalPoint",
+        "stabilization"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-22-2",
+      "input": "낮은 시점으로 달리는 모습을 추적해줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "low-tracking",
+      "expectedCanonicalNo": 22,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "focalPoint",
+        "stabilization"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-23-1",
+      "input": "달리는 자동차와 같은 속도로 따라가 줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "vehicle-tracking",
+      "expectedCanonicalNo": 23,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "screenDirection",
+        "stabilization"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-23-2",
+      "input": "차량 옆에서 안정적으로 추적해줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "vehicle-tracking",
+      "expectedCanonicalNo": 23,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "screenDirection",
+        "stabilization"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-24-1",
+      "input": "달리는 주인공을 가까이서 추격해줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "chase-shot",
+      "expectedCanonicalNo": 24,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "subjectLock",
+        "stabilization"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-24-2",
+      "input": "빠른 액션을 놓치지 말고 쫓아가 줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "chase-shot",
+      "expectedCanonicalNo": 24,
+      "expectedCompatibility": "external-required",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "subjectLock",
+        "stabilization"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-25-1",
+      "input": "현장감 있게 살짝 흔들리게 해줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "handheld-shot",
+      "expectedCanonicalNo": 25,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "stabilization",
+        "motionBlur"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-25-2",
+      "input": "다큐처럼 자연스러운 미세 흔들림을 줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "handheld-shot",
+      "expectedCanonicalNo": 25,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "stabilization",
+        "motionBlur"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-26-1",
+      "input": "인물은 화면에 고정하고 배경만 흔들리게 해줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "body-mount-snorricam",
+      "expectedCanonicalNo": 26,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "distance",
+        "subjectLock",
+        "stabilization",
+        "motionBlur"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-26-2",
+      "input": "몸에 카메라를 달아 혼란스럽게 보여줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "body-mount-snorricam",
+      "expectedCanonicalNo": 26,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "distance",
+        "subjectLock",
+        "stabilization",
+        "motionBlur"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-27-1",
+      "input": "카메라가 위로 올라가며 전체 공간을 보여줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "crane-up",
+      "expectedCanonicalNo": 27,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-27-2",
+      "input": "엔딩에서 높이 상승해 장소를 펼쳐줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "crane-up",
+      "expectedCanonicalNo": 27,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-28-1",
+      "input": "높은 곳에서 내려오며 인물에게 접근해줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "crane-down",
+      "expectedCanonicalNo": 28,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-28-2",
+      "input": "공간 전체에서 주인공으로 내려와 집중해줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "crane-down",
+      "expectedCanonicalNo": 28,
+      "expectedCompatibility": "simulated",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-29-1",
+      "input": "하늘에서 목적지를 향해 전진해줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "drone-push-in",
+      "expectedCanonicalNo": 29,
+      "expectedCompatibility": "external-required",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-29-2",
+      "input": "드론으로 장엄하게 가까워져 줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "drone-push-in",
+      "expectedCanonicalNo": 29,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-30-1",
+      "input": "드론이 뒤로 빠지며 풍경을 넓게 보여줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "drone-pull-back",
+      "expectedCanonicalNo": 30,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-30-2",
+      "input": "피사체에서 멀어져 주변 규모를 공개해줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "drone-pull-back",
+      "expectedCanonicalNo": 30,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-31-1",
+      "input": "아주 높은 곳에서 도시를 안정적으로 따라가 줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "helicopter-shot",
+      "expectedCanonicalNo": 31,
+      "expectedCompatibility": "composition-only",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "subjectLock",
+        "stabilization"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-31-2",
+      "input": "헬리콥터 시점으로 넓은 도로를 추적해줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "helicopter-shot",
+      "expectedCanonicalNo": 31,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "subjectLock",
+        "stabilization"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-32-1",
+      "input": "주인공 눈으로 직접 보는 것처럼 보여줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "first-person-pov",
+      "expectedCanonicalNo": 32,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "focalPoint",
+        "stabilization"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-32-2",
+      "input": "내가 걷는 시점으로 몰입하게 해줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "first-person-pov",
+      "expectedCanonicalNo": 32,
+      "expectedCompatibility": "external-required",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "focalPoint",
+        "stabilization"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-33-1",
+      "input": "도시를 미니어처 장난감처럼 보여줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "tilt-shift",
+      "expectedCanonicalNo": 33,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "focalPoint",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-33-2",
+      "input": "초점 띠를 좁혀 작은 모형처럼 만들어줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "tilt-shift",
+      "expectedCanonicalNo": 33,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "focalPoint",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-34-1",
+      "input": "화면 중심으로 계속 확대하며 다른 공간으로 이어줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "infinite-zoom",
+      "expectedCanonicalNo": 34,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "focalPoint",
+        "continuity",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-34-2",
+      "input": "끝없이 줌인해서 다음 장면 안으로 들어가 줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "infinite-zoom",
+      "expectedCanonicalNo": 34,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "focalPoint",
+        "continuity",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-35-1",
+      "input": "이 장소에서 도시와 지구까지 확 멀어져 줘",
+      "kind": "canonical",
+      "target": "imageGeneration",
+      "expectedCanonicalId": "earth-zoom-out",
+      "expectedCanonicalNo": 35,
+      "expectedCompatibility": "not-applicable",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "focalPoint",
+        "continuity",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-35-2",
+      "input": "한 지점에서 우주까지 스케일을 넓혀줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "earth-zoom-out",
+      "expectedCanonicalNo": 35,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "focalPoint",
+        "continuity",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-36-1",
+      "input": "일몰 변화를 빠르게 압축해서 보여줘",
+      "kind": "canonical",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "timelapse",
+      "expectedCanonicalNo": 36,
+      "expectedCompatibility": "simulated",
+      "requiredSlots": [
+        "subject",
+        "durationSec",
+        "startComposition",
+        "endComposition",
+        "continuity"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-36-2",
+      "input": "고정 구도에서 시간이 흐르는 걸 빠르게 보여줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "timelapse",
+      "expectedCanonicalNo": 36,
+      "expectedCompatibility": "external-required",
+      "requiredSlots": [
+        "subject",
+        "durationSec",
+        "startComposition",
+        "endComposition",
+        "continuity"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-46-1",
+      "input": "문을 통과해서 다음 공간으로 이어줘",
+      "kind": "canonical",
+      "target": "remotionStill",
+      "expectedCanonicalId": "object-pass-through",
+      "expectedCanonicalNo": 46,
+      "expectedCompatibility": "external-required",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "focalPoint",
+        "continuity",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "canonical-46-2",
+      "input": "벽이나 창문을 관통하며 장면을 바꿔줘",
+      "kind": "canonical",
+      "target": "aiVideo",
+      "expectedCanonicalId": "object-pass-through",
+      "expectedCanonicalNo": 46,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "focalPoint",
+        "continuity",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "alias-37",
+      "input": "37번 크레인 다운 기법으로 장면을 연출해줘",
+      "kind": "alias",
+      "target": "aiVideo",
+      "expectedCanonicalId": "crane-down",
+      "expectedCanonicalNo": 28,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": false,
+      "legacyNo": 37
+    },
+    {
+      "id": "alias-38",
+      "input": "38번 드론 전진 기법으로 장면을 연출해줘",
+      "kind": "alias",
+      "target": "aiVideo",
+      "expectedCanonicalId": "drone-push-in",
+      "expectedCanonicalNo": 29,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false,
+      "legacyNo": 38
+    },
+    {
+      "id": "alias-39",
+      "input": "39번 드론 후진 기법으로 장면을 연출해줘",
+      "kind": "alias",
+      "target": "aiVideo",
+      "expectedCanonicalId": "drone-pull-back",
+      "expectedCanonicalNo": 30,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false,
+      "legacyNo": 39
+    },
+    {
+      "id": "alias-40",
+      "input": "40번 헬리콥터 샷 기법으로 장면을 연출해줘",
+      "kind": "alias",
+      "target": "aiVideo",
+      "expectedCanonicalId": "helicopter-shot",
+      "expectedCanonicalNo": 31,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "subjectLock",
+        "stabilization"
+      ],
+      "needsClarification": false,
+      "legacyNo": 40
+    },
+    {
+      "id": "alias-41",
+      "input": "41번 1인칭 시점 기법으로 장면을 연출해줘",
+      "kind": "alias",
+      "target": "aiVideo",
+      "expectedCanonicalId": "first-person-pov",
+      "expectedCanonicalNo": 32,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "focalPoint",
+        "stabilization"
+      ],
+      "needsClarification": false,
+      "legacyNo": 41
+    },
+    {
+      "id": "alias-42",
+      "input": "42번 틸트 시프트 기법으로 장면을 연출해줘",
+      "kind": "alias",
+      "target": "aiVideo",
+      "expectedCanonicalId": "tilt-shift",
+      "expectedCanonicalNo": 33,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "focalPoint",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false,
+      "legacyNo": 42
+    },
+    {
+      "id": "alias-43",
+      "input": "43번 인피니트 줌 기법으로 장면을 연출해줘",
+      "kind": "alias",
+      "target": "aiVideo",
+      "expectedCanonicalId": "infinite-zoom",
+      "expectedCanonicalNo": 34,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "focalPoint",
+        "continuity",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false,
+      "legacyNo": 43
+    },
+    {
+      "id": "alias-44",
+      "input": "44번 어스 줌 아웃 기법으로 장면을 연출해줘",
+      "kind": "alias",
+      "target": "aiVideo",
+      "expectedCanonicalId": "earth-zoom-out",
+      "expectedCanonicalNo": 35,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "focalPoint",
+        "continuity",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false,
+      "legacyNo": 44
+    },
+    {
+      "id": "alias-45",
+      "input": "45번 타임랩스 기법으로 장면을 연출해줘",
+      "kind": "alias",
+      "target": "aiVideo",
+      "expectedCanonicalId": "timelapse",
+      "expectedCanonicalNo": 36,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "durationSec",
+        "startComposition",
+        "endComposition",
+        "continuity"
+      ],
+      "needsClarification": false,
+      "legacyNo": 45
+    },
+    {
+      "id": "ambiguity-pull",
+      "input": "인물 쪽으로 당겨줘",
+      "kind": "ambiguity",
+      "target": "aiVideo",
+      "expectedCanonicalId": "slow-zoom-in",
+      "expectedCanonicalNo": 8,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": true
+    },
+    {
+      "id": "ambiguity-turn",
+      "input": "주변을 돌아서 보여줘",
+      "kind": "ambiguity",
+      "target": "aiVideo",
+      "expectedCanonicalId": "orbit-clockwise",
+      "expectedCanonicalNo": 16,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "durationSec",
+        "continuity"
+      ],
+      "needsClarification": true
+    },
+    {
+      "id": "ambiguity-shake",
+      "input": "조금 흔들리게 해줘",
+      "kind": "ambiguity",
+      "target": "remotionStill",
+      "expectedCanonicalId": "handheld-shot",
+      "expectedCanonicalNo": 25,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "stabilization",
+        "motionBlur"
+      ],
+      "needsClarification": true
+    },
+    {
+      "id": "ambiguity-grand",
+      "input": "웅장하게 멀어져 줘",
+      "kind": "ambiguity",
+      "target": "aiVideo",
+      "expectedCanonicalId": "drone-pull-back",
+      "expectedCanonicalNo": 30,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": true
+    },
+    {
+      "id": "conflict-static-handheld",
+      "input": "카메라는 완전히 고정인데 현장감 있게 흔들리게 해줘",
+      "kind": "conflict",
+      "target": "remotionStill",
+      "expectedCanonicalId": "static-shot",
+      "expectedCanonicalNo": 1,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "startComposition"
+      ],
+      "needsClarification": true
+    },
+    {
+      "id": "conflict-zoom-pullback",
+      "input": "인물에게 줌 인하면서 카메라는 뒤로 멀어져 줘",
+      "kind": "conflict",
+      "target": "aiVideo",
+      "expectedCanonicalId": "slow-zoom-in",
+      "expectedCanonicalNo": 8,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "speed",
+        "startComposition",
+        "endComposition",
+        "focalPoint"
+      ],
+      "needsClarification": true
+    },
+    {
+      "id": "conflict-pan-both",
+      "input": "왼쪽과 오른쪽으로 동시에 팬해줘",
+      "kind": "conflict",
+      "target": "aiVideo",
+      "expectedCanonicalId": "pan-right",
+      "expectedCanonicalNo": 2,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": true
+    },
+    {
+      "id": "mixed-ko-en",
+      "input": "왼쪽으로 slow pan 하면서 풍경을 보여줘",
+      "kind": "mixed",
+      "target": "aiVideo",
+      "expectedCanonicalId": "pan-left",
+      "expectedCanonicalNo": 3,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "mixed-typo",
+      "input": "드론 푸쉬인으로 목적지에 다가가줘",
+      "kind": "mixed",
+      "target": "aiVideo",
+      "expectedCanonicalId": "drone-push-in",
+      "expectedCanonicalNo": 29,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "mixed-primary-secondary",
+      "input": "인물 뒤를 따라가면서 아주 약하게 줌 인해줘",
+      "kind": "mixed",
+      "target": "aiVideo",
+      "expectedCanonicalId": "follow-over-shoulder",
+      "expectedCanonicalNo": 19,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "distance",
+        "startComposition",
+        "subjectLock"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "mixed-number-46",
+      "input": "46번 object pass through로 문을 지나 다음 방에 들어가 줘",
+      "kind": "mixed",
+      "target": "sceneTransition",
+      "expectedCanonicalId": "object-pass-through",
+      "expectedCanonicalNo": 46,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "direction",
+        "speed",
+        "focalPoint",
+        "continuity",
+        "startComposition",
+        "endComposition"
+      ],
+      "needsClarification": false
+    },
+    {
+      "id": "conflict-timelapse-handheld",
+      "input": "고정 타임랩스인데 계속 핸드헬드로 흔들어줘",
+      "kind": "conflict",
+      "target": "aiVideo",
+      "expectedCanonicalId": "timelapse",
+      "expectedCanonicalNo": 36,
+      "expectedCompatibility": "supported",
+      "requiredSlots": [
+        "subject",
+        "durationSec",
+        "startComposition",
+        "endComposition",
+        "continuity"
+      ],
+      "needsClarification": true
+    },
+    {
+      "id": "no-camera-01",
+      "input": "따뜻한 수채화 느낌으로 세 장면을 만들어줘",
+      "kind": "no-camera",
+      "target": "remotionStill",
+      "expectedCanonicalId": null,
+      "expectedCanonicalNo": null,
+      "expectedCompatibility": null,
+      "requiredSlots": [],
+      "needsClarification": false
+    }
+  ]
+}

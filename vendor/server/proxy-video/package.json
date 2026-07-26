@@ -1,0 +1,6 @@
+{
+  "name":"@heybot/proxy-video", "version":"0.1.0", "private":true, "type":"module",
+  "engines":{"node":">=24"},
+  "scripts":{"build":"tsc -p tsconfig.json","start":"node dist/src/index.js","test":"npm run build && node --test dist/test/*/*.test.js"},
+  "devDependencies":{"@types/node":"^24.0.0","typescript":"^5.8.0"}
+}

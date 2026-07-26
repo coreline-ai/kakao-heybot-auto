@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://brushvid.local/schema/bgm-catalog.json",
+  "type": "object",
+  "required": ["schemaVersion", "assets"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id", "title", "artist", "source", "sourcePage", "durationSec",
+          "localPath", "downloaded", "sha256", "license", "tags", "recommendedSkills",
+          "youtubeAllowed"
+        ],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]+$"},
+          "title": {"type": "string", "minLength": 1},
+          "artist": {"type": ["string", "null"]},
+          "source": {"enum": ["pixabay", "youtube-audio-library", "artist-site"]},
+          "sourcePage": {"type": "string", "format": "uri", "minLength": 1},
+          "artistPage": {"type": "string", "format": "uri", "minLength": 1},
+          "durationSec": {"type": "number", "exclusiveMinimum": 0},
+          "localPath": {"type": "string", "pattern": "^local-assets/bgm/"},
+          "downloaded": {"type": "boolean"},
+          "sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+          "license": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name", "url", "downloadedAt", "checkedAt", "contentIdStatus", "evidenceFiles"
+            ],
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "url": {"type": "string", "format": "uri"},
+              "attributionRequired": {"type": "boolean"},
+              "attributionText": {"type": ["string", "null"]},
+              "modificationNotice": {"type": ["string", "null"]},
+              "downloadedAt": {"type": ["string", "null"], "format": "date"},
+              "checkedAt": {"type": ["string", "null"], "format": "date"},
+              "contentIdStatus": {
+                "enum": ["registered", "not-displayed", "unknown", "verified-not-registered"]
+              },
+              "evidenceFiles": {
+                "type": "array",
+                "items": {"type": "string"},
+                "uniqueItems": true
+              }
+            }
+          },
+          "tags": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "recommendedSkills": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "youtubeAllowed": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}

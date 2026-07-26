@@ -1,0 +1,122 @@
+{
+  "project": "storybook-seed-promise",
+  "title": "씨앗 하나의 약속",
+  "total_scenes": 10,
+  "target_resolution": "1080x1920",
+  "aspect_ratio": "9:16",
+  "generated_with": "built-in image_gen",
+  "upscaled_from": "941x1672 to 1080x1920 using Lanczos",
+  "style": "storybook illustration; warm ivory paper; thin dark-brown closed outlines; broad flat color regions; pen-to-brush ready",
+  "scenes": [
+    {
+      "scene": 1,
+      "description": "창고에서 마지막 씨앗 발견",
+      "file": "assets/storybook/seed-promise/scene-01.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 2,
+      "description": "가뭄으로 갈라진 마을 정원",
+      "file": "assets/storybook/seed-promise/scene-02.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 3,
+      "description": "씨앗을 심을지 고민",
+      "file": "assets/storybook/seed-promise/scene-03.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 4,
+      "description": "마을 한가운데 땅을 파고 심음",
+      "file": "assets/storybook/seed-promise/scene-04.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 5,
+      "description": "이웃들이 물을 모아 옴",
+      "file": "assets/storybook/seed-promise/scene-05.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 6,
+      "description": "잎으로 뜨거운 햇볕을 가림",
+      "file": "assets/storybook/seed-promise/scene-06.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 7,
+      "description": "흙 사이로 초록 싹",
+      "file": "assets/storybook/seed-promise/scene-07.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 8,
+      "description": "모두 함께 매일 물을 줌",
+      "file": "assets/storybook/seed-promise/scene-08.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 9,
+      "description": "꽃과 채소가 가득한 정원",
+      "file": "assets/storybook/seed-promise/scene-09.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 10,
+      "description": "수확한 열매로 행복한 마을 식탁",
+      "file": "assets/storybook/seed-promise/scene-10.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    }
+  ]
+}

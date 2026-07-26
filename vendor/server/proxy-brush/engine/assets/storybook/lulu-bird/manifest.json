@@ -1,0 +1,111 @@
+{
+  "project": "storybook-lulu-bird",
+  "title": "날지 못하는 작은 새 루루",
+  "total_scenes": 10,
+  "target_resolution": "1080x1920",
+  "aspect_ratio": "9:16",
+  "generated_with": "built-in image_gen",
+  "upscaled_from": "941x1672 to 1080x1920 using Lanczos",
+  "scenes": [
+    {
+      "scene": 1,
+      "description": "루루가 높은 나뭇가지에서 하늘을 나는 새들을 바라본다.",
+      "file": "assets/storybook/lulu-bird/scene-01.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 2,
+      "description": "루루가 날개를 퍼덕이다 부드러운 풀밭에 안전하게 떨어진다.",
+      "file": "assets/storybook/lulu-bird/scene-02.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 3,
+      "description": "다람쥐 수리가 낮은 가지부터 연습하자고 루루에게 제안한다.",
+      "file": "assets/storybook/lulu-bird/scene-03.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 4,
+      "description": "루루가 낮은 가지 사이를 뛰며 균형을 연습하고 수리가 응원한다.",
+      "file": "assets/storybook/lulu-bird/scene-04.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 5,
+      "description": "갑작스러운 강풍이 루루를 뒤로 밀어내고 수리가 걱정스럽게 바라본다.",
+      "file": "assets/storybook/lulu-bird/scene-05.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 6,
+      "description": "수리와 친구들이 큰 잎과 나뭇가지로 루루의 연습 날개를 함께 만든다.",
+      "file": "assets/storybook/lulu-bird/scene-06.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 7,
+      "description": "루루가 잎 연습 날개를 달고 언덕 아래로 첫 활공에 성공한다.",
+      "file": "assets/storybook/lulu-bird/scene-07.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 8,
+      "description": "루루와 수리가 나뭇가지에 홀로 남은 길 잃은 아기 새를 발견한다.",
+      "file": "assets/storybook/lulu-bird/scene-08.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 9,
+      "description": "루루가 용기를 내어 아기 새에게 날아가 안전하게 안내한다.",
+      "file": "assets/storybook/lulu-bird/scene-09.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 10,
+      "description": "루루가 아기 새 가족과 재회하고 모두 함께 행복하게 하늘을 난다.",
+      "file": "assets/storybook/lulu-bird/scene-10.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    }
+  ]
+}

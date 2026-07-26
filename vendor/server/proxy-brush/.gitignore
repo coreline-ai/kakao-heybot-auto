@@ -1,0 +1,7 @@
+node_modules/
+runtime/
+engine/node_modules/
+engine/.remotion/
+engine/pipeline/.pytest_cache/
+engine/pipeline/brushvid.egg-info/
+engine/pipeline/**/__pycache__/

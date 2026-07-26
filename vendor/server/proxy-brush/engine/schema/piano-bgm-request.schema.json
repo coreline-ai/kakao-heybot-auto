@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://brush-remotion-video.local/schema/piano-bgm-request.schema.json",
+  "title": "Piano BGM Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "projectId",
+    "kind",
+    "durationSec"
+  ],
+  "properties": {
+    "projectId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+    },
+    "kind": {
+      "const": "piano-bgm"
+    },
+    "durationSec": {
+      "type": "number",
+      "minimum": 15,
+      "maximum": 600
+    },
+    "preset": {
+      "enum": [
+        "new-age",
+        "ambient-piano",
+        "sleep-piano",
+        "meditation-piano",
+        "lofi-piano",
+        "minimal-ambient",
+        "cinematic-piano",
+        "film-ost-piano",
+        "game-bgm-piano",
+        "fantasy-piano",
+        "mystery-horror-piano"
+      ]
+    },
+    "mood": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "purpose": {
+      "enum": [
+        "background",
+        "featured"
+      ]
+    },
+    "engine": {
+      "enum": [
+        "auto",
+        "stable-audio-3-mlx",
+        "sample-score"
+      ]
+    },
+    "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "negativePrompt": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "cfg": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "steps": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "key": {
+      "type": "string",
+      "pattern": "^[A-Ga-g][#bB]?[-_ ](major|minor|lydian)$"
+    },
+    "tempoBpm": {
+      "type": "integer",
+      "minimum": 32,
+      "maximum": 160
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "distribution": {
+          "enum": [
+            "local",
+            "youtube",
+            "shorts"
+          ]
+        },
+        "preview": {
+          "type": "boolean"
+        }
+      }
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "sleepRoutine": {
+      "description": "피아노 중심 수면 루틴 옵션. 전자 드론·바이노럴 비트·주파수 톤을 추가하지 않는다.",
+      "enum": [
+        "none",
+        "lullaby",
+        "breath",
+        "window"
+      ]
+    }
+  }
+}

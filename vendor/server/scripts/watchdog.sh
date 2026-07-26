@@ -24,7 +24,6 @@ ensure_adb_reverse() {
     "$adb" -s "$serial" reverse tcp:4340 tcp:4340 >/dev/null
     printf '%s watchdog restored PD20 reverse tcp:4340\n' "$("$DATE_BIN" -u +%FT%TZ)"
   fi
-  "$adb" -s "$serial" forward tcp:3000 tcp:3000 >/dev/null 2>&1 || true
 }
 
 ensure_adb_reverse
@@ -59,8 +58,13 @@ if (( failures < THRESHOLD )); then
 fi
 
 for label in \
+  ai.coreline.heybot.proxy-grok \
+  ai.coreline.heybot.proxy-video \
   ai.coreline.heybot.proxy-codex \
   ai.coreline.heybot.proxy-image \
+  ai.coreline.heybot.proxy-draw \
+  ai.coreline.heybot.proxy-brush \
+  ai.coreline.heybot.proxy-conversation \
   ai.coreline.heybot.proxy-manager; do
   "$LAUNCHCTL_BIN" kickstart -k "$DOMAIN/$label" || true
 done

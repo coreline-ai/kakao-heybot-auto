@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="160" viewBox="0 0 360 160">
+  <defs>
+    <linearGradient id="barrel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#10182a"/>
+      <stop offset="0.42" stop-color="#344b78"/>
+      <stop offset="0.58" stop-color="#18233c"/>
+      <stop offset="1" stop-color="#080d18"/>
+    </linearGradient>
+    <linearGradient id="grip" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#303744"/>
+      <stop offset="0.5" stop-color="#0f141d"/>
+      <stop offset="1" stop-color="#030509"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7f9fc"/>
+      <stop offset="0.34" stop-color="#aab4c2"/>
+      <stop offset="0.56" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#687384"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff0a5"/>
+      <stop offset="0.48" stop-color="#d4a534"/>
+      <stop offset="1" stop-color="#8d6416"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 촉 끝은 (8,80). CursorLayer가 이 지점을 실제 드로잉 좌표에 고정한다. -->
+  <path d="M8 80 C29 66 48 51 69 42 C82 52 91 65 98 80 C91 95 82 108 69 118 C48 109 29 94 8 80Z"
+        fill="url(#metal)" stroke="#394252" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M8 80 L74 80" fill="none" stroke="#4c5665" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M30 69 C45 62 57 54 69 48 M30 91 C45 98 57 106 69 112"
+        fill="none" stroke="#d2a43a" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="72" cy="80" r="6" fill="#1d2532" stroke="#e2bd59" stroke-width="2"/>
+
+  <!-- 그립과 금속 링 -->
+  <path d="M87 56 C104 60 120 62 139 62 L139 98 C120 98 104 100 87 104 C94 94 98 87 98 80 C98 73 94 66 87 56Z"
+        fill="url(#grip)" stroke="#05080e" stroke-width="3"/>
+  <rect x="134" y="55" width="12" height="50" rx="4" fill="url(#gold)" stroke="#6f5014" stroke-width="2"/>
+
+  <!-- 펜대 -->
+  <path d="M144 50 H311 C330 50 344 63 344 80 C344 97 330 110 311 110 H144Z"
+        fill="url(#barrel)" stroke="#070b13" stroke-width="4"/>
+  <path d="M155 60 H307 C319 60 328 65 333 72" fill="none" stroke="#8fa7d5" stroke-width="5" stroke-linecap="round" opacity="0.42"/>
+  <path d="M156 101 H309" fill="none" stroke="#02040a" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+  <rect x="306" y="52" width="8" height="56" rx="3" fill="url(#gold)" opacity="0.92"/>
+  <path d="M343 67 C355 69 357 91 343 94Z" fill="#090e19" stroke="#02040a" stroke-width="3"/>
+
+  <!-- 캡 클립: 펜 형태가 막대나 화살표로 오인되지 않도록 실루엣을 분명히 한다. -->
+  <path d="M294 52 C303 30 329 30 334 43 C337 52 327 61 315 64"
+        fill="none" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="315" cy="64" r="4" fill="#d9ad42"/>
+</svg>

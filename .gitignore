@@ -1,15 +1,20 @@
 .DS_Store
 *.log
 *.pid
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+
+/runtime/
 
 vendor/server/**/node_modules/
 vendor/server/**/dist/
 vendor/server/**/runtime/
 
-vendor/Iris/.gradle/
-vendor/Iris/.idea/
-vendor/Iris/local.properties
-vendor/Iris/**/build/
-vendor/Iris/output/
+vendor/android/.gradle/
+vendor/android/.idea/
+vendor/android/local.properties
+vendor/android/**/build/
+vendor/android/output/
 
-vendor/Iris/
+vendor/android/

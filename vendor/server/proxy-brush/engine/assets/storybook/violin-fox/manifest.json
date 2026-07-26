@@ -1,0 +1,123 @@
+{
+  "project": "storybook-violin-fox",
+  "title": "울지 않는 바이올린",
+  "total_scenes": 10,
+  "target_resolution": "1080x1920",
+  "aspect_ratio": "9:16",
+  "generated_with": "built-in image_gen",
+  "upscaled_from": "941x1672 to 1080x1920 using Lanczos",
+  "style": "storybook illustration; warm ivory paper; thin closed dark-brown outlines; broad flat color regions; pen-to-brush ready",
+  "characters": "young fox boy (orange fur, green vest), grandmother fox (warm orange-brown fur, lavender shawl), old wooden violin",
+  "scenes": [
+    {
+      "scene": 1,
+      "description": "여우 소년이 숲 음악회에서 연주할 낡은 바이올린과 무대를 준비한다.",
+      "file": "assets/storybook/violin-fox/scene-01.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 2,
+      "description": "연습 중 낡은 바이올린의 줄 하나가 끊어진다.",
+      "file": "assets/storybook/violin-fox/scene-02.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 3,
+      "description": "소리가 나지 않는 바이올린을 들고 여우 소년이 풀이 죽는다.",
+      "file": "assets/storybook/violin-fox/scene-03.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 4,
+      "description": "할머니 여우가 바이올린 수리 도구를 꺼내며 소년을 격려한다.",
+      "file": "assets/storybook/violin-fox/scene-04.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 5,
+      "description": "소년과 할머니가 새 바이올린 줄을 조심스럽게 끼운다.",
+      "file": "assets/storybook/violin-fox/scene-05.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 6,
+      "description": "소년이 큰 나무 아래에서 매일 바이올린을 반복 연습한다.",
+      "file": "assets/storybook/violin-fox/scene-06.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 7,
+      "description": "공연 날 비가 내려 소년이 임시 무대 아래에서 걱정한다.",
+      "file": "assets/storybook/violin-fox/scene-07.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 8,
+      "description": "동물 친구들이 큰 나무 아래에 작은 실내 무대를 함께 만든다.",
+      "file": "assets/storybook/violin-fox/scene-08.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 9,
+      "description": "소년이 작은 무대에서 아름다운 바이올린 선율을 연주한다.",
+      "file": "assets/storybook/violin-fox/scene-09.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    },
+    {
+      "scene": 10,
+      "description": "연주가 끝나고 숲에 꽃이 피며 모두가 행복하게 박수친다.",
+      "file": "assets/storybook/violin-fox/scene-10.png",
+      "width": 1080,
+      "height": 1920,
+      "resolution": "1080x1920",
+      "format": "PNG",
+      "color_mode": "RGB",
+      "style": "storybook illustration; closed dark-brown outlines; broad flat color regions; pen-to-brush ready"
+    }
+  ]
+}
