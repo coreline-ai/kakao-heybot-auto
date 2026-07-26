@@ -14,6 +14,7 @@ REMOTE_APK=/data/local/tmp/Iris-glm.apk
 TOKEN_FILE=/data/local/private/iris-glm.token
 ADMIN_FILE=/data/local/private/iris-bot-admins.txt
 GENERAL_CONVERSATION_BLOCK_FILE=/data/local/private/iris-general-conversation-blocks.txt
+GENERAL_CONVERSATION_MODE_FILE=/data/local/private/iris-general-conversation-mode.json
 ROOM_CAPABILITY_POLICY_FILE=/data/local/private/iris-room-capabilities.json
 MEMORY_FILE=/data/local/private/iris-bot-memory.json
 IMAGE_PROXY_SECRET_FILE=/data/local/private/iris-image-proxy.token
@@ -207,6 +208,17 @@ general_block_metadata="$($ADB -s "$SERIAL" shell "su root sh -c '
 [[ "$general_block_metadata" == "600 root:root" ]] ||
   fail "General conversation block file must be mode 600 and root:root (current: $general_block_metadata)"
 
+# The app owns this atomic state file. A missing file intentionally means OFF
+# on first migration; deployments must never create or overwrite it.
+general_mode_metadata="$($ADB -s "$SERIAL" shell "su root sh -c '
+  if [ -L $GENERAL_CONVERSATION_MODE_FILE ]; then echo symlink; exit 0; fi
+  if [ ! -e $GENERAL_CONVERSATION_MODE_FILE ]; then echo missing; exit 0; fi
+  stat -c \"%a %U:%G\" $GENERAL_CONVERSATION_MODE_FILE
+'" | tr -d '\r')"
+if [[ "$general_mode_metadata" != "missing" && "$general_mode_metadata" != "600 root:root" ]]; then
+  fail "General conversation mode file must be mode 600 and root:root (current: $general_mode_metadata)"
+fi
+
 # The memory file is created atomically by Iris. Validate metadata only when it
 # already exists from a previous run.
 memory_metadata="$($ADB -s "$SERIAL" shell "su root sh -c '
@@ -240,6 +252,7 @@ printf 'Deploying %s to PD20…\n' "$(basename "$APK")"
   IRIS_GENERAL_CONVERSATION_TIMEOUT_MS=15000 \\
   IRIS_GENERAL_CONVERSATION_ALLOWED_CHAT_IDS=18480337854645134,18393359886930036,18243496625741211,18226456888539938 \\
   IRIS_GENERAL_CONVERSATION_BLOCK_FILE=$GENERAL_CONVERSATION_BLOCK_FILE \\
+  IRIS_GENERAL_CONVERSATION_MODE_FILE=$GENERAL_CONVERSATION_MODE_FILE \\
   IRIS_GENERAL_CONVERSATION_CIRCUIT_WINDOW_MS=300000 \\
   IRIS_GENERAL_CONVERSATION_CIRCUIT_FAILURE_THRESHOLD=3 \\
   IRIS_GLM_MAX_TOKENS=128 \\
@@ -323,6 +336,8 @@ scheduler_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"GLM P1 sched
 [[ -n "$scheduler_mode" ]] || fail "Iris P1 scheduler readiness was not logged"
 room_policy_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"Room capability policy ready=true rooms=4\" $STARTUP_LOG | tail -1'" | tr -d '\r')"
 [[ -n "$room_policy_mode" ]] || fail "Room capability policy did not become ready"
+general_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"General conversation mode restored=\" $STARTUP_LOG | tail -1'" | tr -d '\r')"
+[[ -n "$general_mode" ]] || fail "General conversation mode state was not restored"
 if [[ "$VIDEO_PROXY_ENABLED" == "true" ]]; then
   video_proxy_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"Video proxy coordinator ready\" $STARTUP_LOG | tail -1'" | tr -d '\r')"
   [[ -n "$video_proxy_mode" ]] || fail "Video proxy coordinator did not become ready"

@@ -5,6 +5,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -432,17 +433,20 @@ class GlmAutoReplyHandlerTest {
         val secondChatId = CHAT_ID + 1L
         val gateway = RecordingGateway("""{"action":"REPLY","reply":"일반대화 답변"}""")
         val replies = mutableListOf<Pair<Long, String>>()
+        val modeBackend = TestConversationModeBackend()
         val handler = createHandler(
             gateway = gateway,
             allowedChatIds = setOf(CHAT_ID, secondChatId),
             adminAuthorizer = AdminAuthorizer.fromFile(adminFile) {},
-            adminControlChatId = CHAT_ID
+            adminControlChatId = CHAT_ID,
+            generalConversationModeStore = GeneralConversationModeStore(modeBackend)
         ) { chatId, reply, _ -> replies += chatId to reply }
 
         handler.process(incoming(logId = 1L, chatId = secondChatId, userId = 200L, message = "호출어 없는 질문"))
         assertTrue(gateway.requests.isEmpty())
 
         handler.process(incoming(logId = 2L, chatId = CHAT_ID, userId = 100L, message = "헤이봇 대화 시작"))
+        assertTrue(GeneralConversationModeStore(modeBackend).status().enabled)
         handler.process(incoming(logId = 3L, chatId = secondChatId, userId = 200L, message = "호출어 없는 질문"))
         handler.process(incoming(logId = 4L, chatId = CHAT_ID, userId = 201L, message = "다른 방 질문"))
 
@@ -454,6 +458,7 @@ class GlmAutoReplyHandlerTest {
         handler.process(incoming(logId = 6L, chatId = secondChatId, userId = 200L, message = "종료 뒤 질문"))
 
         assertEquals(2, gateway.requests.size)
+        assertFalse(GeneralConversationModeStore(modeBackend).status().enabled)
         handler.close()
     }
 
@@ -766,12 +771,14 @@ class GlmAutoReplyHandlerTest {
             }
             val replies = mutableListOf<String>()
             val logs = mutableListOf<String>()
+            val modeBackend = TestConversationModeBackend()
             val handler = createHandler(
                 gateway = gateway,
                 nowMillis = { now },
                 log = logs::add,
                 adminAuthorizer = AdminAuthorizer.fromFile(adminFile) {},
-                adminControlChatId = CHAT_ID
+                adminControlChatId = CHAT_ID,
+                generalConversationModeStore = GeneralConversationModeStore(modeBackend)
             ) { _, reply, _ -> replies += reply }
 
             handler.process(incoming(logId = 1L, userId = 100L, message = "헤이봇 대화 시작"))
@@ -785,6 +792,7 @@ class GlmAutoReplyHandlerTest {
             assertEquals(1L, handler.metricsSnapshot().generalCircuitTrips)
             assertTrue(replies.any { it.contains("회로 차단") })
             assertTrue(logs.any { it.contains("circuit tripped") && it.contains("SERVER") })
+            assertFalse(GeneralConversationModeStore(modeBackend).status().enabled)
 
             now += 31_000L
             handler.process(incoming(logId = 7L, userId = 204L, message = "헤이봇 호출어 확인"))
@@ -896,6 +904,8 @@ class GlmAutoReplyHandlerTest {
         allowedChatIds: Set<Long> = setOf(CHAT_ID),
         adminAuthorizer: AdminAuthorizer = AdminAuthorizer.empty(),
         adminControlChatId: Long? = null,
+        generalConversationModeStore: GeneralConversationModeStore =
+            GeneralConversationModeStore(),
         generalConversationPolicy: GeneralConversationPolicy =
             GeneralConversationPolicy.forTesting(allowedChatIds),
         roomCapabilityPolicy: RoomCapabilityPolicyStore =
@@ -924,9 +934,24 @@ class GlmAutoReplyHandlerTest {
         nowMillis = nowMillis,
         delayForRetry = delayForRetry,
         adminAuthorizer = adminAuthorizer,
+        generalConversationModeStore = generalConversationModeStore,
         generalConversationPolicy = generalConversationPolicy,
         roomCapabilityPolicy = roomCapabilityPolicy
     )
+
+    private class TestConversationModeBackend : ConversationMemoryBackend {
+        private var bytes: ByteArray? = null
+
+        override fun read(): ByteArray? = bytes
+
+        override fun write(bytes: ByteArray) {
+            this.bytes = bytes
+        }
+
+        override fun quarantine(nowMillis: Long) {
+            bytes = null
+        }
+    }
 
     private fun incoming(
         logId: Long = 1L,

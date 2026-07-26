@@ -1,6 +1,6 @@
 # 헤이봇 개발계획 인덱스
 
-갱신 기준: `2026-07-26 15:35 KST`
+갱신 기준: `2026-07-26 22:27 KST`
 
 여러 개발계획의 미체크 항목을 모두 독립 backlog로 취급하지 않는다. 뒤 계획이
 앞 계획의 결정을 대체하거나 실제 구현이 다른 계획에서 완료된 경우 이 문서를
@@ -26,6 +26,7 @@
 | `implement_20260726_102712.md` | GLM/Codex/Grok 대화 엔진 선택 | Phase 0~4 구현·PD20 Codex 적용/Phase 5 E2E 잔여 | GLM을 기본으로 유지하면서, 코어라인 AI 연구소 관리자만 `헤이봇 대화 기본/코덱스/그록`으로 모든 허용방의 호출어·일반대화 응답 엔진을 전환한다. manager readiness, 전체 proxy 회귀, Android test/release build와 Codex text smoke는 통과했으며 PD20의 Android 10초 read timeout 수정·재배포까지 완료했다. 외부 계정의 실제 Kakao 응답 E2E가 남아 있다. |
 | `implement_20260726_141425.md` | Iris Android package·vendor 디렉터리 rename | 구현·PD20 검증 완료/카카오 외부 E2E 대기 | `party.qwer.iris`를 `ai.coreline.heybot`으로 namespace·applicationId·Kotlin package·app_process 진입점으로 변경하고, 소스 디렉터리를 `vendor/Iris`에서 `vendor/android`로 정리했다. 빌드 경로·스크립트·문서 참조를 갱신했으며 release build, PD20 startup/readiness와 self-test QUICK을 통과했다. root 전용 운영 파일·KakaoTalk 데이터는 보존했다. |
 | `implement_20260726_145547.md` | Android 자체진단·통합 self-test | 구현·PD20 QUICK/INTEGRATION/DEVICE 검증 완료/실제 CANARY 승인 대기 | `헤이봇 자체진단`으로 QUICK·INTEGRATION·DEVICE·CANARY를 분리했다. PD20에서 QUICK·INTEGRATION·DEVICE는 PASS, CANARY는 guard에 따라 WARN/SKIP이며 실제 provider 생성·카카오톡 전송은 실행하지 않았다. |
+| `implement_20260726_221417.md` | 일반대화 mode 재시작 영속화 | 구현·PD20 배포 완료/최초 관리자 ON 검증 대기 | 관리자 start/stop과 circuit trip을 root 전용 atomic JSON에 저장하고 재시작 때 복원한다. 전체 145개 debug/release test·lint·release build·PD20 최초 migration OFF 재기동은 통과했다. 최초 mode 파일은 의도적으로 만들지 않았으므로 코어라인 AI 연구소 관리자의 `헤이봇 대화 시작` 1회와 그 뒤 ON 재시작 실기기 확인만 남았다. |
 
 ## 통합 실행 순서
 
@@ -37,6 +38,7 @@
 6. Codex/Grok CLI text-only capability를 확인한 뒤 `proxy-conversation`과 Android 전역 대화 엔진 선택을 GLM 기본값으로 단계 적용한다. (`20260726_102712`)
 7. Iris Android package rename을 수행하고 새 `ai.coreline.heybot.Main`으로 PD20 재배포·기동 검증한다. (`20260726_141425`)
 8. Android 자체진단 QUICK/INTEGRATION/DEVICE를 구현·PD20 검증한 뒤 CANARY를 별도 승인·시험방에서 제한 검증한다. (`20260726_145547`)
+9. 코어라인 AI 연구소 관리자가 `헤이봇 대화 시작`을 한 번 실행한 뒤 재배포 전후 ON 복원과 mode 파일 `600 root:root`를 확인한다. 구현·최초 migration OFF 검증은 완료됐다. (`20260726_221417`)
 
 외부 비봇 카카오 계정이 필요한 단계는 자동 단위 테스트와 분리한다. 해당 E2E가
 대기 중이어도 이미 정의된 fail-closed 코드와 자동 테스트 구현은 계속할 수 있지만,
@@ -44,7 +46,7 @@
 
 ## 현재 자동 검증 기준
 
-- Iris Android JVM test: `135`개 통과, 실패 `0` (debug/release 동일)
+- Iris Android JVM test: `145`개 통과, 실패 `0` (debug/release 동일)
 - Iris release APK build: 통과
 - Node server test: `proxy-manager` 9개, `proxy-image` 6개, `proxy-video` 2개, `proxy-draw` 3개, `proxy-brush` 2개, `proxy-codex` 11개, `proxy-grok` 4개, `proxy-conversation` 1개 통과 및 clean exit
 - 단일 스택 검증: `vendor/server/scripts/self-test-stack.sh`가 readiness·전체 proxy test·Android `test assembleRelease`를 한 번에 통과
@@ -58,6 +60,7 @@
 - Grok video 기능은 2026-07-26에 registry·launchd·ADB reverse·PD20 Iris를 R01 전용으로 활성화했다. 서비스 readiness는 통과했고, 실제 native Kakao delivery와 계정 사용량 관측이 남음
 - 펜브러쉬 드로우 영상은 2026-07-26에 registry·launchd·ADB reverse·PD20 Iris를 R01 전용으로 활성화했다. 서비스 readiness는 통과했고, 실제 imagegen·native Kakao delivery 관측이 남음
 - 외부 비봇 계정으로 호출어 텍스트, 관리자 start/status/stop, 일반대화 연속성·무혼입 확인
+- 코어라인 AI 연구소 관리자 `헤이봇 대화 시작` 1회 후 mode 파일 생성·ON 재시작 복원 확인
 - 동적 허용 3개 방의 이미지 FIFO·원래 방 전달·GLM 병행, sanitizer/circuit, policy preview→apply→복구 제한 E2E
 - Mac sleep/wake, 물리 USB 재연결, 24시간 soak
 

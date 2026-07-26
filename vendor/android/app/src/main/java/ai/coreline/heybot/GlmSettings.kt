@@ -5,6 +5,7 @@ import java.io.File
 data class GeneralConversationSettings(
     val allowedChatIds: Set<Long>,
     val blockFile: File,
+    val modeFile: File,
     val circuitWindowMillis: Long,
     val circuitFailureThreshold: Int
 )
@@ -89,6 +90,8 @@ data class GlmSettings(
         const val DEFAULT_ADMIN_USER_IDS_FILE = "/data/local/private/iris-bot-admins.txt"
         const val DEFAULT_GENERAL_CONVERSATION_BLOCK_FILE =
             "/data/local/private/iris-general-conversation-blocks.txt"
+        const val DEFAULT_GENERAL_CONVERSATION_MODE_FILE =
+            "/data/local/private/iris-general-conversation-mode.json"
         const val DEFAULT_GENERAL_CONVERSATION_CIRCUIT_WINDOW_MILLIS = 5 * 60 * 1000L
         const val DEFAULT_GENERAL_CONVERSATION_CIRCUIT_FAILURE_THRESHOLD = 3
         const val DEFAULT_ROOM_CAPABILITY_POLICY_FILE =
@@ -431,6 +434,14 @@ data class GlmSettings(
             )
             if (!blockFile.isAbsolute) return null
 
+            val modeFile = File(
+                environment["IRIS_GENERAL_CONVERSATION_MODE_FILE"]
+                    ?.trim()
+                    ?.takeIf(String::isNotEmpty)
+                    ?: DEFAULT_GENERAL_CONVERSATION_MODE_FILE
+            )
+            if (!modeFile.isAbsolute) return null
+
             val circuitWindowMillis = parseLong(
                 environment,
                 "IRIS_GENERAL_CONVERSATION_CIRCUIT_WINDOW_MS",
@@ -448,6 +459,7 @@ data class GlmSettings(
             return GeneralConversationSettings(
                 allowedChatIds = allowed.toSet(),
                 blockFile = blockFile,
+                modeFile = modeFile,
                 circuitWindowMillis = circuitWindowMillis,
                 circuitFailureThreshold = circuitFailureThreshold
             )

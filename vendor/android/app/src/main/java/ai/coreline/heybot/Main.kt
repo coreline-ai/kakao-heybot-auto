@@ -192,6 +192,18 @@ class Main {
                             "rooms=${policyStatus.allowedRoomCount} " +
                             "reason=${policyStatus.reason}"
                     )
+                    val generalConversationModeStore = settings.generalConversation?.let {
+                        GeneralConversationModeStore(
+                            backend = AndroidAtomicFileBackend(it.modeFile)
+                        )
+                    } ?: GeneralConversationModeStore()
+                    val generalModeStatus = generalConversationModeStore.status()
+                    println(
+                        "General conversation mode " +
+                            "restored=${generalModeStatus.enabled} " +
+                            "persistence=${if (generalModeStatus.persistenceConfigured) "configured" else "memory"} " +
+                            "healthy=${generalModeStatus.lastPersistSucceeded ?: "initial"}"
+                    )
                     GlmAutoReplyHandler(
                         settings = settings,
                         botId = Configurable.botId,
@@ -208,6 +220,7 @@ class Main {
                         ),
                         adminAuthorizer = AdminAuthorizer.fromFile(settings.adminUserIdsFile),
                         generalConversationPolicy = generalConversationPolicy,
+                        generalConversationModeStore = generalConversationModeStore,
                         roomCapabilityPolicy = roomCapabilityPolicy,
                         conversationEngineModeStore = modeStore,
                         selfTestRunner = selfTestRunner

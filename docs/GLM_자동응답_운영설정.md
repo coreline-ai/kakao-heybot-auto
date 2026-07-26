@@ -25,6 +25,7 @@
 - 관리자 명령은 닉네임이 아니라 Kakao DB의 숫자 `user_id` exact match로만 허용하며, 코어라인 AI 연구소 control room에서만 실행한다.
 - 호출어·일반대화의 GLM 텍스트는 전송 직전 동일한 safety policy를 통과한다. secret-like 출력은 전체 차단하고 이메일·전화·주민번호·카드번호 형태는 고정 문구로 마스킹한다.
 - 일반대화의 timeout·429·network·server 실패가 5분 안에 3건 누적되면 일반대화 mode만 자동 OFF한다. 호출어 GLM·이미지는 계속 동작한다. Iris HTTP 관리 API는 기본 비활성화다.
+- 일반대화 ON/OFF 의도는 root 전용 원자적 상태 파일에 저장한다. 정상 재배포·프로세스 재시작은 기존 상태를 복원하며, 파일이 없거나 손상되면 안전하게 OFF로 시작한다.
 
 ## Iris HTTP 관리 API 보안(P0)
 
@@ -181,6 +182,21 @@ exit
 - 정책 변경은 원자적 파일 교체 후 Iris 재기동으로 반영
 - ID 원문은 status·설정 보기·로그에 출력하지 않음
 
+### 일반대화 모드 상태 파일
+
+`헤이봇 대화 시작/종료`와 circuit 자동 정지 결과는 아래 파일에 원자적으로 저장한다.
+
+```text
+/data/local/private/iris-general-conversation-mode.json
+```
+
+- 파일은 앱이 직접 만들며 `600 root:root`여야 한다. 배포 스크립트는 기존 내용을 덮어쓰지 않는다.
+- `대화 시작`은 ON 저장이 성공한 뒤에만 runtime mode를 켠다. 저장 실패 시 호출어 대화만 유지한다.
+- `대화 종료`와 circuit trip은 OFF를 저장한 뒤 현재 epoch와 대기 중인 일반대화를 무효화한다.
+- 정상 프로세스 종료의 `close()`는 진행 중 작업만 무효화하며 저장된 ON/OFF 의도를 바꾸지 않는다.
+- 최초 도입처럼 파일이 없거나 JSON이 손상·과대·지원하지 않는 버전이면 OFF로 시작한다. 손상 파일은 격리하고 자동 ON하지 않는다.
+- 최초 도입 후 계속 사용할 때는 코어라인 AI 연구소 관리자가 `헤이봇 대화 시작`을 한 번 실행해야 한다.
+
 ## 대화 엔진 선택
 
 GLM은 Android 내부에서 동작하는 기본 엔진입니다. Codex와 Grok은 Android가 직접
@@ -322,6 +338,7 @@ R01. 코어라인 AI 연구소
 | `IRIS_GENERAL_CONVERSATION_TIMEOUT_MS` | `15000` | 호출어 없는 일반대화 판정 전용 시간 제한. 느린 판정이 방 worker를 장시간 점유하지 않게 함 |
 | `IRIS_GENERAL_CONVERSATION_ALLOWED_CHAT_IDS` | 4개 관리 방의 고정 상한 | 동적 room policy·user block·global mode 이전의 일반대화 후보 범위 |
 | `IRIS_GENERAL_CONVERSATION_BLOCK_FILE` | `/data/local/private/iris-general-conversation-blocks.txt` | 전역 `userId` 또는 `chatId:userId` block, `600 root:root` |
+| `IRIS_GENERAL_CONVERSATION_MODE_FILE` | `/data/local/private/iris-general-conversation-mode.json` | 관리자 ON/OFF 의도와 circuit OFF를 원자적으로 저장, `600 root:root` |
 | `IRIS_GENERAL_CONVERSATION_CIRCUIT_WINDOW_MS` | `300000` | 일반대화 외부 장애 sliding window |
 | `IRIS_GENERAL_CONVERSATION_CIRCUIT_FAILURE_THRESHOLD` | `3` | window 안에서 일반대화를 자동 OFF할 장애 횟수 |
 | `IRIS_GLM_MAX_TOKENS` | `128` | 일반 대화 최종 답장의 최대 생성 토큰 |
@@ -372,6 +389,7 @@ SERIAL=0123456789ABCDEF
   IRIS_GENERAL_CONVERSATION_TIMEOUT_MS=15000 \\
   IRIS_GENERAL_CONVERSATION_ALLOWED_CHAT_IDS=18480337854645134,18393359886930036,18243496625741211,18226456888539938 \\
   IRIS_GENERAL_CONVERSATION_BLOCK_FILE=/data/local/private/iris-general-conversation-blocks.txt \\
+  IRIS_GENERAL_CONVERSATION_MODE_FILE=/data/local/private/iris-general-conversation-mode.json \\
   IRIS_GENERAL_CONVERSATION_CIRCUIT_WINDOW_MS=300000 \\
   IRIS_GENERAL_CONVERSATION_CIRCUIT_FAILURE_THRESHOLD=3 \\
   IRIS_GLM_MAX_TOKENS=128 \\
@@ -430,8 +448,9 @@ ADB=/path/to/adb SERIAL=<serial> APK=/path/to/Iris-release.apk \
 ```
 
 스크립트는 `/data/local/private`가 `700 root:root`, 토큰·기존 기억·기존 관리자·일반대화
-block 파일이 `600 root:root`인지 내용 노출 없이 검사한다. block 파일이 없으면 빈 root 전용
-파일을 생성한다. 관리자 파일이 없으면 경고 후 기동하며 관리자 명령만 비활성화된다.
+block/mode 파일이 `600 root:root`인지 내용 노출 없이 검사한다. block 파일이 없으면 빈 root
+전용 파일을 생성하지만 mode 파일은 앱이 원자적으로 관리하므로 생성·덮어쓰기하지 않는다.
+관리자 파일이 없으면 경고 후 기동하며 관리자 명령만 비활성화된다.
 
 ## 카카오 명령
 
@@ -444,9 +463,9 @@ block 파일이 `600 root:root`인지 내용 노출 없이 검사한다. block �
 | `헤이봇 설정 보기` | 코어라인 AI 연구소의 관리자 | 비밀을 제외한 운영값 요약 |
 | `헤이봇 전체 기억 초기화` | 코어라인 AI 연구소의 관리자 | 모든 대화 기억 삭제·저장 |
 | `헤이봇 사용자 기억 초기화 <user_id>` | 코어라인 AI 연구소의 관리자 | 대상 사용자의 모든 방 기억 삭제·저장 |
-| `헤이봇 대화 시작` | 코어라인 AI 연구소의 관리자 | 동적 room capability가 일반대화를 허용한 방의 호출어 없는 판정 시작, circuit reset |
-| `헤이봇 대화 상태` | 코어라인 AI 연구소의 관리자 | mode·정책·적용 방 수·circuit·최근 generic 사유와 현재 응답 엔진 확인 |
-| `헤이봇 대화 종료` | 코어라인 AI 연구소의 관리자 | 모든 일반대화 허용방의 호출어 없는 판정 즉시 중단 |
+| `헤이봇 대화 시작` | 코어라인 AI 연구소의 관리자 | ON 상태를 저장한 뒤 호출어 없는 판정 시작, circuit reset. 저장 실패 시 시작 거부 |
+| `헤이봇 대화 상태` | 코어라인 AI 연구소의 관리자 | mode·상태 저장·정책·적용 방 수·circuit·최근 generic 사유와 현재 응답 엔진 확인 |
+| `헤이봇 대화 종료` | 코어라인 AI 연구소의 관리자 | OFF 상태 저장 후 모든 일반대화 허용방의 호출어 없는 판정 즉시 중단 |
 | `헤이봇 대화 기본` | 코어라인 AI 연구소의 관리자 | 호출어·일반대화 응답 엔진을 Android 자체 GLM으로 전역 변경 |
 | `헤이봇 대화 코덱스` | 코어라인 AI 연구소의 관리자 | 호출어·일반대화 응답 엔진을 Codex 프록시로 전역 변경 |
 | `헤이봇 대화 그록` | 코어라인 AI 연구소의 관리자 | 호출어·일반대화 응답 엔진을 Grok 프록시로 전역 변경 |
@@ -524,6 +543,7 @@ HTTP API OFF이므로 카카오톡 관리자 명령 또는 `app_process --self-t
 
 일반대화 circuit은 일반대화 외부 GLM 호출에서 발생한 timeout·429·network·server 오류만
 센다. 기본 5분 window에서 3번째 실패가 발생하면 mode epoch를 무효화하고 일반대화만 OFF한다.
+OFF 상태도 mode 파일에 저장하므로 프로세스 재시작으로 자동 재활성화되지 않는다.
 대기·진행 중이던 오래된 일반대화 결과도 전송하지 않는다. 자동 재활성화는 하지 않으며
 코어라인 AI 연구소 관리자가 `헤이봇 대화 시작`을 다시 실행하면 실패 window를 초기화한다.
 
@@ -554,7 +574,8 @@ HTTP API OFF이므로 카카오톡 관리자 명령 또는 `app_process --self-t
 재기동 뒤에도 일반대화를 구성하지 않으려면 수동 기동 환경에서
 `IRIS_GENERAL_CONVERSATION_ALLOWED_CHAT_IDS`를 제거한다. 그러면 일반대화 policy가
 fail-closed되어 `헤이봇 대화 시작`을 거부하지만 호출어 GLM과 이미지 기능은 유지된다.
-현재 mode는 process-local이라 Iris 재기동만 해도 기본 OFF로 시작한다.
+정상 재기동은 저장된 mode를 복원하므로, 단순히 프로세스를 재시작하는 것은 일반대화
+중지 방법이 아니다. 반드시 `헤이봇 대화 종료`를 사용하거나 정책 자체를 제거한다.
 
 GLM만 비활성화하려면 GLM 관련 환경 변수를 빼고 동일 APK를 재기동한다. DBObserver는
 계속 동작한다. HTTP 관리 API는 위 P0 설정에 따라 별도로 disabled 또는 인증 필요 상태다.
