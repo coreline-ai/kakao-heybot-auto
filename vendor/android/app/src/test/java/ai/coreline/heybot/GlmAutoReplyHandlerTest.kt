@@ -494,6 +494,55 @@ class GlmAutoReplyHandlerTest {
     }
 
     @Test
+    fun `truncated general reply is retried with a complete JSON response`() = runBlocking {
+        val adminFile = File.createTempFile("iris-admin", ".txt").apply {
+            writeText("100")
+            deleteOnExit()
+        }
+        val requests = mutableListOf<GlmChatRequest>()
+        val replies = mutableListOf<String>()
+        var calls = 0
+        val handler = createHandler(
+            gateway = GlmGateway { request ->
+                requests += request
+                calls += 1
+                if (calls == 1) {
+                    Result.success(
+                        testResponse("""{"action":"REPLY","reply":"잘린 답변""")
+                            .copy(finishReason = "length")
+                    )
+                } else {
+                    Result.success(
+                        testResponse(
+                            """{"action":"REPLY","reply":"우선순위를 정하고 실행한 뒤 마무리 점검을 하세요."}"""
+                        )
+                    )
+                }
+            },
+            adminAuthorizer = AdminAuthorizer.fromFile(adminFile) {},
+            adminControlChatId = CHAT_ID
+        ) { _, reply, _ -> replies += reply }
+
+        handler.process(incoming(logId = 1L, userId = 100L, message = "헤이봇 대화 시작"))
+        handler.process(
+            incoming(
+                logId = 2L,
+                userId = 200L,
+                message = "일반대화 테스트: 오늘 해야 할 일을 세 단계로 정리해줘"
+            )
+        )
+
+        assertEquals(2, requests.size)
+        assertEquals(384, requests.first().maxTokens)
+        assertEquals(512, requests.last().maxTokens)
+        assertTrue(replies.any { it.startsWith("우선순위를 정하고") })
+        assertEquals(1L, handler.metricsSnapshot().generalConversationTruncationRetries)
+        assertEquals(1L, handler.metricsSnapshot().generalConversationReplies)
+        assertEquals(0L, handler.metricsSnapshot().generalConversationInvalidResponses)
+        handler.close()
+    }
+
+    @Test
     fun `general conversation shares successful same user memory with wake word questions only`() = runBlocking {
         val adminFile = File.createTempFile("iris-admin", ".txt").apply {
             writeText("100")

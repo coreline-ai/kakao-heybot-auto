@@ -20,6 +20,12 @@ class BotMetricsTest {
         metrics.recordReplySafetyBlock()
         metrics.recordReplyPiiRedactions(2)
         metrics.recordGeneralCircuitTrip()
+        metrics.recordGeneralConversationRequest()
+        metrics.recordGeneralConversationReply()
+        metrics.recordGeneralConversationWait()
+        metrics.recordGeneralConversationIgnore()
+        metrics.recordGeneralConversationInvalidResponse()
+        metrics.recordGeneralConversationTruncationRetry()
 
         val snapshot = metrics.snapshot()
 
@@ -35,6 +41,12 @@ class BotMetricsTest {
         assertEquals(1L, snapshot.replySafetyBlocks)
         assertEquals(2L, snapshot.replyPiiRedactions)
         assertEquals(1L, snapshot.generalCircuitTrips)
+        assertEquals(1L, snapshot.generalConversationRequests)
+        assertEquals(1L, snapshot.generalConversationReplies)
+        assertEquals(1L, snapshot.generalConversationWaits)
+        assertEquals(1L, snapshot.generalConversationIgnores)
+        assertEquals(1L, snapshot.generalConversationInvalidResponses)
+        assertEquals(1L, snapshot.generalConversationTruncationRetries)
         assertEquals("Forbidden", snapshot.lastFailureType)
     }
 }
