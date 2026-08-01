@@ -21,7 +21,7 @@ rotate() {
   chmod 600 "$file"
 }
 
-for package in proxy-codex proxy-image proxy-manager; do
+for package in proxy-codex proxy-image proxy-vision proxy-manager; do
   for file in "$ROOT/$package/runtime/logs/"*.log; do
     [[ -e "$file" ]] && rotate "$file"
   done

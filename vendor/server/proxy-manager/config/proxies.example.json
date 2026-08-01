@@ -46,6 +46,21 @@
       "dependencies": []
     },
     {
+      "id": "vision",
+      "enabled": true,
+      "exposure": "gateway",
+      "routePrefix": "/v1/vision",
+      "targetBaseUrl": "http://127.0.0.1:4362",
+      "healthPath": "/health",
+      "readyPath": "/ready",
+      "readinessTestPath": "/v1/self-test/readiness",
+      "canaryTestPath": "/v1/self-test/readiness",
+      "canaryRequiresExplicitConfirmation": false,
+      "managerClientSecretFile": "./runtime/secrets/proxy-vision.secret",
+      "launchdLabel": "ai.coreline.heybot.proxy-vision",
+      "dependencies": ["codex"]
+    },
+    {
       "id": "video",
       "enabled": false,
       "exposure": "gateway",

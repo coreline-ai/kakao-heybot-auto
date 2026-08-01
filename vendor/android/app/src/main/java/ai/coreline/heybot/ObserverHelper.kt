@@ -20,7 +20,9 @@ class ObserverHelper(
     private val glmAutoReplyHandler: GlmAutoReplyHandler? = null,
     private val imageJobCoordinator: ImageJobCoordinator? = null,
     private val videoJobCoordinator: VideoJobCoordinator? = null,
-    private val penBrushJobCoordinator: PenBrushJobCoordinator? = null
+    private val penBrushJobCoordinator: PenBrushJobCoordinator? = null,
+    private val imageAnalysisCoordinator: ImageAnalysisCoordinator? = null,
+    private val imageAttachmentParser: KakaoImageAttachmentParser = KakaoImageAttachmentParser()
 ) {
     private var lastLogId: Long = 0
     private val lastDecryptedLogs = LinkedList<Map<String, String?>>()
@@ -170,14 +172,33 @@ class ObserverHelper(
                             wsBroadcastFlow.emit(data)
                         }
 
+                        val effectiveThreadId = advancedPlainSerialized["attachment"]
+                            ?.get("src_logId")
+                            ?.toString()
+                            ?.toLongOrNull()
+                            ?: threadId?.toLongOrNull()
+                        val imageAttachment = when (
+                            val parsed = imageAttachmentParser.parse(
+                                sourceLogId = currentLogId,
+                                chatId = chatId,
+                                userId = userId,
+                                messageType = messageType,
+                                decryptedAttachment = attachment
+                            )
+                        ) {
+                            is ImageAttachmentParseResult.Parsed -> parsed.attachment
+                            is ImageAttachmentParseResult.Rejected -> null
+                        }
                         val incoming = GlmIncomingMessage(
                             logId = currentLogId,
                             chatId = chatId,
                             userId = userId,
                             messageType = messageType,
                             message = message.orEmpty(),
-                            threadId = threadId?.toLongOrNull()
+                            threadId = effectiveThreadId,
+                            imageAttachment = imageAttachment
                         )
+                        imageAnalysisCoordinator?.onIncoming(incoming)
                         imageJobCoordinator?.onIncoming(incoming)
                         videoJobCoordinator?.onIncoming(incoming)
                         penBrushJobCoordinator?.onIncoming(incoming)

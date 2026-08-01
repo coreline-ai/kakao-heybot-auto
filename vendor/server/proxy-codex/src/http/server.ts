@@ -15,6 +15,11 @@ import {
 } from "../cli/text-runner.js";
 import type { CodexTextRequest } from "../conversation/types.js";
 import { BoundedConversationQueue } from "../conversation/queue.js";
+import {
+  CliCodexVisionRunner,
+  FakeCodexVisionRunner,
+  type CodexVisionRunner,
+} from "../vision/runner.js";
 
 interface JobRequestBody {
   requestId: string;
@@ -51,6 +56,29 @@ async function readJson(request: IncomingMessage, maximumBytes: number): Promise
   } catch {
     throw new Error("INVALID_JSON");
   }
+}
+
+async function readBytes(request: IncomingMessage, maximumBytes: number): Promise<Buffer> {
+  const declared = Number(request.headers["content-length"] ?? 0);
+  if (Number.isFinite(declared) && declared > maximumBytes) throw new Error("BODY_TOO_LARGE");
+  const chunks: Buffer[] = [];
+  let bytes = 0;
+  for await (const chunk of request) {
+    const buffer = Buffer.from(chunk);
+    bytes += buffer.length;
+    if (bytes > maximumBytes) throw new Error("BODY_TOO_LARGE");
+    chunks.push(buffer);
+  }
+  if (bytes < 12) throw new Error("INVALID_IMAGE");
+  return Buffer.concat(chunks);
+}
+
+function assertImageMagic(data: Buffer, mediaType: string): void {
+  const png = data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  const jpeg = data[0] === 0xff && data[1] === 0xd8 && data.at(-2) === 0xff && data.at(-1) === 0xd9;
+  const webp = data.subarray(0, 4).toString("ascii") === "RIFF" && data.subarray(8, 12).toString("ascii") === "WEBP";
+  if ((mediaType === "image/png" && png) || (mediaType === "image/jpeg" && jpeg) || (mediaType === "image/webp" && webp)) return;
+  throw new Error("INVALID_IMAGE");
 }
 
 function exactKeys(value: Record<string, unknown>, allowed: string[]): boolean {
@@ -131,6 +159,9 @@ export function createCodexServer(
   textRunner: CodexTextRunner = config.runnerMode === "fake"
     ? new FakeCodexTextRunner()
     : new CliCodexTextRunner(config),
+  visionRunner: CodexVisionRunner = config.runnerMode === "fake"
+    ? new FakeCodexVisionRunner()
+    : new CliCodexVisionRunner(config),
 ): CodexServerContext {
   const auth = new CodexAuthenticator(config.managerSecretFile, config.callerSecretsDir);
   const capabilities = new CapabilityRegistry(config.capabilitiesFile);
@@ -139,6 +170,10 @@ export function createCodexServer(
   const textQueue = new BoundedConversationQueue(
     config.textQueueConcurrency,
     config.textQueueMaxPending,
+  );
+  const visionQueue = new BoundedConversationQueue(
+    config.visionQueueConcurrency,
+    config.visionQueueMaxPending,
   );
   let readiness: Awaited<ReturnType<CodexRunner["readiness"]>> = {
     ready: false,
@@ -162,6 +197,7 @@ export function createCodexServer(
           version: readiness.version,
           queue: processor.snapshot(),
           text: textQueue.snapshot(),
+          vision: visionQueue.snapshot(),
         });
       }
 
@@ -289,6 +325,32 @@ export function createCodexServer(
         });
       }
 
+      if (
+        request.method === "POST" &&
+        url.pathname === "/internal/v1/codex/vision/analyze"
+      ) {
+        capabilities.requireAllowed("image.analyze.v1", callerId);
+        const requestId = request.headers["x-request-id"];
+        if (typeof requestId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(requestId)) {
+          throw new Error("INVALID_REQUEST_ID");
+        }
+        const mediaType = String(request.headers["content-type"] ?? "").split(";", 1)[0]!;
+        if (!["image/png", "image/jpeg", "image/webp"].includes(mediaType)) {
+          throw new Error("UNSUPPORTED_MEDIA_TYPE");
+        }
+        const source = await readBytes(request, config.visionMaxInputBytes);
+        assertImageMagic(source, mediaType);
+        const result = await visionQueue.run(() =>
+          visionRunner.run(
+            requestId,
+            source,
+            mediaType,
+            AbortSignal.timeout(config.visionTimeoutMs),
+          ),
+        );
+        return json(response, 200, { requestId, result });
+      }
+
       const artifactMatch = url.pathname.match(
         /^\/internal\/v1\/codex\/jobs\/([0-9a-f-]+)\/artifacts\/([0-9a-f-]+)$/,
       );
@@ -340,6 +402,7 @@ export function createCodexServer(
   const shutdown = (): Promise<void> => {
     if (!shutdownPromise) {
       textQueue.close();
+      visionQueue.close();
       shutdownPromise = processor.close().then(() => {
         store.close();
       });

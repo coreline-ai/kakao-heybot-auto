@@ -29,6 +29,7 @@ before(async () => {
   mkdirSync(resolve(root, "config"), { recursive: true });
   writeFileSync(resolve(root, "runtime/secrets/manager.secret"), managerSecret);
   writeFileSync(resolve(root, "runtime/secrets/callers/image.secret"), secret);
+  writeFileSync(resolve(root, "runtime/secrets/callers/vision.secret"), secret);
   writeFileSync(
     resolve(root, "config/capabilities.json"),
     JSON.stringify({
@@ -42,6 +43,15 @@ before(async () => {
           maxArtifacts: 1,
           acceptedMediaTypes: ["image/png"],
           maxBytesPerArtifact: 2_000_000,
+        },
+        {
+          id: "image.analyze.v1",
+          enabled: true,
+          allowedCallers: ["vision"],
+          timeoutMs: 5_000,
+          maxArtifacts: 0,
+          acceptedMediaTypes: ["image/png", "image/jpeg", "image/webp"],
+          maxBytesPerArtifact: 0,
         },
       ],
     }),
@@ -134,6 +144,37 @@ test("auth, capability schema, idempotency and PNG artifact contract", async () 
   assert.equal(file.headers.get("content-type"), "image/png");
   const bytes = Buffer.from(await file.arrayBuffer());
   assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+});
+
+test("vision capability accepts only authenticated image bytes and returns strict JSON", async () => {
+  const png = Buffer.alloc(24);
+  Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(png);
+  const response = await fetch(`${baseUrl}/internal/v1/codex/vision/analyze`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${secret}`,
+      "x-heybot-service-id": "vision",
+      "x-request-id": "vision-1",
+      "content-type": "image/png",
+    },
+    body: png,
+  });
+  assert.equal(response.status, 200);
+  const body = await response.json() as any;
+  assert.equal(body.result.version, 1);
+  assert.equal(body.result.uncertainty, "low");
+
+  const invalid = await fetch(`${baseUrl}/internal/v1/codex/vision/analyze`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${secret}`,
+      "x-heybot-service-id": "vision",
+      "x-request-id": "vision-2",
+      "content-type": "image/png",
+    },
+    body: Buffer.from("not-an-image"),
+  });
+  assert.equal(invalid.status, 400);
 });
 
 test("rejects arbitrary execution fields and unauthorized caller", async () => {

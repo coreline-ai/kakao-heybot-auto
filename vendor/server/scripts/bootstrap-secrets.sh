@@ -30,7 +30,7 @@ write_pair() {
   chmod 600 "$first" "$second"
 }
 
-for package in proxy-manager proxy-image proxy-codex proxy-video proxy-grok proxy-draw proxy-brush proxy-conversation; do
+for package in proxy-manager proxy-image proxy-vision proxy-codex proxy-video proxy-grok proxy-draw proxy-brush proxy-conversation; do
   mkdir -p "$ROOT/$package/runtime/secrets"
   chmod 700 "$ROOT/$package/runtime" "$ROOT/$package/runtime/secrets"
 done
@@ -66,6 +66,12 @@ write_pair \
 write_pair \
   "$ROOT/proxy-image/runtime/secrets/codex-upstream.secret" \
   "$ROOT/proxy-codex/runtime/secrets/callers/image.secret"
+write_pair \
+  "$ROOT/proxy-manager/runtime/secrets/proxy-vision.secret" \
+  "$ROOT/proxy-vision/runtime/secrets/manager.secret"
+write_pair \
+  "$ROOT/proxy-vision/runtime/secrets/codex-upstream.secret" \
+  "$ROOT/proxy-codex/runtime/secrets/callers/vision.secret"
 write_pair \
   "$ROOT/proxy-draw/runtime/secrets/codex-upstream.secret" \
   "$ROOT/proxy-codex/runtime/secrets/callers/draw.secret"

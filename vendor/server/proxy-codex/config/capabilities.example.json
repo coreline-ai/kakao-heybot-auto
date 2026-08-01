@@ -24,6 +24,18 @@
       "acceptedMediaTypes": [],
       "maxBytesPerArtifact": 0,
       "canaryRequiresExplicitConfirmation": false
+    },
+    {
+      "id": "image.analyze.v1",
+      "enabled": true,
+      "allowedCallers": ["vision"],
+      "inputSchema": "image-analyze-v1",
+      "modelEnv": "CODEX_VISION_MODEL",
+      "timeoutMs": 90000,
+      "maxArtifacts": 0,
+      "acceptedMediaTypes": ["image/png", "image/jpeg", "image/webp"],
+      "maxBytesPerArtifact": 10485760,
+      "canaryRequiresExplicitConfirmation": false
     }
   ]
 }

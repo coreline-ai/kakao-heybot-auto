@@ -31,6 +31,7 @@ if [[ "$RENDER_ONLY" == "false" ]]; then
     ai.coreline.heybot.proxy-watchdog \
     ai.coreline.heybot.proxy-manager \
     ai.coreline.heybot.proxy-image \
+    ai.coreline.heybot.proxy-vision \
     ai.coreline.heybot.proxy-codex \
     ai.coreline.heybot.proxy-video \
     ai.coreline.heybot.proxy-grok \
@@ -42,7 +43,7 @@ if [[ "$RENDER_ONLY" == "false" ]]; then
 fi
 
 "$ROOT/scripts/bootstrap-secrets.sh"
-for package in proxy-codex proxy-image proxy-grok proxy-video proxy-draw proxy-manager proxy-conversation; do
+for package in proxy-codex proxy-image proxy-vision proxy-grok proxy-video proxy-draw proxy-manager proxy-conversation; do
   (cd "$ROOT/$package" && npm run build >/dev/null)
   mkdir -p "$ROOT/$package/runtime/logs" "$ROOT/$package/runtime/state"
 done
@@ -85,7 +86,7 @@ sync_package() {
   find "$target/runtime/secrets" -type f -exec chmod 600 {} +
 }
 
-for id in codex image grok video draw manager conversation; do
+for id in codex image vision grok video draw manager conversation; do
   sync_package "$id"
 done
 
@@ -244,7 +245,7 @@ EOF
   plutil -lint "$output" >/dev/null
 }
 
-for id in grok video codex image brush draw conversation manager; do
+for id in grok video codex image vision brush draw conversation manager; do
   write_proxy_plist "$id"
 done
 write_watchdog_plist
@@ -257,6 +258,7 @@ fi
 for label in \
   ai.coreline.heybot.proxy-codex \
   ai.coreline.heybot.proxy-image \
+  ai.coreline.heybot.proxy-vision \
   ai.coreline.heybot.proxy-grok \
   ai.coreline.heybot.proxy-video \
   ai.coreline.heybot.proxy-brush \
@@ -272,6 +274,7 @@ for label in \
   ai.coreline.heybot.proxy-video \
   ai.coreline.heybot.proxy-codex \
   ai.coreline.heybot.proxy-image \
+  ai.coreline.heybot.proxy-vision \
   ai.coreline.heybot.proxy-brush \
   ai.coreline.heybot.proxy-draw \
   ai.coreline.heybot.proxy-conversation \

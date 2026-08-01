@@ -24,6 +24,7 @@ sealed interface BotCommand {
     data class ApplyRoomCapability(val nonce: String) : BotCommand
     data object CancelRoomCapability : BotCommand
     data class GenerateImage(val prompt: String) : BotCommand
+    data object AnalyzeImage : BotCommand
     data object ImageStatus : BotCommand
     data object CancelImage : BotCommand
     data object RetryImage : BotCommand
@@ -74,6 +75,7 @@ class BotCommandRouter(private val trigger: String) {
             "방 목록" -> BotCommand.ListRoomCapabilities
             "방 취소" -> BotCommand.CancelRoomCapability
             "이미지 상태" -> BotCommand.ImageStatus
+            "이미지 분석" -> BotCommand.AnalyzeImage
             "이미지 취소" -> BotCommand.CancelImage
             "이미지 재전송" -> BotCommand.RetryImage
             "영상 상태" -> BotCommand.VideoStatus

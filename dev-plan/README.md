@@ -1,6 +1,6 @@
 # 헤이봇 개발계획 인덱스
 
-갱신 기준: `2026-07-26 22:27 KST`
+갱신 기준: `2026-08-01 18:00 KST`
 
 여러 개발계획의 미체크 항목을 모두 독립 backlog로 취급하지 않는다. 뒤 계획이
 앞 계획의 결정을 대체하거나 실제 구현이 다른 계획에서 완료된 경우 이 문서를
@@ -27,6 +27,7 @@
 | `implement_20260726_141425.md` | Iris Android package·vendor 디렉터리 rename | 구현·PD20 검증 완료/카카오 외부 E2E 대기 | `party.qwer.iris`를 `ai.coreline.heybot`으로 namespace·applicationId·Kotlin package·app_process 진입점으로 변경하고, 소스 디렉터리를 `vendor/Iris`에서 `vendor/android`로 정리했다. 빌드 경로·스크립트·문서 참조를 갱신했으며 release build, PD20 startup/readiness와 self-test QUICK을 통과했다. root 전용 운영 파일·KakaoTalk 데이터는 보존했다. |
 | `implement_20260726_145547.md` | Android 자체진단·통합 self-test | 구현·PD20 QUICK/INTEGRATION/DEVICE 검증 완료/실제 CANARY 승인 대기 | `헤이봇 자체진단`으로 QUICK·INTEGRATION·DEVICE·CANARY를 분리했다. PD20에서 QUICK·INTEGRATION·DEVICE는 PASS, CANARY는 guard에 따라 WARN/SKIP이며 실제 provider 생성·카카오톡 전송은 실행하지 않았다. |
 | `implement_20260726_221417.md` | 일반대화 mode 재시작 영속화 | 구현·PD20 배포 완료/최초 관리자 ON 검증 대기 | 관리자 start/stop과 circuit trip을 root 전용 atomic JSON에 저장하고 재시작 때 복원한다. 전체 145개 debug/release test·lint·release build·PD20 최초 migration OFF 재기동은 통과했다. 최초 mode 파일은 의도적으로 만들지 않았으므로 코어라인 AI 연구소 관리자의 `헤이봇 대화 시작` 1회와 그 뒤 ON 재시작 실기기 확인만 남았다. |
+| `implement_20260801_180045.md` | 카카오 DB 이미지 Vision 분석 | 계획 수립/Phase 0 실기기 가능성 확인 | 코어라인 AI 연구소의 실제 `type=2` attachment를 production 코드로 복호화하고 Kakao CDN PNG 원본을 검증했다. 명시적 `헤이봇 이미지 분석`, 독립 `IMAGE_ANALYSIS` 권한, `proxy-vision → proxy-codex image.analyze.v1` 경로를 구현한다. |
 
 ## 통합 실행 순서
 
@@ -39,6 +40,7 @@
 7. Iris Android package rename을 수행하고 새 `ai.coreline.heybot.Main`으로 PD20 재배포·기동 검증한다. (`20260726_141425`)
 8. Android 자체진단 QUICK/INTEGRATION/DEVICE를 구현·PD20 검증한 뒤 CANARY를 별도 승인·시험방에서 제한 검증한다. (`20260726_145547`)
 9. 코어라인 AI 연구소 관리자가 `헤이봇 대화 시작`을 한 번 실행한 뒤 재배포 전후 ON 복원과 mode 파일 `600 root:root`를 확인한다. 구현·최초 migration OFF 검증은 완료됐다. (`20260726_221417`)
+10. PD20 이미지 attachment parser와 `proxy-vision`을 구현한 뒤 코어라인 AI 연구소 R01에서 이미지 1장 분석·same-room reply를 제한 검증한다. (`20260801_180045`)
 
 외부 비봇 카카오 계정이 필요한 단계는 자동 단위 테스트와 분리한다. 해당 E2E가
 대기 중이어도 이미 정의된 fail-closed 코드와 자동 테스트 구현은 계속할 수 있지만,

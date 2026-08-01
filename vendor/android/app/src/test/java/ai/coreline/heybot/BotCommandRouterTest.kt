@@ -35,6 +35,7 @@ class BotCommandRouterTest {
             router.route("헤이봇 이미지 분홍색 로봇")
         )
         assertEquals(BotCommand.ImageStatus, router.route("헤이봇 이미지 상태"))
+        assertEquals(BotCommand.AnalyzeImage, router.route("헤이봇 이미지 분석"))
         assertEquals(BotCommand.CancelImage, router.route("헤이봇 이미지 취소"))
         assertEquals(BotCommand.RetryImage, router.route("헤이봇 이미지 재전송"))
         assertEquals(
@@ -113,6 +114,10 @@ class BotCommandRouterTest {
         assertEquals(
             BotCommand.PreviewRoomCapability("R02", RoomCapability.PEN_BRUSH, true),
             router.route("헤이봇 방 펜브러쉬 허용 R02")
+        )
+        assertEquals(
+            BotCommand.PreviewRoomCapability("R01", RoomCapability.IMAGE_ANALYSIS, true),
+            router.route("헤이봇 이미지분석 허용 R01")
         )
         assertEquals(BotCommand.ApplyRoomCapability("ABC123"), router.route("헤이봇 방 적용 ABC123"))
         assertEquals(BotCommand.CancelRoomCapability, router.route("헤이봇 방 취소"))

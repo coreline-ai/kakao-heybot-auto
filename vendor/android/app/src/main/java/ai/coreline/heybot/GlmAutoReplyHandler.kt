@@ -15,7 +15,9 @@ data class GlmIncomingMessage(
     val userId: Long,
     val messageType: String,
     val message: String,
-    val threadId: Long?
+    val threadId: Long?,
+    /** Strictly parsed metadata only; decrypted attachment JSON is never retained here. */
+    val imageAttachment: IncomingImageAttachment? = null
 )
 
 fun interface GlmReplySender {
@@ -659,6 +661,7 @@ class GlmAutoReplyHandler(
             }
 
             is BotCommand.InvalidLocalCommand -> safeReply(incoming, command.reason)
+            BotCommand.AnalyzeImage,
             is BotCommand.GenerateImage,
             BotCommand.ImageStatus,
             BotCommand.CancelImage,
@@ -784,6 +787,7 @@ class GlmAutoReplyHandler(
                 "이미지 ${roomCapabilityPolicy.snapshot().imageRoomCount}개, " +
                 "영상 ${roomCapabilityPolicy.snapshot().videoRoomCount}개, " +
                 "펜브러쉬 ${roomCapabilityPolicy.snapshot().penBrushRoomCount}개 | " +
+                "이미지분석 ${roomCapabilityPolicy.snapshot().imageAnalysisRoomCount}개 | " +
                 "일반대화 ${if (mode.enabled) "켜짐" else "꺼짐"}/저장 ${modePersistenceLabel(mode)} | " +
                 "일반정책 ${if (policy.ready) "정상" else "비활성"}/${policy.allowedRoomCount}방 | " +
                 "일반회로 ${if (circuit.tripped) "차단" else "정상"}/" +
@@ -933,6 +937,8 @@ class GlmAutoReplyHandler(
                 "[이미지]\n" +
                 "• 헤이봇 이미지 <설명>\n" +
                 "• 헤이봇 이미지 상태 / 취소 / 재전송\n" +
+                "• 이미지 전송 후 헤이봇 이미지 분석\n" +
+                "  답장한 이미지 또는 최근 30분 내 내가 보낸 최신 이미지를 설명해요. 없으면 원본이 살아 있는 최신 헤이봇 이미지를 분석해요.\n" +
                 "\n" +
                 "[영상]\n" +
                 "• 헤이봇 영상 <설명>\n" +
@@ -970,7 +976,7 @@ class GlmAutoReplyHandler(
                 "• 헤이봇 자체진단 [빠른|통합|기기|카나리]\n" +
                 "• 헤이봇 방 목록 / 방 상태 <R번호>\n" +
                 "• 헤이봇 <기능> 허용|불허용 <R번호>\n" +
-                "  기능: 텍스트, 일반대화, 이미지, 영상, 펜브러쉬\n" +
+                "  기능: 텍스트, 일반대화, 이미지, 영상, 펜브러쉬, 이미지분석\n" +
                 "• 헤이봇 방 적용 <코드> / 방 취소\n" +
                 "\n" +
                 "권한 변경은 먼저 미리보기가 나오며, 적용 코드 입력 후 확정돼요."
