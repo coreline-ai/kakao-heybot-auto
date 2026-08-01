@@ -23,6 +23,10 @@ export interface CodexProxyConfig {
   textQueueMaxPending: number;
   textTimeoutMs: number;
   textMaxOutputChars: number;
+  visionQueueConcurrency: number;
+  visionQueueMaxPending: number;
+  visionTimeoutMs: number;
+  visionMaxInputBytes: number;
 }
 
 function integer(
@@ -117,5 +121,15 @@ export function loadCodexProxyConfig(
     textQueueMaxPending: integer(env, "CODEX_TEXT_QUEUE_MAX_PENDING", 4, 1, 32),
     textTimeoutMs: integer(env, "CODEX_TEXT_TIMEOUT_MS", 90_000, 5_000, 300_000),
     textMaxOutputChars: integer(env, "CODEX_TEXT_MAX_OUTPUT_CHARS", 4_000, 64, 16_000),
+    visionQueueConcurrency: integer(env, "CODEX_VISION_QUEUE_CONCURRENCY", 1, 1, 4),
+    visionQueueMaxPending: integer(env, "CODEX_VISION_QUEUE_MAX_PENDING", 4, 1, 32),
+    visionTimeoutMs: integer(env, "CODEX_VISION_TIMEOUT_MS", 90_000, 5_000, 300_000),
+    visionMaxInputBytes: integer(
+      env,
+      "CODEX_VISION_MAX_INPUT_BYTES",
+      10 * 1024 * 1024,
+      1_024,
+      20 * 1024 * 1024,
+    ),
   };
 }

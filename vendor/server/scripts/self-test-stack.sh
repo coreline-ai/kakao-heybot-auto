@@ -19,6 +19,7 @@ curl --fail --silent http://127.0.0.1:4361/ready >/dev/null
 for package in \
   proxy-manager \
   proxy-image \
+  proxy-vision \
   proxy-video \
   proxy-draw \
   proxy-brush \

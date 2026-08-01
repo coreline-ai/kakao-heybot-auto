@@ -21,6 +21,8 @@ class ImageCommandParser(
         // 권한 변경 문장을 이미지 생성 프롬프트로 오인하지 않는다.
         if (ROOM_CAPABILITY_COMMAND.matches(content)) return null
         return when (content) {
+            // Reserved for ImageAnalysisCoordinator. Never create an image whose prompt is "분석".
+            "이미지 분석" -> null
             "이미지 상태" -> ImageCommand.Status
             "이미지 취소" -> ImageCommand.Cancel
             "이미지 재전송" -> ImageCommand.Retry

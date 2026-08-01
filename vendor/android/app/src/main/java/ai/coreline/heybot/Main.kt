@@ -55,13 +55,19 @@ class Main {
                     notificationReferer,
                     roomCapabilityPolicy
                 )
+                val imageAnalysisCoordinator = createImageAnalysisCoordinator(
+                    kakaoDb,
+                    notificationReferer,
+                    roomCapabilityPolicy
+                )
                 val observerHelper = ObserverHelper(
                     kakaoDb,
                     wsEventFlow,
                     glmAutoReplyHandler,
                     imageJobCoordinator,
                     videoJobCoordinator,
-                    penBrushJobCoordinator
+                    penBrushJobCoordinator,
+                    imageAnalysisCoordinator
                 )
 
                 val dbObserver = DBObserver(kakaoDb, observerHelper)
@@ -302,6 +308,42 @@ class Main {
                             AndroidAtomicFileBackend(settings.stateFile)
                         ),
                         roomCapabilityPolicy = roomCapabilityPolicy
+                    )
+                }
+            }
+        }
+
+        private fun createImageAnalysisCoordinator(
+            kakaoDb: KakaoDB,
+            notificationReferer: String,
+            roomCapabilityPolicy: RoomCapabilityPolicyStore
+        ): ImageAnalysisCoordinator? {
+            return when (val config = ImageAnalysisSettings.load()) {
+                ImageAnalysisSettingsLoadResult.Disabled -> {
+                    println("Vision proxy disabled")
+                    null
+                }
+                is ImageAnalysisSettingsLoadResult.Invalid -> {
+                    System.err.println("Vision proxy disabled: ${config.reason}")
+                    null
+                }
+                is ImageAnalysisSettingsLoadResult.Ready -> {
+                    val settings = config.settings
+                    println("Vision proxy enabled")
+                    ImageAnalysisCoordinator(
+                        settings = settings,
+                        trigger = System.getenv()["IRIS_GLM_TRIGGER"]?.trim()
+                            ?.takeIf { it.isNotBlank() } ?: "헤이봇",
+                        botId = Configurable.botId,
+                        gateway = ImageAnalysisProxyClient(settings),
+                        replySender = ImageAnalysisReplySender { chatId, message, threadId ->
+                            Replier.sendMessage(notificationReferer, chatId, message, threadId)
+                        },
+                        roomCapabilityPolicy = roomCapabilityPolicy,
+                        attachmentLookup = KakaoDbImageAttachmentLookup(
+                            source = KakaoDbImageLogSource(kakaoDb),
+                            parser = KakaoImageAttachmentParser()
+                        )
                     )
                 }
             }

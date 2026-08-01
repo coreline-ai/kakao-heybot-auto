@@ -62,6 +62,7 @@ for label in \
   ai.coreline.heybot.proxy-video \
   ai.coreline.heybot.proxy-codex \
   ai.coreline.heybot.proxy-image \
+  ai.coreline.heybot.proxy-vision \
   ai.coreline.heybot.proxy-draw \
   ai.coreline.heybot.proxy-brush \
   ai.coreline.heybot.proxy-conversation \

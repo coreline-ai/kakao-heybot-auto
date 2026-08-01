@@ -19,6 +19,7 @@ ROOM_CAPABILITY_POLICY_FILE=/data/local/private/iris-room-capabilities.json
 MEMORY_FILE=/data/local/private/iris-bot-memory.json
 IMAGE_PROXY_SECRET_FILE=/data/local/private/iris-image-proxy.token
 IMAGE_STATE_FILE=/data/local/private/iris-image-jobs.json
+VISION_PROXY_SECRET_FILE=/data/local/private/iris-vision-proxy.token
 VIDEO_PROXY_SECRET_FILE=/data/local/private/iris-video-proxy.token
 VIDEO_STATE_FILE=/data/local/private/iris-video-jobs.json
 PEN_BRUSH_PROXY_SECRET_FILE=/data/local/private/iris-pen-brush-proxy.token
@@ -29,6 +30,7 @@ CONFIG_FILE=/data/local/private/iris-config.json
 HTTP_ADMIN_SECRET_FILE=/data/local/private/iris-http-admin.token
 HTTP_API_ENABLED="${IRIS_HTTP_API_ENABLED:-false}"
 IMAGE_PROXY_SECRET_LOCAL="${IMAGE_PROXY_SECRET_LOCAL:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/vendor/server/proxy-manager/runtime/secrets/route.secret}"
+VISION_PROXY_SECRET_LOCAL="${VISION_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}"
 VIDEO_PROXY_SECRET_LOCAL="${VIDEO_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}"
 PEN_BRUSH_PROXY_SECRET_LOCAL="${PEN_BRUSH_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}"
 CONVERSATION_PROXY_SECRET_LOCAL="${CONVERSATION_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}"
@@ -38,6 +40,7 @@ CONVERSATION_PROXY_SECRET_LOCAL="${CONVERSATION_PROXY_SECRET_LOCAL:-$IMAGE_PROXY
 VIDEO_PROXY_ENABLED="${IRIS_VIDEO_PROXY_ENABLED:-true}"
 PEN_BRUSH_PROXY_ENABLED="${IRIS_PEN_BRUSH_PROXY_ENABLED:-true}"
 CONVERSATION_PROXY_ENABLED="${IRIS_CONVERSATION_PROXY_ENABLED:-true}"
+VISION_PROXY_ENABLED="${IRIS_VISION_PROXY_ENABLED:-true}"
 ROOM_CAPABILITY_BOOTSTRAP_LOCAL="${ROOM_CAPABILITY_BOOTSTRAP_LOCAL:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/config/iris-room-capabilities.bootstrap.json}"
 STARTUP_LOG=/data/local/private/iris-glm-startup.log
 
@@ -65,6 +68,8 @@ private_metadata="$($ADB -s "$SERIAL" shell "su root sh -c 'stat -c \"%a %U:%G\"
   fail "IRIS_PEN_BRUSH_PROXY_ENABLED must be true or false"
 [[ "$CONVERSATION_PROXY_ENABLED" == "true" || "$CONVERSATION_PROXY_ENABLED" == "false" ]] ||
   fail "IRIS_CONVERSATION_PROXY_ENABLED must be true or false"
+[[ "$VISION_PROXY_ENABLED" == "true" || "$VISION_PROXY_ENABLED" == "false" ]] ||
+  fail "IRIS_VISION_PROXY_ENABLED must be true or false"
 
 config_metadata="$($ADB -s "$SERIAL" shell "su root sh -c '
   if [ -L $CONFIG_FILE ]; then echo symlink; exit 0; fi
@@ -122,6 +127,18 @@ python3 -m json.tool "$ROOM_CAPABILITY_BOOTSTRAP_LOCAL" >/dev/null ||
   chmod 600 $IMAGE_PROXY_SECRET_FILE
   rm -f /data/local/tmp/iris-image-proxy.token
 '"
+
+if [[ "$VISION_PROXY_ENABLED" == "true" ]]; then
+  [[ -s "$VISION_PROXY_SECRET_LOCAL" ]] ||
+    fail "Vision proxy route secret is missing: $VISION_PROXY_SECRET_LOCAL"
+  "$ADB" -s "$SERIAL" push "$VISION_PROXY_SECRET_LOCAL" /data/local/tmp/iris-vision-proxy.token >/dev/null
+  "$ADB" -s "$SERIAL" shell "su root sh -c '
+    cp /data/local/tmp/iris-vision-proxy.token $VISION_PROXY_SECRET_FILE
+    chown root:root $VISION_PROXY_SECRET_FILE
+    chmod 600 $VISION_PROXY_SECRET_FILE
+    rm -f /data/local/tmp/iris-vision-proxy.token
+  '"
+fi
 
 if [[ "$PEN_BRUSH_PROXY_ENABLED" == "true" ]]; then
   [[ -s "$PEN_BRUSH_PROXY_SECRET_LOCAL" ]] ||
@@ -289,6 +306,18 @@ printf 'Deploying %s to PD20…\n' "$(basename "$APK")"
   IRIS_IMAGE_ROOM_RATE_MAX=3 \\
   IRIS_IMAGE_USER_RATE_MAX=2 \\
   IRIS_IMAGE_STATE_FILE=$IMAGE_STATE_FILE \\
+  IRIS_VISION_PROXY_ENABLED=$VISION_PROXY_ENABLED \\
+  IRIS_VISION_PROXY_BASE_URL=http://127.0.0.1:4340 \\
+  IRIS_VISION_PROXY_SECRET_FILE=$VISION_PROXY_SECRET_FILE \\
+  IRIS_VISION_ALLOWED_CHAT_IDS=18480337854645134,18393359886930036,18243496625741211,18226456888539938 \\
+  IRIS_VISION_PROXY_REQUEST_TIMEOUT_MS=30000 \\
+  IRIS_VISION_PROXY_POLL_INTERVAL_MS=1000 \\
+  IRIS_VISION_PROXY_JOB_TIMEOUT_MS=120000 \\
+  IRIS_VISION_RECENT_IMAGE_WINDOW_MS=1800000 \\
+  IRIS_VISION_MAX_PENDING_PER_ROOM=1 \\
+  IRIS_VISION_RATE_WINDOW_MS=600000 \\
+  IRIS_VISION_ROOM_RATE_MAX=3 \\
+  IRIS_VISION_USER_RATE_MAX=2 \\
   IRIS_VIDEO_PROXY_ENABLED=$VIDEO_PROXY_ENABLED \\
   IRIS_VIDEO_PROXY_BASE_URL=http://127.0.0.1:4340 \\
   IRIS_VIDEO_PROXY_SECRET_FILE=$VIDEO_PROXY_SECRET_FILE \\
@@ -329,7 +358,11 @@ printf 'Deploying %s to PD20…\n' "$(basename "$APK")"
   > $STARTUP_LOG 2>&1 &
 '"
 
-sleep 2
+for _ in {1..30}; do
+  startup_ready="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"Iris process lifetime ready\" $STARTUP_LOG | tail -1'" | tr -d '\r')"
+  [[ -n "$startup_ready" ]] && break
+  sleep 0.5
+done
 startup_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -E \"GLM auto-reply (enabled|disabled)\" $STARTUP_LOG | tail -1'" | tr -d '\r')"
 [[ "$startup_mode" == "GLM auto-reply enabled" ]] || fail "Iris did not enable GLM (startup status: ${startup_mode:-not found})"
 scheduler_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"GLM P1 scheduler ready\" $STARTUP_LOG | tail -1'" | tr -d '\r')"
@@ -349,6 +382,10 @@ fi
 if [[ "$CONVERSATION_PROXY_ENABLED" == "true" ]]; then
   conversation_proxy_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"Conversation engine ready=\" $STARTUP_LOG | tail -1'" | tr -d '\r')"
   [[ -n "$conversation_proxy_mode" ]] || fail "Conversation engine mode was not initialized"
+fi
+if [[ "$VISION_PROXY_ENABLED" == "true" ]]; then
+  vision_proxy_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"Vision proxy enabled\" $STARTUP_LOG | tail -1'" | tr -d '\r')"
+  [[ -n "$vision_proxy_mode" ]] || fail "Vision proxy was not enabled"
 fi
 if [[ "$HTTP_API_ENABLED" == "false" ]]; then
   http_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"Iris HTTP API disabled\" $STARTUP_LOG | tail -1'" | tr -d '\r')"

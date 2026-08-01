@@ -14,7 +14,9 @@ enum class RoomCapability(val commandName: String, val statusName: String) {
     /** Video starts deny-by-default, even for policy files created before it existed. */
     VIDEO("영상", "영상"),
     /** Pen-brush rendering is billable and starts deny-by-default. */
-    PEN_BRUSH("펜브러쉬", "펜브러쉬")
+    PEN_BRUSH("펜브러쉬", "펜브러쉬"),
+    /** Analysis of user-provided images is independent from image generation. */
+    IMAGE_ANALYSIS("이미지분석", "이미지분석")
 }
 
 data class ManagedRoomCapability(
@@ -26,12 +28,14 @@ data class ManagedRoomCapability(
     val imageEnabled: Boolean,
     val videoEnabled: Boolean = false,
     val penBrushEnabled: Boolean = false,
+    val imageAnalysisEnabled: Boolean = false,
     /** Independent tokens keep a text/general update from cancelling an image job. */
     val textRevision: Long = 0L,
     val generalConversationRevision: Long = 0L,
     val imageRevision: Long = 0L,
     val videoRevision: Long = 0L,
-    val penBrushRevision: Long = 0L
+    val penBrushRevision: Long = 0L,
+    val imageAnalysisRevision: Long = 0L
 )
 
 data class RoomCapabilitySnapshot(
@@ -44,6 +48,7 @@ data class RoomCapabilitySnapshot(
     val imageRoomCount: Int get() = rooms.count { it.imageEnabled }
     val videoRoomCount: Int get() = rooms.count { it.videoEnabled }
     val penBrushRoomCount: Int get() = rooms.count { it.penBrushEnabled }
+    val imageAnalysisRoomCount: Int get() = rooms.count { it.imageAnalysisEnabled }
 
     fun capabilityRevision(chatId: Long, capability: RoomCapability): Long? =
         rooms.firstOrNull { it.chatId == chatId }?.let { room ->
@@ -53,6 +58,7 @@ data class RoomCapabilitySnapshot(
                 RoomCapability.IMAGE -> room.imageRevision
                 RoomCapability.VIDEO -> room.videoRevision
                 RoomCapability.PEN_BRUSH -> room.penBrushRevision
+                RoomCapability.IMAGE_ANALYSIS -> room.imageAnalysisRevision
             }
         }
 }
@@ -102,6 +108,7 @@ class RoomCapabilityPolicyStore private constructor(
             RoomCapability.IMAGE -> room.imageEnabled
             RoomCapability.VIDEO -> room.videoEnabled
             RoomCapability.PEN_BRUSH -> room.penBrushEnabled
+            RoomCapability.IMAGE_ANALYSIS -> room.imageAnalysisEnabled
         }
     }
 
@@ -113,6 +120,7 @@ class RoomCapabilityPolicyStore private constructor(
             RoomCapability.IMAGE -> room.imageRevision
             RoomCapability.VIDEO -> room.videoRevision
             RoomCapability.PEN_BRUSH -> room.penBrushRevision
+            RoomCapability.IMAGE_ANALYSIS -> room.imageAnalysisRevision
         }
         if (currentRevision != revision) return false
         return when (capability) {
@@ -121,6 +129,7 @@ class RoomCapabilityPolicyStore private constructor(
             RoomCapability.IMAGE -> room.imageEnabled
             RoomCapability.VIDEO -> room.videoEnabled
             RoomCapability.PEN_BRUSH -> room.penBrushEnabled
+            RoomCapability.IMAGE_ANALYSIS -> room.imageAnalysisEnabled
         }
     }
 
@@ -190,6 +199,10 @@ class RoomCapabilityPolicyStore private constructor(
                     penBrushEnabled = preview.enabled,
                     penBrushRevision = nextRevision
                 )
+                RoomCapability.IMAGE_ANALYSIS -> room.copy(
+                    imageAnalysisEnabled = preview.enabled,
+                    imageAnalysisRevision = nextRevision
+                )
             }
         }
         val next = RoomCapabilitySnapshot(true, nextRevision, rooms)
@@ -224,6 +237,7 @@ class RoomCapabilityPolicyStore private constructor(
                 append("이미지: ").append(enabledLabel(room.imageEnabled))
                 append(" | 영상: ").append(enabledLabel(room.videoEnabled))
                 append(" | 펜브러쉬: ").append(enabledLabel(room.penBrushEnabled))
+                append(" | 이미지분석: ").append(enabledLabel(room.imageAnalysisEnabled))
             }
         }.take(MAX_REPLY_CHARS)
     }
@@ -241,7 +255,8 @@ class RoomCapabilityPolicyStore private constructor(
             "일반대화: ${enabledLabel(room.generalConversationEnabled)}\n" +
             "이미지: ${enabledLabel(room.imageEnabled)} | " +
             "영상: ${enabledLabel(room.videoEnabled)} | " +
-            "펜브러쉬: ${enabledLabel(room.penBrushEnabled)}"
+            "펜브러쉬: ${enabledLabel(room.penBrushEnabled)} | " +
+            "이미지분석: ${enabledLabel(room.imageAnalysisEnabled)}"
     }
 
     fun renderStatus(reference: String): String {
@@ -252,7 +267,8 @@ class RoomCapabilityPolicyStore private constructor(
             "일반대화: ${enabledLabel(room.generalConversationEnabled)}\n" +
             "이미지: ${enabledLabel(room.imageEnabled)}\n" +
             "영상: ${enabledLabel(room.videoEnabled)}\n" +
-            "펜브러쉬: ${enabledLabel(room.penBrushEnabled)}"
+            "펜브러쉬: ${enabledLabel(room.penBrushEnabled)}\n" +
+            "이미지분석: ${enabledLabel(room.imageAnalysisEnabled)}"
     }
 
     private fun encode(snapshot: RoomCapabilitySnapshot): ByteArray =
@@ -270,11 +286,13 @@ class RoomCapabilityPolicyStore private constructor(
                         imageEnabled = it.imageEnabled,
                         videoEnabled = it.videoEnabled,
                         penBrushEnabled = it.penBrushEnabled,
+                        imageAnalysisEnabled = it.imageAnalysisEnabled,
                         textRevision = it.textRevision,
                         generalConversationRevision = it.generalConversationRevision,
                         imageRevision = it.imageRevision,
                         videoRevision = it.videoRevision,
-                        penBrushRevision = it.penBrushRevision
+                        penBrushRevision = it.penBrushRevision,
+                        imageAnalysisRevision = it.imageAnalysisRevision
                     )
                 }
             )
@@ -283,7 +301,7 @@ class RoomCapabilityPolicyStore private constructor(
     private data class PendingMutation(val preview: RoomCapabilityPreview)
 
     companion object {
-        private const val VERSION = 2
+        private const val VERSION = 3
         private const val MAX_FILE_BYTES = 64 * 1024
         private const val MAX_REPLY_CHARS = 480
         private const val PREVIEW_TTL_MILLIS = 2 * 60 * 1000L
@@ -382,6 +400,8 @@ class RoomCapabilityPolicyStore private constructor(
                         videoEnabled = it.videoEnabled ?: false,
                         // Existing policy documents must never implicitly enable pen-brush rendering.
                         penBrushEnabled = it.penBrushEnabled ?: false,
+                        // Existing policies never implicitly enable user-image analysis.
+                        imageAnalysisEnabled = it.imageAnalysisEnabled ?: false,
                         // Version 1 policy files did not carry per-capability
                         // revisions. Their global revision safely represents
                         // each capability's last known state.
@@ -391,7 +411,8 @@ class RoomCapabilityPolicyStore private constructor(
                         imageRevision = it.imageRevision ?: document.revision,
                         // Existing policy documents must never implicitly enable billable video.
                         videoRevision = it.videoRevision ?: document.revision,
-                        penBrushRevision = it.penBrushRevision ?: document.revision
+                        penBrushRevision = it.penBrushRevision ?: document.revision,
+                        imageAnalysisRevision = it.imageAnalysisRevision ?: document.revision
                     )
                 }
             )
@@ -416,6 +437,8 @@ class RoomCapabilityPolicyStore private constructor(
                         it.imageRevision < 0L || it.imageRevision > snapshot.revision ||
                         it.videoRevision < 0L || it.videoRevision > snapshot.revision ||
                         it.penBrushRevision < 0L || it.penBrushRevision > snapshot.revision ||
+                        it.imageAnalysisRevision < 0L ||
+                        it.imageAnalysisRevision > snapshot.revision ||
                         (it.generalConversationEnabled && !it.textEnabled)
                 }
             ) return false
@@ -449,9 +472,11 @@ private data class PersistedManagedRoomCapability(
     val imageEnabled: Boolean,
     val videoEnabled: Boolean? = null,
     val penBrushEnabled: Boolean? = null,
+    val imageAnalysisEnabled: Boolean? = null,
     val textRevision: Long? = null,
     val generalConversationRevision: Long? = null,
     val imageRevision: Long? = null,
     val videoRevision: Long? = null,
-    val penBrushRevision: Long? = null
+    val penBrushRevision: Long? = null,
+    val imageAnalysisRevision: Long? = null
 )

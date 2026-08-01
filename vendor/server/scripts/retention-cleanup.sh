@@ -19,4 +19,5 @@ cleanup() {
 
 cleanup "$ROOT/proxy-codex/runtime/artifacts" "${CODEX_RETENTION_MINUTES:-60}" "codex-artifact"
 cleanup "$ROOT/proxy-codex/runtime/jobs" "${CODEX_RETENTION_MINUTES:-60}" "codex-workspace"
+cleanup "$ROOT/proxy-codex/runtime/vision" "${CODEX_RETENTION_MINUTES:-60}" "codex-vision-workspace"
 cleanup "$ROOT/proxy-image/runtime/artifacts" "${IMAGE_RETENTION_MINUTES:-1440}" "image-artifact"
