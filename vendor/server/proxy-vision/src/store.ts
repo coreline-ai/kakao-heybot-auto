@@ -6,6 +6,7 @@ import type { CreateVisionJob, VisionJob, VisionResult, VisionStatus } from "./t
 
 interface Row {
   sequence: number; id: string; request_id: string; chat_id: string; user_id: string; log_id: string;
+  task: VisionJob["task"];
   source_url: string | null; source_width: number; source_height: number; source_bytes: number; source_expires: number;
   status: VisionStatus; created_at: number; updated_at: number; error_code: string | null; result_json: string | null;
 }
@@ -13,7 +14,7 @@ interface Row {
 function map(row: Row): VisionJob {
   return {
     id: row.id, sequence: Number(row.sequence), requestId: row.request_id, chatId: row.chat_id,
-    userId: row.user_id, logId: row.log_id,
+    userId: row.user_id, logId: row.log_id, task: row.task,
     source: {
       // Cleared sources are never returned to public callers and only occur for terminal jobs.
       url: row.source_url ?? "", width: row.source_width, height: row.source_height,
@@ -35,6 +36,7 @@ export class VisionStore {
       CREATE TABLE IF NOT EXISTS jobs (
         sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL,
         request_id TEXT UNIQUE NOT NULL, chat_id TEXT NOT NULL, user_id TEXT NOT NULL, log_id TEXT NOT NULL,
+        task TEXT NOT NULL DEFAULT 'describe',
         source_url TEXT, source_width INTEGER NOT NULL, source_height INTEGER NOT NULL,
         source_bytes INTEGER NOT NULL, source_expires INTEGER NOT NULL,
         status TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
@@ -43,6 +45,10 @@ export class VisionStore {
       CREATE INDEX IF NOT EXISTS vision_queue ON jobs(status, sequence);
       CREATE INDEX IF NOT EXISTS vision_room ON jobs(chat_id, status);
     `);
+    const columns = this.#db.prepare("PRAGMA table_info(jobs)").all() as unknown as Array<{name:string}>;
+    if (!columns.some((column) => column.name === "task")) {
+      this.#db.exec("ALTER TABLE jobs ADD COLUMN task TEXT NOT NULL DEFAULT 'describe'");
+    }
     this.#db.prepare("UPDATE jobs SET status='queued', updated_at=? WHERE status='running'").run(Date.now());
   }
   close(): void { this.#db.close(); }
@@ -54,9 +60,9 @@ export class VisionStore {
   create(input: CreateVisionJob): VisionJob {
     const id = randomUUID(); const now = Date.now();
     this.#db.prepare(`INSERT INTO jobs
-      (id,request_id,chat_id,user_id,log_id,source_url,source_width,source_height,source_bytes,source_expires,status,created_at,updated_at)
-      VALUES(?,?,?,?,?,?,?,?,?,?,'queued',?,?)`).run(
-        id,input.requestId,input.chatId,input.userId,input.logId,input.source.url,input.source.width,input.source.height,
+      (id,request_id,chat_id,user_id,log_id,task,source_url,source_width,source_height,source_bytes,source_expires,status,created_at,updated_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,'queued',?,?)`).run(
+        id,input.requestId,input.chatId,input.userId,input.logId,input.task,input.source.url,input.source.width,input.source.height,
         input.source.declaredBytes,input.source.expiresAtMillis,now,now,
       );
     return this.get(id)!;

@@ -1,4 +1,5 @@
 export type VisionStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+export type VisionTask = "describe" | "ocr" | "translate_ko";
 
 export interface VisionSource {
   url: string;
@@ -13,14 +14,16 @@ export interface CreateVisionJob {
   chatId: string;
   userId: string;
   logId: string;
+  task: VisionTask;
   source: VisionSource;
 }
 
 export interface VisionResult {
-  version: 1;
-  summary: string;
+  version: 2;
+  task: VisionTask;
+  answer: string;
   visibleObjects: string[];
-  visibleText: string[];
+  extractedText: string[];
   uncertainty: "low" | "medium" | "high";
 }
 

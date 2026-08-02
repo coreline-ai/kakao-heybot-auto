@@ -11,6 +11,10 @@ class BotCommandRouterTest {
     @Test
     fun `routes local commands before GLM questions`() {
         assertEquals(BotCommand.Help, router.route("헤이봇 도움말"))
+        assertEquals(BotCommand.ListSkills, router.route("헤이봇 기능"))
+        assertEquals(BotCommand.ShowSkill("이미지"), router.route("헤이봇 기능 이미지"))
+        assertEquals(BotCommand.RecentDiagnostics(null), router.route("헤이봇 최근 진단"))
+        assertEquals(BotCommand.RecentDiagnostics("R03"), router.route("헤이봇 최근 진단 r03"))
         assertEquals(BotCommand.Status, router.route("헤이봇: 상태"))
         assertEquals(BotCommand.ClearMyMemory, router.route("헤이봇 내 기억 초기화"))
         assertEquals(BotCommand.ShowSettings, router.route("헤이봇 설정 보기"))
@@ -35,7 +39,9 @@ class BotCommandRouterTest {
             router.route("헤이봇 이미지 분홍색 로봇")
         )
         assertEquals(BotCommand.ImageStatus, router.route("헤이봇 이미지 상태"))
-        assertEquals(BotCommand.AnalyzeImage, router.route("헤이봇 이미지 분석"))
+        assertEquals(BotCommand.AnalyzeImage(VisionTask.DESCRIBE), router.route("헤이봇 이미지 분석"))
+        assertEquals(BotCommand.AnalyzeImage(VisionTask.OCR), router.route("헤이봇 이미지 글자 추출"))
+        assertEquals(BotCommand.AnalyzeImage(VisionTask.TRANSLATE_KO), router.route("헤이봇 이미지 글자 번역"))
         assertEquals(BotCommand.CancelImage, router.route("헤이봇 이미지 취소"))
         assertEquals(BotCommand.RetryImage, router.route("헤이봇 이미지 재전송"))
         assertEquals(

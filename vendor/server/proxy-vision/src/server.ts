@@ -7,7 +7,7 @@ import { VisionCodexClient } from "./codex.js";
 import { VisionProcessor } from "./processor.js";
 import { validateSource } from "./source.js";
 import { VisionStore } from "./store.js";
-import { publicJob,type CreateVisionJob,type VisionSource } from "./types.js";
+import { publicJob,type CreateVisionJob,type VisionSource,type VisionTask } from "./types.js";
 
 function json(response:ServerResponse,status:number,body:unknown):void{const data=Buffer.from(JSON.stringify(body));response.writeHead(status,{"content-type":"application/json; charset=utf-8","content-length":data.length,"cache-control":"no-store"});response.end(data);}
 async function readJson(request:IncomingMessage,max:number):Promise<unknown>{const chunks:Buffer[]=[];let bytes=0;for await(const chunk of request){const data=Buffer.from(chunk);bytes+=data.length;if(bytes>max)throw new Error("BODY_TOO_LARGE");chunks.push(data);}try{return JSON.parse(Buffer.concat(chunks).toString("utf8"));}catch{throw new Error("INVALID_JSON");}}
@@ -16,11 +16,13 @@ function secret(path:string):string{const value=readFileSync(path,"utf8").trim()
 const ID=/^[1-9]\d{0,19}$/;
 function validate(value:unknown,config:VisionConfig):CreateVisionJob{
   if(!value||typeof value!=="object"||Array.isArray(value))throw new Error("INVALID_REQUEST");const body=value as Record<string,unknown>;
-  if(Object.keys(body).some(key=>!["requestId","chatId","userId","logId","source"].includes(key)))throw new Error("UNSUPPORTED_FIELD");
+  if(Object.keys(body).some(key=>!["requestId","chatId","userId","logId","task","source"].includes(key)))throw new Error("UNSUPPORTED_FIELD");
   if(typeof body.requestId!=="string"||!/^[A-Za-z0-9._:-]{1,128}$/.test(body.requestId)||typeof body.chatId!=="string"||!ID.test(body.chatId)||typeof body.userId!=="string"||!ID.test(body.userId)||typeof body.logId!=="string"||!ID.test(body.logId))throw new Error("INVALID_REQUEST");
   if(!body.source||typeof body.source!=="object"||Array.isArray(body.source))throw new Error("INVALID_SOURCE");const raw=body.source as Record<string,unknown>;
   if(Object.keys(raw).some(key=>!["url","width","height","declaredBytes","expiresAtMillis"].includes(key))||typeof raw.url!=="string"||typeof raw.width!=="number"||typeof raw.height!=="number"||typeof raw.declaredBytes!=="number"||typeof raw.expiresAtMillis!=="number")throw new Error("INVALID_SOURCE");
-  const source=raw as unknown as VisionSource;validateSource(source,config);return{requestId:body.requestId,chatId:body.chatId,userId:body.userId,logId:body.logId,source};
+  const task=body.task===undefined?"describe":String(body.task) as VisionTask;
+  if(!["describe","ocr","translate_ko"].includes(task))throw new Error("INVALID_VISION_TASK");
+  const source=raw as unknown as VisionSource;validateSource(source,config);return{requestId:body.requestId,chatId:body.chatId,userId:body.userId,logId:body.logId,task,source};
 }
 function scoped(store:VisionStore,id:string,url:URL){const chatId=url.searchParams.get("chatId");if(!chatId||!ID.test(chatId))throw new Error("INVALID_CHAT_ID");const job=store.get(id);return job?.chatId===chatId?job:undefined;}
 export interface VisionServerContext{server:Server;store:VisionStore;processor:VisionProcessor;shutdown():Promise<void>}
@@ -33,7 +35,13 @@ export function createVisionServer(config:VisionConfig):VisionServerContext{
     if(request.method==="POST"&&url.pathname==="/v1/self-test/readiness"){const dependency=await codex.readiness(AbortSignal.timeout(2_000));return json(response,dependency.ready?200:503,{ready:dependency.ready,dependency:{codex:dependency}});}
     if(request.method==="POST"&&url.pathname==="/v1/vision/jobs"){
       const input=validate(await readJson(request,config.requestMaxBytes),config);const existing=store.byRequest(input.requestId);
-      if(existing)return existing.chatId===input.chatId?json(response,200,publicJob(existing)):json(response,404,{error:{code:"VISION_JOB_NOT_FOUND"}});
+      if(existing){
+        if(existing.chatId!==input.chatId)return json(response,404,{error:{code:"VISION_JOB_NOT_FOUND"}});
+        if(existing.userId!==input.userId||existing.logId!==input.logId||existing.task!==input.task){
+          return json(response,409,{error:{code:"VISION_REQUEST_CONFLICT"}});
+        }
+        return json(response,200,publicJob(existing));
+      }
       if(store.countPending()>=config.queueMaxPending)return json(response,429,{error:{code:"VISION_QUEUE_FULL",retryAfterMs:5000}});
       if(store.countRoomPending(input.chatId)>=config.queueMaxPendingPerRoom)return json(response,429,{error:{code:"ROOM_QUEUE_LIMIT",retryAfterMs:5000}});
       const job=store.create(input);processor.kick();return json(response,202,publicJob(job));

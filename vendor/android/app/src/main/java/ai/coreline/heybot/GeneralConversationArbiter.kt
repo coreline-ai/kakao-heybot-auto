@@ -29,7 +29,7 @@ class GeneralConversationArbiter(
     ): GlmChatRequest = GlmChatRequest(
         model = settings.model,
         messages = buildList {
-            add(GlmMessage(role = "system", content = SYSTEM_PROMPT))
+            add(GlmMessage(role = "system", content = HeybotPersona.generalConversationPrompt()))
             history.forEach { turn ->
                 add(GlmMessage(role = "user", content = turn.userMessage))
                 add(GlmMessage(role = "assistant", content = turn.assistantMessage))
@@ -107,16 +107,5 @@ class GeneralConversationArbiter(
         const val RETRY_REPLY_CHARS = 180
         const val GENERAL_CONVERSATION_MAX_TOKENS = 384
         const val MAX_MODEL_TOKENS = 512
-        val SYSTEM_PROMPT = """
-            너는 카카오톡 오픈채팅방에서 조심스럽게 참여하는 한국어 헤이봇이다.
-            이전 대화는 현재 방의 현재 사용자와 헤이봇 사이에서만 발생한 문맥이다. 다른 참여자의 의도나 발화로 추정하지 않는다.
-            직전 미완성 발화가 있으면 현재 마지막 발화와 함께 하나의 요청인지 판단한다.
-            사람끼리의 잡담, 단순 리액션, 인사만 있는 발화, 의미 없는 짧은 말에는 IGNORE를 선택한다.
-            문장이 덜 끝났거나 다음 발화가 있어야 판단할 수 있으면 WAIT를 선택한다.
-            명확한 질문, 도움 요청, 또는 직접적인 후속 요청에만 REPLY를 선택한다.
-            REPLY는 자연스러운 한국어 한 문단, 300자 이하로 작성한다.
-            반드시 다음 JSON 객체만 반환한다. code fence, 설명, 추가 키를 넣지 않는다.
-            {"action":"REPLY|WAIT|IGNORE","reply":"REPLY일 때만 답변, 그 외에는 빈 문자열"}
-        """.trimIndent()
     }
 }

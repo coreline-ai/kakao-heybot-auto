@@ -55,7 +55,7 @@ test("routes only authenticated conversation requests to the selected provider",
   const baseUrl = await listen(context.server);
   t.after(async () => { await close(context.server); await Promise.all(providers.map(close)); });
 
-  const body = JSON.stringify({ requestId: "r1", engine: "grok", kind: "WAKE_WORD", promptVersion: "v1", messages: [
+  const body = JSON.stringify({ requestId: "r1", engine: "grok", kind: "WAKE_WORD", promptVersion: "heybot-persona-v2", messages: [
     { role: "system", content: "same" }, { role: "user", content: "안녕" },
   ] });
   const unauthorized = await fetch(`${baseUrl}/v1/conversation/respond`, { method: "POST", body, headers: { "content-type": "application/json" } });
@@ -63,4 +63,14 @@ test("routes only authenticated conversation requests to the selected provider",
   const response = await fetch(`${baseUrl}/v1/conversation/respond`, { method: "POST", body, headers: { authorization: `Bearer ${managerSecret}`, "content-type": "application/json" } });
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { requestId: "r1", engine: "grok", text: "grok reply", latencyMillis: 3 });
+
+  const invalidVersion = await fetch(`${baseUrl}/v1/conversation/respond`, {
+    method: "POST",
+    body: JSON.stringify({
+      requestId: "r2", engine: "grok", kind: "WAKE_WORD", promptVersion: "v2<script>",
+      messages: [{ role: "system", content: "same" }, { role: "user", content: "안녕" }],
+    }),
+    headers: { authorization: `Bearer ${managerSecret}`, "content-type": "application/json" },
+  });
+  assert.equal(invalidVersion.status, 400);
 });

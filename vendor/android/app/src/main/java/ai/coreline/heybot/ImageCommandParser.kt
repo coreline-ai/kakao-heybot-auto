@@ -22,7 +22,7 @@ class ImageCommandParser(
         if (ROOM_CAPABILITY_COMMAND.matches(content)) return null
         return when (content) {
             // Reserved for ImageAnalysisCoordinator. Never create an image whose prompt is "분석".
-            "이미지 분석" -> null
+            "이미지 분석", "이미지 글자 추출", "이미지 글자 번역" -> null
             "이미지 상태" -> ImageCommand.Status
             "이미지 취소" -> ImageCommand.Cancel
             "이미지 재전송" -> ImageCommand.Retry

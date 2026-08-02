@@ -155,13 +155,16 @@ test("vision capability accepts only authenticated image bytes and returns stric
       authorization: `Bearer ${secret}`,
       "x-heybot-service-id": "vision",
       "x-request-id": "vision-1",
+      "x-heybot-vision-task": "ocr",
       "content-type": "image/png",
     },
     body: png,
   });
   assert.equal(response.status, 200);
   const body = await response.json() as any;
-  assert.equal(body.result.version, 1);
+  assert.equal(body.result.version, 2);
+  assert.equal(body.result.task, "ocr");
+  assert.equal(body.result.answer, "HELLO");
   assert.equal(body.result.uncertainty, "low");
 
   const invalid = await fetch(`${baseUrl}/internal/v1/codex/vision/analyze`, {
@@ -170,11 +173,26 @@ test("vision capability accepts only authenticated image bytes and returns stric
       authorization: `Bearer ${secret}`,
       "x-heybot-service-id": "vision",
       "x-request-id": "vision-2",
+      "x-heybot-vision-task": "describe",
       "content-type": "image/png",
     },
     body: Buffer.from("not-an-image"),
   });
   assert.equal(invalid.status, 400);
+
+  const invalidTask = await fetch(`${baseUrl}/internal/v1/codex/vision/analyze`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${secret}`,
+      "x-heybot-service-id": "vision",
+      "x-request-id": "vision-3",
+      "x-heybot-vision-task": "free_prompt",
+      "content-type": "image/png",
+    },
+    body: png,
+  });
+  assert.equal(invalidTask.status, 400);
+  assert.equal(((await invalidTask.json()) as any).error.code, "INVALID_VISION_TASK");
 });
 
 test("rejects arbitrary execution fields and unauthorized caller", async () => {

@@ -17,6 +17,7 @@ GENERAL_CONVERSATION_BLOCK_FILE=/data/local/private/iris-general-conversation-bl
 GENERAL_CONVERSATION_MODE_FILE=/data/local/private/iris-general-conversation-mode.json
 ROOM_CAPABILITY_POLICY_FILE=/data/local/private/iris-room-capabilities.json
 MEMORY_FILE=/data/local/private/iris-bot-memory.json
+REQUEST_TRACE_FILE=/data/local/private/iris-request-traces.json
 IMAGE_PROXY_SECRET_FILE=/data/local/private/iris-image-proxy.token
 IMAGE_STATE_FILE=/data/local/private/iris-image-jobs.json
 VISION_PROXY_SECRET_FILE=/data/local/private/iris-vision-proxy.token
@@ -246,6 +247,17 @@ if [[ "$memory_metadata" != "missing" && "$memory_metadata" != "600 root:root" ]
   fail "Memory file must be mode 600 and root:root (current: $memory_metadata)"
 fi
 
+# Request traces contain metadata only and are created atomically by Iris.
+# Never replace the file during deployment; validate ownership if it exists.
+trace_metadata="$($ADB -s "$SERIAL" shell "su root sh -c '
+  if [ -L $REQUEST_TRACE_FILE ]; then echo symlink; exit 0; fi
+  if [ ! -e $REQUEST_TRACE_FILE ]; then echo missing; exit 0; fi
+  stat -c \"%a %U:%G\" $REQUEST_TRACE_FILE
+'" | tr -d '\r')"
+if [[ "$trace_metadata" != "missing" && "$trace_metadata" != "600 root:root" ]]; then
+  fail "Request trace file must be mode 600 and root:root (current: $trace_metadata)"
+fi
+
 printf 'Deploying %s to PD20…\n' "$(basename "$APK")"
 "$ADB" -s "$SERIAL" push "$APK" "$REMOTE_APK" >/dev/null
 
@@ -284,6 +296,7 @@ printf 'Deploying %s to PD20…\n' "$(basename "$APK")"
   IRIS_GLM_USER_RATE_MAX=5 \\
   IRIS_GLM_DUPLICATE_WINDOW_MS=8000 \\
   IRIS_GLM_MEMORY_FILE=$MEMORY_FILE \\
+  IRIS_REQUEST_TRACE_FILE=$REQUEST_TRACE_FILE \\
   IRIS_GLM_MEMORY_MAX_TURNS=4 \\
   IRIS_GLM_MEMORY_TTL_MS=1800000 \\
   IRIS_GLM_MEMORY_MAX_BYTES=1048576 \\

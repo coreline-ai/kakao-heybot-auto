@@ -18,9 +18,11 @@ class ImageJobCoordinatorTest {
         val replies = mutableListOf<String>()
         val gateway = SuccessfulGateway()
         val store = InMemoryImageJobStateStore()
+        val traces = RequestTraceStore.inMemory()
         val coordinator = coordinator(
             gateway = gateway,
             stateStore = store,
+            requestTraceStore = traces,
             text = { _, message, _ -> synchronized(replies) { replies += message } },
             image = { chatId, bytes ->
                 synchronized(images) { images += chatId to bytes }
@@ -38,12 +40,17 @@ class ImageJobCoordinatorTest {
         assertEquals(CHAT_ID, images.single().first)
         assertTrue(ImageJobCoordinator.isValidPng(images.single().second, 1024))
         assertTrue(replies.any { it.contains("접수") })
+        assertEquals(
+            RequestTraceStage.DB_CONFIRMED,
+            traces.get(RequestTraceIds.from(CHAT_ID, 77L))?.stage
+        )
         coordinator.close()
     }
 
     @Test
     fun `does not create an image job when the room image capability is disabled`() {
         val gateway = SuccessfulGateway()
+        val traces = RequestTraceStore.inMemory()
         val policy = RoomCapabilityPolicyStore.forTesting(
             rooms = listOf(
                 ManagedRoomCapability("R01", CHAT_ID, "테스트 방", true, true, false)
@@ -55,12 +62,21 @@ class ImageJobCoordinatorTest {
                 override fun quarantine(nowMillis: Long) = Unit
             }
         )
-        val coordinator = coordinator(gateway = gateway, roomCapabilityPolicy = policy, image = { _, _ -> })
+        val coordinator = coordinator(
+            gateway = gateway,
+            roomCapabilityPolicy = policy,
+            requestTraceStore = traces,
+            image = { _, _ -> }
+        )
 
         coordinator.onIncoming(incoming(logId = 79L, message = "헤이봇 이미지 테스트"))
 
         Thread.sleep(50L)
         assertEquals(0, gateway.createCalls.get())
+        assertEquals(
+            RequestTraceStage.POLICY_DENIED,
+            traces.get(RequestTraceIds.from(CHAT_ID, 79L))?.stage
+        )
         coordinator.close()
     }
 
@@ -354,7 +370,8 @@ class ImageJobCoordinatorTest {
         allowedChatIds: Set<Long> = setOf(CHAT_ID),
         log: (String) -> Unit = {},
         roomCapabilityPolicy: RoomCapabilityPolicyStore =
-            RoomCapabilityPolicyStore.legacy(allowedChatIds)
+            RoomCapabilityPolicyStore.legacy(allowedChatIds),
+        requestTraceStore: RequestTraceStore = RequestTraceStore.inMemory()
     ) = ImageJobCoordinator(
         settings = ImageProxySettings(
             baseUrl = "http://127.0.0.1:4340",
@@ -372,7 +389,8 @@ class ImageJobCoordinatorTest {
         imageSender = ImageBytesReplySender(image),
         stateStore = stateStore,
         roomCapabilityPolicy = roomCapabilityPolicy,
-        log = log
+        log = log,
+        requestTraceStore = requestTraceStore
     )
 
     private fun incoming(logId: Long, message: String) = GlmIncomingMessage(

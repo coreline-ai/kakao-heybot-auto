@@ -104,7 +104,7 @@ class SelfTestRunner private constructor(
     }
 
     companion object {
-        private const val RUNNER_VERSION = "heybot-self-test.v1"
+        private const val RUNNER_VERSION = "heybot-self-test.v2"
 
         fun production(
             environment: Map<String, String> = System.getenv(),
@@ -126,6 +126,8 @@ class SelfTestRunner private constructor(
             return SelfTestRunner(
                 cases = listOf(
                     quickCommandCase(),
+                    quickPersonaSkillVisionCase(),
+                    quickRequestTraceCase(),
                     quickSafetyCase(),
                     quickEngineCase(),
                     quickMemoryCase(),
@@ -165,6 +167,47 @@ class SelfTestRunner private constructor(
                 router.route("헤이봇 영상 테스트") == BotCommand.GenerateVideo("테스트") &&
                 router.route("헤이봇 펜브러쉬 테스트") == BotCommand.GeneratePenBrush("테스트")
             if (ok) pass("command-router") else fail("command-router", "COMMAND_ROUTE_MISMATCH")
+        }
+
+        private fun quickPersonaSkillVisionCase() = SelfTestCaseDefinition(
+            "persona-skill-vision",
+            setOf(SelfTestMode.QUICK)
+        ) {
+            val router = BotCommandRouter("헤이봇")
+            val ocr = router.route("헤이봇 이미지 글자 추출")
+            val translate = router.route("헤이봇 이미지 글자 번역")
+            val skills = router.route("헤이봇 기능")
+            val diagnostic = router.route("헤이봇 최근 진단 R01")
+            val prompt = HeybotPersona.wakeWordPrompt()
+            val ok = HeybotPersona.VERSION == "heybot-persona-v2" &&
+                prompt.contains(HeybotPersona.CORE_PROMPT) &&
+                ocr == BotCommand.AnalyzeImage(VisionTask.OCR) &&
+                translate == BotCommand.AnalyzeImage(VisionTask.TRANSLATE_KO) &&
+                skills == BotCommand.ListSkills &&
+                diagnostic == BotCommand.RecentDiagnostics("R01") &&
+                HeybotSkillCatalog.find("이미지 글자 추출")?.id == "image.ocr"
+            if (ok) pass("persona-skill-vision")
+            else fail("persona-skill-vision", "PERSONA_SKILL_VISION_MISMATCH")
+        }
+
+        private fun quickRequestTraceCase() = SelfTestCaseDefinition(
+            "request-trace",
+            setOf(SelfTestMode.QUICK)
+        ) {
+            val store = RequestTraceStore.inMemory()
+            val incoming = GlmIncomingMessage(1L, 1L, 2L, "1", "저장하면 안 되는 원문", null)
+            store.ensureReceived(incoming, RequestTraceKind.WAKE_WORD)
+            store.record(
+                incoming.traceId,
+                RequestTraceStage.PROVIDER_FAILED,
+                reasonCode = "provider timeout"
+            )
+            val trace = store.get(incoming.traceId)
+            val rendered = RequestTraceRenderer.render(trace, "R01")
+            val ok = trace?.reasonCode == "PROVIDER_TIMEOUT" &&
+                rendered.contains(incoming.traceId) &&
+                !rendered.contains(incoming.message)
+            if (ok) pass("request-trace") else fail("request-trace", "TRACE_CONTRACT_MISMATCH")
         }
 
         private fun quickSafetyCase() = SelfTestCaseDefinition("reply-safety", setOf(SelfTestMode.QUICK)) {

@@ -9,8 +9,10 @@ class ConversationGatewayRouterTest {
     fun `routes requests according to the global engine mode`() = runBlocking {
         val store = ConversationEngineModeStore.inMemory()
         val seen = mutableListOf<String>()
+        val requests = mutableListOf<GlmChatRequest>()
         fun gateway(name: String) = ConversationGateway { request ->
             seen += name
+            requests += request
             Result.success(
                 GlmChatResponse(
                     content = name,
@@ -33,5 +35,7 @@ class ConversationGatewayRouterTest {
         router.generate(request)
 
         assertEquals(listOf("glm", "codex", "grok"), seen)
+        assertEquals(listOf(request, request, request), requests)
+        assertEquals(listOf(HeybotPersona.VERSION, HeybotPersona.VERSION, HeybotPersona.VERSION), requests.map { it.promptVersion })
     }
 }

@@ -3,6 +3,9 @@ package ai.coreline.heybot
 sealed interface BotCommand {
     data class GlmQuestion(val question: String) : BotCommand
     data object Help : BotCommand
+    data object ListSkills : BotCommand
+    data class ShowSkill(val name: String) : BotCommand
+    data class RecentDiagnostics(val roomReference: String?) : BotCommand
     data object Status : BotCommand
     data object ClearMyMemory : BotCommand
     data object ShowSettings : BotCommand
@@ -24,7 +27,7 @@ sealed interface BotCommand {
     data class ApplyRoomCapability(val nonce: String) : BotCommand
     data object CancelRoomCapability : BotCommand
     data class GenerateImage(val prompt: String) : BotCommand
-    data object AnalyzeImage : BotCommand
+    data class AnalyzeImage(val task: VisionTask = VisionTask.DESCRIBE) : BotCommand
     data object ImageStatus : BotCommand
     data object CancelImage : BotCommand
     data object RetryImage : BotCommand
@@ -56,6 +59,8 @@ class BotCommandRouter(private val trigger: String) {
 
         return when (content) {
             "도움말" -> BotCommand.Help
+            "기능" -> BotCommand.ListSkills
+            "최근 진단" -> BotCommand.RecentDiagnostics(null)
             "상태" -> BotCommand.Status
             "내 기억 초기화" -> BotCommand.ClearMyMemory
             "설정 보기" -> BotCommand.ShowSettings
@@ -75,7 +80,9 @@ class BotCommandRouter(private val trigger: String) {
             "방 목록" -> BotCommand.ListRoomCapabilities
             "방 취소" -> BotCommand.CancelRoomCapability
             "이미지 상태" -> BotCommand.ImageStatus
-            "이미지 분석" -> BotCommand.AnalyzeImage
+            "이미지 분석" -> BotCommand.AnalyzeImage(VisionTask.DESCRIBE)
+            "이미지 글자 추출" -> BotCommand.AnalyzeImage(VisionTask.OCR)
+            "이미지 글자 번역" -> BotCommand.AnalyzeImage(VisionTask.TRANSLATE_KO)
             "이미지 취소" -> BotCommand.CancelImage
             "이미지 재전송" -> BotCommand.RetryImage
             "영상 상태" -> BotCommand.VideoStatus
@@ -88,7 +95,9 @@ class BotCommandRouter(private val trigger: String) {
             "이미지" -> BotCommand.InvalidLocalCommand("만들 이미지 내용을 함께 입력해주세요.")
             "펜브러쉬", "펜브러쉬 영상" ->
                 BotCommand.InvalidLocalCommand("펜브러쉬로 만들 내용을 함께 입력해주세요.")
-            else -> parseRoomCommand(content)
+            else -> parseRecentDiagnostics(content)
+                ?: parseSkillDetail(content)
+                ?: parseRoomCommand(content)
                 ?: parseClearUserMemory(content)
                 ?: BotCommand.GlmQuestion(content)
         }
@@ -143,6 +152,26 @@ class BotCommandRouter(private val trigger: String) {
         }
     }
 
+    private fun parseSkillDetail(content: String): BotCommand? {
+        if (!content.startsWith(SKILL_PREFIX)) return null
+        val name = content.removePrefix(SKILL_PREFIX).trim()
+        return if (name.isBlank()) {
+            BotCommand.InvalidLocalCommand("확인할 기능 이름을 입력해주세요.")
+        } else {
+            BotCommand.ShowSkill(name)
+        }
+    }
+
+    private fun parseRecentDiagnostics(content: String): BotCommand? {
+        if (!content.startsWith(RECENT_DIAGNOSTICS_PREFIX)) return null
+        val reference = content.removePrefix(RECENT_DIAGNOSTICS_PREFIX).trim().uppercase()
+        return if (reference.matches(Regex("R\\d{2}"))) {
+            BotCommand.RecentDiagnostics(reference)
+        } else {
+            BotCommand.InvalidLocalCommand("‘헤이봇 최근 진단 R01’처럼 방 R번호를 입력해주세요.")
+        }
+    }
+
     private fun parseRoomCommand(content: String): BotCommand? {
         val parts = content.split(Regex("\\s+")).filter(String::isNotBlank)
         if (parts.isEmpty()) return null
@@ -183,6 +212,8 @@ class BotCommandRouter(private val trigger: String) {
         const val IMAGE_PREFIX = "이미지 "
         const val VIDEO_PREFIX = "영상 "
         const val PEN_BRUSH_PREFIX = "펜브러쉬 "
+        const val SKILL_PREFIX = "기능 "
+        const val RECENT_DIAGNOSTICS_PREFIX = "최근 진단 "
         const val ROOM_HELP = "먼저 ‘헤이봇 카톡방’으로 방 이름과 R번호를 확인해주세요. 이후 ‘헤이봇 방 상태 R번호’ 또는 ‘헤이봇 영상 불허용 R01’처럼 입력할 수 있어요."
         val TRIGGER_DELIMITERS = charArrayOf(
             ' ', ',', '，', ':', '：',
