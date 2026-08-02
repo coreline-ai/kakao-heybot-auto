@@ -16,6 +16,16 @@ class Main {
         @JvmStatic
         fun main(args: Array<String>) {
             try {
+                if (args.firstOrNull() == LiveVisionCanaryRunner.ARGUMENT) {
+                    val report = runBlocking {
+                        LiveVisionCanaryRunner(
+                            db = KakaoDB(),
+                            notificationReferer = readNotificationReferer()
+                        ).run()
+                    }
+                    println(Json.encodeToString(report))
+                    return
+                }
                 if (args.firstOrNull() == SELF_TEST_ARGUMENT) {
                     val mode = SelfTestMode.parse(args.getOrNull(1))
                     if (mode == null) {
@@ -37,6 +47,7 @@ class Main {
 
                 val kakaoDb = KakaoDB()
                 val roomCapabilityPolicy = createRoomCapabilityPolicy()
+                val visionContextStore = createVisionConversationContextStore()
                 val selfTestRunner = SelfTestRunner.production()
                 val requestTraceStore = RequestTraceStore(
                     backend = AndroidAtomicFileBackend(
@@ -55,7 +66,8 @@ class Main {
                     roomCapabilityPolicy,
                     selfTestRunner,
                     requestTraceStore,
-                    textDeliveryTracker
+                    textDeliveryTracker,
+                    visionContextStore
                 )
                 val imageJobCoordinator = createImageJobCoordinator(
                     notificationReferer,
@@ -80,7 +92,8 @@ class Main {
                     notificationReferer,
                     roomCapabilityPolicy,
                     requestTraceStore,
-                    textDeliveryTracker
+                    textDeliveryTracker,
+                    visionContextStore
                 )
                 val observerHelper = ObserverHelper(
                     kakaoDb,
@@ -177,7 +190,8 @@ class Main {
             roomCapabilityPolicy: RoomCapabilityPolicyStore,
             selfTestRunner: SelfTestRunner,
             requestTraceStore: RequestTraceStore,
-            textDeliveryTracker: TextDeliveryTracker
+            textDeliveryTracker: TextDeliveryTracker,
+            visionContextStore: VisionConversationContextStore
         ): GlmAutoReplyHandler? {
             return when (val config = GlmSettings.load()) {
                 GlmSettingsLoadResult.Disabled -> {
@@ -264,7 +278,8 @@ class Main {
                         conversationEngineModeStore = modeStore,
                         selfTestRunner = selfTestRunner,
                         requestTraceStore = requestTraceStore,
-                        textDeliveryTracker = textDeliveryTracker
+                        textDeliveryTracker = textDeliveryTracker,
+                        visionContextStore = visionContextStore
                     )
                 }
             }
@@ -365,7 +380,8 @@ class Main {
             notificationReferer: String,
             roomCapabilityPolicy: RoomCapabilityPolicyStore,
             requestTraceStore: RequestTraceStore,
-            textDeliveryTracker: TextDeliveryTracker
+            textDeliveryTracker: TextDeliveryTracker,
+            visionContextStore: VisionConversationContextStore
         ): ImageAnalysisCoordinator? {
             return when (val config = ImageAnalysisSettings.load()) {
                 ImageAnalysisSettingsLoadResult.Disabled -> {
@@ -396,10 +412,23 @@ class Main {
                             parser = KakaoImageAttachmentParser()
                         ),
                         requestTraceStore = requestTraceStore,
-                        textDeliveryTracker = textDeliveryTracker
+                        textDeliveryTracker = textDeliveryTracker,
+                        visionContextStore = visionContextStore
                     )
                 }
             }
+        }
+
+        private fun createVisionConversationContextStore(): VisionConversationContextStore {
+            val settings = (GlmSettings.load() as? GlmSettingsLoadResult.Ready)?.settings
+                ?: return VisionConversationContextStore()
+            return VisionConversationContextStore(
+                backend = AndroidAtomicFileBackend(settings.visionContextFile),
+                ttlMillis = settings.visionContextTtlMillis,
+                maxPerOwner = settings.visionContextMaxPerOwner,
+                maxContexts = settings.visionContextMaxContexts,
+                maxBytes = settings.visionContextMaxBytes
+            )
         }
 
         private fun createPenBrushJobCoordinator(

@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 
 export interface VisionConfig {
   host: string;
@@ -10,6 +10,7 @@ export interface VisionConfig {
   allowedSourceHost: string;
   requestMaxBytes: number;
   imageMaxBytes: number;
+  ffmpegCommand: string;
   fetchTimeoutMs: number;
   codexTimeoutMs: number;
   queueConcurrency: number;
@@ -42,6 +43,8 @@ export function loadVisionConfig(env: NodeJS.ProcessEnv = process.env, cwd = pro
   }
   const sourceHost = env.VISION_PROXY_ALLOWED_SOURCE_HOST?.trim() || "talk.kakaocdn.net";
   if (sourceHost !== "talk.kakaocdn.net") throw new Error("Unsupported source allowlist");
+  const ffmpegCommand = env.VISION_PROXY_FFMPEG_COMMAND?.trim() || "/opt/homebrew/bin/ffmpeg";
+  if (!isAbsolute(ffmpegCommand)) throw new Error("VISION_PROXY_FFMPEG_COMMAND must be absolute");
   const runtimeDir = path(env, "VISION_PROXY_RUNTIME_DIR", "./runtime", cwd);
   return {
     host,
@@ -53,6 +56,7 @@ export function loadVisionConfig(env: NodeJS.ProcessEnv = process.env, cwd = pro
     allowedSourceHost: sourceHost,
     requestMaxBytes: integer(env, "VISION_PROXY_REQUEST_MAX_BYTES", 16_384, 1_024, 65_536),
     imageMaxBytes: integer(env, "VISION_PROXY_IMAGE_MAX_BYTES", 10 * 1024 * 1024, 1_024, 20 * 1024 * 1024),
+    ffmpegCommand,
     fetchTimeoutMs: integer(env, "VISION_PROXY_FETCH_TIMEOUT_MS", 20_000, 1_000, 120_000),
     codexTimeoutMs: integer(env, "VISION_PROXY_CODEX_TIMEOUT_MS", 100_000, 5_000, 300_000),
     queueConcurrency: integer(env, "VISION_PROXY_QUEUE_CONCURRENCY", 1, 1, 4),

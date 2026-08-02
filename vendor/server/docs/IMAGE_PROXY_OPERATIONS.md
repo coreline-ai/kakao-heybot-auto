@@ -167,6 +167,12 @@ ADB="$HOME/Library/Android/sdk/platform-tools/adb"
 - `CODEX_QUEUE_FULL`: 공용 Codex CLI queue가 가득 참
 - `PROXY_UNAVAILABLE`: image 프로세스 또는 ADB reverse 확인
 - 이미지 실패 중에도 텍스트 GLM은 독립 경로이므로 계속 사용할 수 있어야 한다.
+- Vision 입력은 PNG/JPEG/WebP와 애니메이션 GIF를 지원한다. Kakao CDN의
+  `Content-Type`이 비어 있거나 `application/octet-stream`이면 파일 signature로
+  판별한다. GIF는 ffmpeg로 첫 프레임을 bounded PNG로 변환한 뒤 분석하며,
+  명시된 MIME과 signature가 다르면 계속 fail-closed 처리한다.
+- 동일 이미지의 이전 Vision job이 `failed` 또는 `cancelled`이면 새 signed source를
+  사용해 같은 job ID를 재큐잉한다. 일시적인 형식/연결 실패가 영구 캐시되지 않는다.
 
 watchdog는 60초 시작 유예와 별개로 10초마다 PD20 transport를 확인한다. host
 manager가 정상이더라도 다음 네 조건을 독립적으로 검사한다.
@@ -234,9 +240,9 @@ counter와 9개 서비스 재기동을 검증한다.
 
 ## 10. 검증 상태
 
-- 서버 자동 테스트: manager 9, image 6, vision 7, video 2, draw 3, brush 2,
+- 서버 자동 테스트: manager 9, image 6, vision 11, video 2, draw 3, brush 2,
   codex 12, grok 4, conversation 1 및 watchdog hermetic 회귀 통과
-- Android unit test: debug/release 각각 185개 통과
+- Android unit test: debug/release 각각 186개 통과
 - Android release APK: 빌드·PD20 배포 통과
 - manager → image → 실제 Codex → QC → PNG download: 통과
 - PD20 APK·secret·ADB reverse·Iris 기동: 통과
@@ -247,4 +253,6 @@ counter와 9개 서비스 재기동을 검증한다.
 - 실제 ADB reverse 제거는 1초 안에 복구됐고, host ADB daemon 종료 뒤 PD20
   transport·reverse·device-side readiness가 12초 안에 복구됨
 - paired Wireless Debugging 실기기 failover: PD20에 페어링된 mDNS endpoint가 없어 대기
+- headerless `GIF89a` 실제 운영 입력: 첫 프레임 PNG 변환→Codex describe→durable
+  `succeeded`, error 제거와 signed source URL 삭제 확인
 - Mac sleep/wake, 물리 USB 분리·재연결, 24시간 soak: 운영 검증 필요

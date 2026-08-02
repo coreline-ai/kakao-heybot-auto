@@ -43,6 +43,12 @@ data class GlmSettings(
     val memoryTtlMillis: Long = DEFAULT_MEMORY_TTL_MILLIS,
     val memoryMaxBytes: Int = DEFAULT_MEMORY_MAX_BYTES,
     val memoryMaxConversations: Int = DEFAULT_MEMORY_MAX_CONVERSATIONS,
+    val visionContextFile: File = File(DEFAULT_VISION_CONTEXT_FILE),
+    val visionContextTtlMillis: Long = DEFAULT_VISION_CONTEXT_TTL_MILLIS,
+    val visionSharedFollowUpWindowMillis: Long = DEFAULT_VISION_SHARED_FOLLOW_UP_WINDOW_MILLIS,
+    val visionContextMaxPerOwner: Int = DEFAULT_VISION_CONTEXT_MAX_PER_OWNER,
+    val visionContextMaxContexts: Int = DEFAULT_VISION_CONTEXT_MAX_CONTEXTS,
+    val visionContextMaxBytes: Int = DEFAULT_VISION_CONTEXT_MAX_BYTES,
     val adminUserIdsFile: File = File(DEFAULT_ADMIN_USER_IDS_FILE),
     /** Null disables privileged chat commands rather than accepting them in every room. */
     val adminControlChatId: Long? = null,
@@ -87,6 +93,13 @@ data class GlmSettings(
         const val DEFAULT_MEMORY_TTL_MILLIS = 30 * 60 * 1000L
         const val DEFAULT_MEMORY_MAX_BYTES = 1024 * 1024
         const val DEFAULT_MEMORY_MAX_CONVERSATIONS = 512
+        const val DEFAULT_VISION_CONTEXT_FILE =
+            "/data/local/private/iris-vision-conversation-context.json"
+        const val DEFAULT_VISION_CONTEXT_TTL_MILLIS = 30 * 60 * 1000L
+        const val DEFAULT_VISION_SHARED_FOLLOW_UP_WINDOW_MILLIS = 5 * 60 * 1000L
+        const val DEFAULT_VISION_CONTEXT_MAX_PER_OWNER = 3
+        const val DEFAULT_VISION_CONTEXT_MAX_CONTEXTS = 128
+        const val DEFAULT_VISION_CONTEXT_MAX_BYTES = 1024 * 1024
         const val DEFAULT_ADMIN_USER_IDS_FILE = "/data/local/private/iris-bot-admins.txt"
         const val DEFAULT_GENERAL_CONVERSATION_BLOCK_FILE =
             "/data/local/private/iris-general-conversation-blocks.txt"
@@ -347,6 +360,83 @@ data class GlmSettings(
                 )
             }
 
+            val visionContextFile = File(
+                environment["IRIS_VISION_CONTEXT_FILE"]
+                    ?.trim()
+                    ?.takeIf { it.isNotEmpty() }
+                    ?: DEFAULT_VISION_CONTEXT_FILE
+            )
+            if (!visionContextFile.isAbsolute) {
+                return GlmSettingsLoadResult.Invalid(
+                    "IRIS_VISION_CONTEXT_FILE must be an absolute path"
+                )
+            }
+
+            val visionContextTtlMillis = parseLong(
+                environment,
+                "IRIS_VISION_CONTEXT_TTL_MS",
+                DEFAULT_VISION_CONTEXT_TTL_MILLIS
+            ) ?: return GlmSettingsLoadResult.Invalid(
+                "IRIS_VISION_CONTEXT_TTL_MS must be an integer"
+            )
+            if (visionContextTtlMillis !in 60_000L..86_400_000L) {
+                return GlmSettingsLoadResult.Invalid(
+                    "IRIS_VISION_CONTEXT_TTL_MS must be between 60000 and 86400000"
+                )
+            }
+
+            val visionSharedFollowUpWindowMillis = parseLong(
+                environment,
+                "IRIS_VISION_SHARED_FOLLOW_UP_WINDOW_MS",
+                DEFAULT_VISION_SHARED_FOLLOW_UP_WINDOW_MILLIS
+            ) ?: return GlmSettingsLoadResult.Invalid(
+                "IRIS_VISION_SHARED_FOLLOW_UP_WINDOW_MS must be an integer"
+            )
+            if (visionSharedFollowUpWindowMillis !in 10_000L..visionContextTtlMillis) {
+                return GlmSettingsLoadResult.Invalid(
+                    "IRIS_VISION_SHARED_FOLLOW_UP_WINDOW_MS must be between 10000 and IRIS_VISION_CONTEXT_TTL_MS"
+                )
+            }
+
+            val visionContextMaxPerOwner = parseInt(
+                environment,
+                "IRIS_VISION_CONTEXT_MAX_PER_OWNER",
+                DEFAULT_VISION_CONTEXT_MAX_PER_OWNER
+            ) ?: return GlmSettingsLoadResult.Invalid(
+                "IRIS_VISION_CONTEXT_MAX_PER_OWNER must be an integer"
+            )
+            if (visionContextMaxPerOwner !in 1..20) {
+                return GlmSettingsLoadResult.Invalid(
+                    "IRIS_VISION_CONTEXT_MAX_PER_OWNER must be between 1 and 20"
+                )
+            }
+
+            val visionContextMaxContexts = parseInt(
+                environment,
+                "IRIS_VISION_CONTEXT_MAX_CONTEXTS",
+                DEFAULT_VISION_CONTEXT_MAX_CONTEXTS
+            ) ?: return GlmSettingsLoadResult.Invalid(
+                "IRIS_VISION_CONTEXT_MAX_CONTEXTS must be an integer"
+            )
+            if (visionContextMaxContexts !in visionContextMaxPerOwner..2_000) {
+                return GlmSettingsLoadResult.Invalid(
+                    "IRIS_VISION_CONTEXT_MAX_CONTEXTS must be between per-owner max and 2000"
+                )
+            }
+
+            val visionContextMaxBytes = parseInt(
+                environment,
+                "IRIS_VISION_CONTEXT_MAX_BYTES",
+                DEFAULT_VISION_CONTEXT_MAX_BYTES
+            ) ?: return GlmSettingsLoadResult.Invalid(
+                "IRIS_VISION_CONTEXT_MAX_BYTES must be an integer"
+            )
+            if (visionContextMaxBytes !in 4_096..10 * 1024 * 1024) {
+                return GlmSettingsLoadResult.Invalid(
+                    "IRIS_VISION_CONTEXT_MAX_BYTES must be between 4096 and 10485760"
+                )
+            }
+
             val adminUserIdsFile = File(
                 environment["IRIS_BOT_ADMIN_USER_IDS_FILE"]
                     ?.trim()
@@ -404,6 +494,12 @@ data class GlmSettings(
                     memoryTtlMillis = memoryTtlMillis,
                     memoryMaxBytes = memoryMaxBytes,
                     memoryMaxConversations = memoryMaxConversations,
+                    visionContextFile = visionContextFile,
+                    visionContextTtlMillis = visionContextTtlMillis,
+                    visionSharedFollowUpWindowMillis = visionSharedFollowUpWindowMillis,
+                    visionContextMaxPerOwner = visionContextMaxPerOwner,
+                    visionContextMaxContexts = visionContextMaxContexts,
+                    visionContextMaxBytes = visionContextMaxBytes,
                     adminUserIdsFile = adminUserIdsFile,
                     adminControlChatId = adminControlChatId,
                     generalConversation = generalConversation,

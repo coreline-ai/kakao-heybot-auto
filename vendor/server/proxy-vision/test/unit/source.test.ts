@@ -23,3 +23,14 @@ test("fetch rejects redirects and MIME-magic mismatch",async()=>{
     await assert.rejects(()=>fetchSource(source(),config,new AbortController().signal),/INVALID_IMAGE/);
   }finally{globalThis.fetch=original;}
 });
+
+test("fetch sniffs a headerless Kakao GIF by magic",async()=>{
+  const original=globalThis.fetch;
+  const gif=Buffer.alloc(24);Buffer.from("GIF89a","ascii").copy(gif);
+  try{
+    globalThis.fetch=(async()=>new Response(new Uint8Array(gif),{status:200,headers:{"content-length":String(gif.length)}})) as typeof fetch;
+    const fetched=await fetchSource({...source(),declaredBytes:gif.length},config,new AbortController().signal);
+    assert.equal(fetched.mediaType,"image/gif");
+    assert.deepEqual(fetched.data,gif);
+  }finally{globalThis.fetch=original;}
+});

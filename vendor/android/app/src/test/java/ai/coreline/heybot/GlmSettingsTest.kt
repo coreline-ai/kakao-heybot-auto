@@ -41,6 +41,10 @@ class GlmSettingsTest {
         assertEquals(8_000L, settings.duplicateWindowMillis)
         assertEquals(4, settings.memoryMaxTurns)
         assertEquals(30 * 60 * 1000L, settings.memoryTtlMillis)
+        assertEquals(GlmSettings.DEFAULT_VISION_CONTEXT_FILE, settings.visionContextFile.path)
+        assertEquals(3, settings.visionContextMaxPerOwner)
+        assertEquals(30 * 60 * 1000L, settings.visionContextTtlMillis)
+        assertEquals(5 * 60 * 1000L, settings.visionSharedFollowUpWindowMillis)
         assertEquals(null, settings.adminControlChatId)
     }
 
@@ -188,6 +192,12 @@ class GlmSettingsTest {
                 "IRIS_GLM_MEMORY_FILE" to "/data/local/private/custom-memory.json",
                 "IRIS_GLM_MEMORY_MAX_TURNS" to "6",
                 "IRIS_GLM_MEMORY_TTL_MS" to "3600000",
+                "IRIS_VISION_CONTEXT_FILE" to "/data/local/private/custom-vision-context.json",
+                "IRIS_VISION_CONTEXT_TTL_MS" to "1200000",
+                "IRIS_VISION_SHARED_FOLLOW_UP_WINDOW_MS" to "240000",
+                "IRIS_VISION_CONTEXT_MAX_PER_OWNER" to "5",
+                "IRIS_VISION_CONTEXT_MAX_CONTEXTS" to "200",
+                "IRIS_VISION_CONTEXT_MAX_BYTES" to "524288",
                 "IRIS_BOT_ADMIN_USER_IDS_FILE" to "/data/local/private/custom-admins.txt"
             )
         ) as GlmSettingsLoadResult.Ready
@@ -202,6 +212,12 @@ class GlmSettingsTest {
         assertEquals(9_000L, result.settings.duplicateWindowMillis)
         assertEquals(6, result.settings.memoryMaxTurns)
         assertEquals(3_600_000L, result.settings.memoryTtlMillis)
+        assertEquals("/data/local/private/custom-vision-context.json", result.settings.visionContextFile.path)
+        assertEquals(1_200_000L, result.settings.visionContextTtlMillis)
+        assertEquals(240_000L, result.settings.visionSharedFollowUpWindowMillis)
+        assertEquals(5, result.settings.visionContextMaxPerOwner)
+        assertEquals(200, result.settings.visionContextMaxContexts)
+        assertEquals(524_288, result.settings.visionContextMaxBytes)
     }
 
     @Test
@@ -219,6 +235,24 @@ class GlmSettingsTest {
         assertTrue(
             GlmSettings.load(
                 validEnvironment() + ("IRIS_BOT_ADMIN_USER_IDS_FILE" to "admins.txt")
+            ) is GlmSettingsLoadResult.Invalid
+        )
+        assertTrue(
+            GlmSettings.load(
+                validEnvironment() + ("IRIS_VISION_CONTEXT_FILE" to "vision-context.json")
+            ) is GlmSettingsLoadResult.Invalid
+        )
+        assertTrue(
+            GlmSettings.load(
+                validEnvironment() + ("IRIS_VISION_CONTEXT_MAX_CONTEXTS" to "2")
+            ) is GlmSettingsLoadResult.Invalid
+        )
+        assertTrue(
+            GlmSettings.load(
+                validEnvironment() + mapOf(
+                    "IRIS_VISION_CONTEXT_TTL_MS" to "60000",
+                    "IRIS_VISION_SHARED_FOLLOW_UP_WINDOW_MS" to "60001"
+                )
             ) is GlmSettingsLoadResult.Invalid
         )
         assertTrue(

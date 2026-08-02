@@ -117,11 +117,21 @@ class Replier {
             }
         }
 
-        fun sendPhotoBytes(room: Long, imageBytes: ByteArray) {
+        fun sendPhotoBytes(
+            room: Long,
+            imageBytes: ByteArray,
+            onDispatched: (Result<Unit>) -> Unit = {}
+        ) {
             coroutineScope.launch {
-                messageChannel.send(SendMessageRequest {
-                    sendMultiplePhotoBytesInternal(room, listOf(imageBytes))
-                })
+                runCatching {
+                    messageChannel.send(SendMessageRequest {
+                        val result = runCatching {
+                            sendMultiplePhotoBytesInternal(room, listOf(imageBytes))
+                        }
+                        onDispatched(result)
+                        result.getOrThrow()
+                    })
+                }.onFailure { onDispatched(Result.failure(it)) }
             }
         }
 

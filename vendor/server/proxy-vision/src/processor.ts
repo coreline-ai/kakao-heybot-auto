@@ -1,6 +1,7 @@
 import type { VisionConfig } from "./config.js";
 import { VisionCodexClient } from "./codex.js";
 import { fetchSource } from "./source.js";
+import { normalizeVisionImage } from "./normalize.js";
 import { VisionStore } from "./store.js";
 
 export class VisionProcessor {
@@ -25,7 +26,9 @@ export class VisionProcessor {
   }
   private async run(id:string,signal:AbortSignal):Promise<void>{
     const job=this.store.get(id);if(!job||!job.source.url)throw new Error("SOURCE_UNAVAILABLE");
-    const source=await fetchSource(job.source,this.config,AbortSignal.any([signal,AbortSignal.timeout(this.config.fetchTimeoutMs)]));
+    const preparationSignal=AbortSignal.any([signal,AbortSignal.timeout(this.config.fetchTimeoutMs)]);
+    const fetched=await fetchSource(job.source,this.config,preparationSignal);
+    const source=await normalizeVisionImage(fetched,this.config,preparationSignal);
     const result=await this.codex.analyze(job.requestId,source.data,source.mediaType,job.task,AbortSignal.any([signal,AbortSignal.timeout(this.config.codexTimeoutMs)]));
     this.store.succeed(id,result);
   }

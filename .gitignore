@@ -6,6 +6,7 @@
 **/.pytest_cache/
 
 /runtime/
+/output/
 
 vendor/server/**/node_modules/
 vendor/server/**/dist/

@@ -67,6 +67,17 @@ export class VisionStore {
       );
     return this.get(id)!;
   }
+  retry(id: string, source: CreateVisionJob["source"]): VisionJob | undefined {
+    const now = Date.now();
+    const changed = this.#db.prepare(`UPDATE jobs SET
+      source_url=?,source_width=?,source_height=?,source_bytes=?,source_expires=?,
+      status='queued',created_at=?,updated_at=?,error_code=NULL,result_json=NULL
+      WHERE id=? AND status IN ('failed','cancelled')`).run(
+        source.url,source.width,source.height,source.declaredBytes,source.expiresAtMillis,
+        now,now,id,
+      ).changes;
+    return Number(changed) === 1 ? this.get(id) : undefined;
+  }
   markRunning(id: string): boolean { return Number(this.#db.prepare("UPDATE jobs SET status='running',updated_at=? WHERE id=? AND status='queued'").run(Date.now(),id).changes) === 1; }
   succeed(id: string, result: VisionResult): void { const now=Date.now(); this.#db.prepare("UPDATE jobs SET status='succeeded',result_json=?,source_url=NULL,updated_at=? WHERE id=? AND status='running'").run(JSON.stringify(result),now,id); }
   fail(id: string, code: string): void { this.#db.prepare("UPDATE jobs SET status='failed',error_code=?,source_url=NULL,updated_at=? WHERE id=? AND status IN ('queued','running')").run(code,Date.now(),id); }
