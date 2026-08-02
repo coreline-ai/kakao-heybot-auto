@@ -18,7 +18,13 @@ ADB_BIN="${ADB:-$HOME/Library/Android/sdk/platform-tools/adb}"
 GROK_CLI_COMMAND="${GROK_PROXY_CLI_COMMAND:-$HOME/.grok/bin/grok}"
 GROK_CLI_HOME="${GROK_PROXY_CLI_HOME:-$HOME}"
 GROK_SESSION_ROOT="${GROK_PROXY_SESSION_ROOT:-$HOME/.grok/sessions}"
-PATH_VALUE="$(dirname "$NODE_BIN"):$(dirname "$CODEX_BIN"):$(dirname "$ADB_BIN"):/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+PD20_WIRELESS_ADB_ENABLED="${PD20_WIRELESS_ADB_ENABLED:-false}"
+PATH_VALUE="$(dirname "$NODE_BIN"):$(dirname "$CODEX_BIN"):$(dirname "$ADB_BIN"):/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+[[ "$PD20_WIRELESS_ADB_ENABLED" == "true" || "$PD20_WIRELESS_ADB_ENABLED" == "false" ]] || {
+  printf '%s\n' 'PD20_WIRELESS_ADB_ENABLED must be true or false.' >&2
+  exit 1
+}
 
 [[ -x "$GROK_CLI_COMMAND" ]] || { printf '%s\n' "Grok CLI is not executable: $GROK_CLI_COMMAND" >&2; exit 1; }
 [[ -d "$GROK_CLI_HOME" && -d "$GROK_SESSION_ROOT" ]] || {
@@ -230,9 +236,21 @@ write_watchdog_plist() {
     <string>$(xml_escape "$ADB_BIN")</string>
     <key>PD20_SERIAL</key>
     <string>0123456789ABCDEF</string>
+    <key>PD20_MODEL</key>
+    <string>PD20</string>
+    <key>PD20_LINK_MISSING_THRESHOLD</key>
+    <string>2</string>
+    <key>PD20_ADB_RESTART_COOLDOWN_SECONDS</key>
+    <string>300</string>
+    <key>PD20_DEVICE_READY_TIMEOUT_SECONDS</key>
+    <string>5</string>
+    <key>PD20_WIRELESS_ADB_ENABLED</key>
+    <string>$(xml_escape "$PD20_WIRELESS_ADB_ENABLED")</string>
+    <key>IOREG_BIN</key>
+    <string>/usr/sbin/ioreg</string>
   </dict>
   <key>StartInterval</key>
-  <integer>30</integer>
+  <integer>10</integer>
   <key>ProcessType</key>
   <string>Background</string>
   <key>StandardOutPath</key>
@@ -254,6 +272,17 @@ if [[ "$RENDER_ONLY" == "true" ]]; then
   printf 'launchd plists rendered and validated in %s\n' "$DESTINATION"
   exit 0
 fi
+
+# Existing watchdog state survives package synchronization. Reset only the
+# host-readiness grace window before bootstrapping the freshly replaced proxy
+# processes, otherwise a previous started-at value can trigger a restart loop
+# while dependencies are still coming online.
+umask 077
+date +%s >"$MIRROR_ROOT/runtime/watchdog/started-at"
+printf '0\n' >"$MIRROR_ROOT/runtime/watchdog/consecutive-failures"
+chmod 600 \
+  "$MIRROR_ROOT/runtime/watchdog/started-at" \
+  "$MIRROR_ROOT/runtime/watchdog/consecutive-failures"
 
 for label in \
   ai.coreline.heybot.proxy-codex \

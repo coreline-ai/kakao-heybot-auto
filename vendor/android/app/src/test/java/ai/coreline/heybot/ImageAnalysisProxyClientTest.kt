@@ -3,6 +3,7 @@ package ai.coreline.heybot
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -61,6 +62,17 @@ class ImageAnalysisProxyClientTest {
         ))
         val malformed = client.status("bad", 10)
         assertTrue(malformed.isFailure)
+        assertTrue(malformed.exceptionOrNull() is VisionInvalidResponseException)
+    }
+
+    @Test fun `classifies authorization and transport failures without retrying`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(401).setBody("{}"))
+        val unauthorized = ImageAnalysisProxyClient(settings()).status("job", 10)
+        assertTrue(unauthorized.exceptionOrNull() is VisionAuthorizationException)
+
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        val disconnected = ImageAnalysisProxyClient(settings()).status("job", 10)
+        assertTrue(disconnected.exceptionOrNull() is VisionTransportException)
     }
 
     private fun settings() = ImageAnalysisSettings(

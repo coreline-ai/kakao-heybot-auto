@@ -13,6 +13,9 @@ curl --fail --silent http://127.0.0.1:4340/health >/dev/null
 curl --fail --silent http://127.0.0.1:4340/ready >/dev/null
 curl --fail --silent http://127.0.0.1:4361/ready >/dev/null
 
+printf '%s\n' 'Testing watchdog transport recovery...'
+"$ROOT/scripts/test-watchdog.sh"
+
 # Keep the complete provider/gateway regression set behind one entry point.  The
 # packages do not share a test process, so a failure identifies the exact
 # package while preserving the existing live-stack checks above.

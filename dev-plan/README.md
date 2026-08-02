@@ -1,6 +1,6 @@
 # 헤이봇 개발계획 인덱스
 
-갱신 기준: `2026-08-01 22:30 KST`
+갱신 기준: `2026-08-02 19:34 KST`
 
 여러 개발계획의 미체크 항목을 모두 독립 backlog로 취급하지 않는다. 뒤 계획이
 앞 계획의 결정을 대체하거나 실제 구현이 다른 계획에서 완료된 경우 이 문서를
@@ -29,6 +29,7 @@
 | `implement_20260726_221417.md` | 일반대화 mode 재시작 영속화 | 구현·PD20 배포 완료/최초 관리자 ON 검증 대기 | 관리자 start/stop과 circuit trip을 root 전용 atomic JSON에 저장하고 재시작 때 복원한다. 전체 145개 debug/release test·lint·release build·PD20 최초 migration OFF 재기동은 통과했다. 최초 mode 파일은 의도적으로 만들지 않았으므로 코어라인 AI 연구소 관리자의 `헤이봇 대화 시작` 1회와 그 뒤 ON 재시작 실기기 확인만 남았다. |
 | `implement_20260801_180045.md` | 카카오 DB 이미지 Vision 분석 | 구현·PD20/R01 기본 E2E 완료/부정·병행 E2E 잔여 | 명시적 `헤이봇 이미지 분석`, 독립 `IMAGE_ANALYSIS` 권한, `proxy-vision → proxy-codex image.analyze.v1` 경로를 구현·배포했다. 다른 계정 명령 `_id=28948`부터 결과 `_id=28950`까지 same-room E2E가 성공했으며 다른 방·만료·중복·기능 병행 검증이 남았다. |
 | `implement_20260801_214811.md` | 헤이봇 페르소나 v2·스킬 카탈로그·최근 진단·이미지 OCR | Phase 0~5 구현·서버/PD20 배포 완료/R01 제한 E2E 잔여 | 공통 persona v2, 카탈로그 도움말, 원문 없는 trace·Kakao DB 전송 확인, 설명/OCR/한국어 번역을 구현했다. 전체 자동 회귀, launchd 재배포, PD20 QUICK/INTEGRATION/DEVICE와 실제 Codex Vision 3-task canary가 통과했다. 외부 비봇 계정의 R01 대화 엔진 비교·첨부 회신만 남았다. |
+| `implement_20260802_193449.md` | PD20 ADB transport self-heal·무선 failover·Vision 재시도 | Phase 1·2·4 구현/launchd·PD20 배포 완료/paired wireless·soak 대기 | USB 물리 존재와 ADB transport를 분리 감시하고 reconnect→daemon restart→reverse→device-side `/ready`를 자동 복구한다. 실제 reverse 삭제는 1초, ADB daemon 종료는 12초 안에 복구했다. Vision은 같은 request ID로 transport create를 2·5·10초 재시도하고 trace 최초 실패 원인을 보존한다. TLS wireless는 opt-in·serial/model 검증·동적 port 재탐색 fake 회귀까지 완료했으며 PD20 paired endpoint가 없어 실기기 failover만 대기한다. |
 
 ## 통합 실행 순서
 
@@ -43,6 +44,7 @@
 9. 코어라인 AI 연구소 관리자가 `헤이봇 대화 시작`을 한 번 실행한 뒤 재배포 전후 ON 복원과 mode 파일 `600 root:root`를 확인한다. 구현·최초 migration OFF 검증은 완료됐다. (`20260726_221417`)
 10. PD20 이미지 attachment parser와 `proxy-vision` 구현 및 코어라인 AI 연구소 R01의 기본 same-room reply는 완료했다. 다른 방·만료·중복·기능 병행의 제한 E2E를 추가한다. (`20260801_180045`)
 11. 페르소나 v2·스킬 카탈로그·최근 요청 진단·DB 전송 확인·이미지 OCR/번역 구현과 서버/PD20 배포는 완료했다. 외부 비봇 계정으로 R01의 3엔진·3-task 첨부 회신만 제한 검증한다. (`20260801_214811`)
+12. PD20 USB/ADB self-heal, reverse와 device-side readiness, Vision 동일 request ID 재시도는 구현·배포·USB 장애 주입까지 완료했다. 사용자가 Wireless Debugging을 페어링한 뒤 USB→무선→USB 실기기 failover와 24시간 soak를 수행한다. (`20260802_193449`)
 
 외부 비봇 카카오 계정이 필요한 단계는 자동 단위 테스트와 분리한다. 해당 E2E가
 대기 중이어도 이미 정의된 fail-closed 코드와 자동 테스트 구현은 계속할 수 있지만,
@@ -50,10 +52,10 @@
 
 ## 현재 자동 검증 기준
 
-- Iris Android JVM test: debug/release 각각 `177`개 통과, 실패 `0`
+- Iris Android JVM test: debug/release 각각 `185`개 통과, 실패 `0`
 - Iris release APK build: 통과
 - Node server test: `proxy-manager` 9개, `proxy-image` 6개, `proxy-vision` 7개, `proxy-video` 2개, `proxy-draw` 3개, `proxy-brush` 2개, `proxy-codex` 12개, `proxy-grok` 4개, `proxy-conversation` 1개 통과 및 clean exit
-- 단일 스택 검증: `vendor/server/scripts/self-test-stack.sh`가 readiness·전체 proxy test·Android `test assembleRelease`를 한 번에 통과
+- 단일 스택 검증: `vendor/server/scripts/self-test-stack.sh`가 watchdog hermetic 회귀·readiness·전체 proxy test·Android `test assembleRelease`를 한 번에 통과
 - PD20: room capability catalog `4개`, 현재 bootstrap상 text·일반대화·이미지 동적 허용은 각 `3개` (`R02` 전체 불허용)
 - PD20 startup: GLM·일반대화 정책·대화 기억·room capability 준비와 5초 뒤 Iris process 지속 실행, Iris HTTP API 기본 비활성화 확인
 - 이미지 proxy reverse: `tcp:4340` 유지 확인
@@ -68,6 +70,7 @@
 - 동적 허용 3개 방의 이미지 FIFO·원래 방 전달·GLM 병행, sanitizer/circuit, policy preview→apply→복구 제한 E2E
 - 이미지 분석 기본 same-room E2E는 완료했다. 다른 방·다른 사용자·만료·중복 명령과 대화/생성 기능 병행 중 오분석이 없는지 추가 검증
 - 페르소나 v2·OCR/번역의 서버/PD20 자동 검증과 live Codex Vision canary는 완료했다. R01 외부 계정으로 GLM/Codex/Grok 동일 질문과 describe/OCR/translate 첨부 회신·최근 진단을 확인
+- PD20 ADB transport self-heal·device-side readiness·Vision 재시도는 구현·launchd/PD20 배포·USB 장애 주입까지 완료했다. paired Wireless Debugging mDNS endpoint가 현재 없어 실제 USB→무선→USB failover는 사용자 pairing 뒤 검증한다. 외부 비봇 카카오 이미지 분석 E2E와 24시간 soak도 남아 있다.
 - Mac sleep/wake, 물리 USB 재연결, 24시간 soak
 
 ## 2026-07-25 정합성 판정

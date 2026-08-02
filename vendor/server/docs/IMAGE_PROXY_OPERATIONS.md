@@ -168,7 +168,43 @@ ADB="$HOME/Library/Android/sdk/platform-tools/adb"
 - `PROXY_UNAVAILABLE`: image 프로세스 또는 ADB reverse 확인
 - 이미지 실패 중에도 텍스트 GLM은 독립 경로이므로 계속 사용할 수 있어야 한다.
 
-watchdog는 60초 시작 유예 후 30초마다 확인하며 3회 연속 실패 시 세 서비스를 의존 순서로 재기동한다. PD20이 연결되어 있으면 매 주기 `adb reverse tcp:4340 tcp:4340`도 검사하고 누락 시 자동 복원한다.
+watchdog는 60초 시작 유예와 별개로 10초마다 PD20 transport를 확인한다. host
+manager가 정상이더라도 다음 네 조건을 독립적으로 검사한다.
+
+1. macOS USB에 serial `0123456789ABCDEF`가 물리적으로 존재하는가
+2. 같은 serial이 ADB에서 `device`인가
+3. 선택된 USB 또는 paired wireless target에 `reverse tcp:4340`이 존재하는가
+4. PD20 내부에서 `http://127.0.0.1:4340/ready`가 성공하는가
+
+USB는 존재하지만 ADB transport가 연속 2회 누락되면 scoped reconnect를 먼저
+시도하고, 계속 실패할 때만 ADB daemon을 재시작한다. daemon restart는 300초
+cooldown을 적용한다. reverse가 있어도 device-side readiness가 실패하면 mapping을
+한 번 재생성한다. transport 장애만으로 proxy process나 PD20 Iris를 재시작하지
+않는다.
+
+이미 사용자가 페어링한 Android Wireless Debugging을 failover로 사용하려면
+launchd watchdog의 `PD20_WIRELESS_ADB_ENABLED`를 명시적으로 `true`로 설정한다.
+watchdog은 `_adb-tls-connect._tcp` endpoint를 찾은 뒤 `ro.serialno`와
+`ro.product.model`이 고정 PD20 값과 모두 일치하는지 확인한다. 캐시된 동적 port가
+만료되면 mDNS를 다시 조회하고, USB가 돌아오면 다음 주기에 USB를 우선 사용한다.
+자동 pairing, legacy `adb tcpip 5555`, manager LAN bind는 지원하지 않는다.
+
+PD20에서 Wireless Debugging pairing을 사용자가 먼저 완료한 뒤 다음처럼 재설치한다.
+
+```bash
+PD20_WIRELESS_ADB_ENABLED=true ./scripts/install-launchd.sh
+```
+
+현재 연결 상태는 내부 mirror의 다음 파일에서 확인한다. 파일은 mode `600`이며
+secret, Authorization, 이미지 URL, 대화 원문을 포함하지 않는다.
+
+```bash
+cat "$HOME/Library/Application Support/HeyBotProxy/runtime/watchdog/connection-state.json"
+tail -50 "$HOME/Library/Application Support/HeyBotProxy/runtime/watchdog/watchdog.log"
+```
+
+host manager `/health`·`/ready`가 3회 연속 실패할 때는 transport 복구와 별도로
+고정된 9개 proxy 서비스를 의존 순서대로 재기동한다.
 
 실제 단말·launchd를 건드리지 않는 watchdog 회귀 검사는 다음 명령으로 실행한다.
 
@@ -176,8 +212,10 @@ watchdog는 60초 시작 유예 후 30초마다 확인하며 3회 연속 실패 
 ./scripts/test-watchdog.sh
 ```
 
-fake ADB/curl/launchctl fixture로 reverse 누락 복구, PD20 미연결 시 무동작,
-readiness 성공의 failure counter 초기화, 3회 실패 뒤 고정 의존 순서 재기동을 검증한다.
+fake ADB/ioreg/curl/launchctl fixture로 reverse 누락, USB 존재·ADB transport 누락,
+offline·unauthorized, daemon restart cooldown, device-side readiness, paired wireless
+serial·model 검증, 동적 port 재탐색, USB 우선 복귀, 중복 실행 잠금, readiness
+counter와 9개 서비스 재기동을 검증한다.
 
 ## 9. 보존·로그 관리
 
@@ -196,13 +234,17 @@ readiness 성공의 failure counter 초기화, 3회 실패 뒤 고정 의존 순
 
 ## 10. 검증 상태
 
-- 서버 자동 테스트: 26개 통과
-- Android unit test: 100개 통과
+- 서버 자동 테스트: manager 9, image 6, vision 7, video 2, draw 3, brush 2,
+  codex 12, grok 4, conversation 1 및 watchdog hermetic 회귀 통과
+- Android unit test: debug/release 각각 185개 통과
 - Android release APK: 빌드·PD20 배포 통과
 - manager → image → 실제 Codex → QC → PNG download: 통과
 - PD20 APK·secret·ADB reverse·Iris 기동: 통과
 - 실제 외부 카카오 메시지 → 생성 → 봇 이미지 DB 로그 → `delivered`: 통과
 - launchd 내부 미러 상시 기동·개별 proxy 강제 종료 자동 복구: 통과
 - ADB reverse 제거 후 watchdog 자동 복원: 통과
-- watchdog fake-ADB 회귀: 통과
+- watchdog transport self-heal fake-ADB 회귀: 통과
+- 실제 ADB reverse 제거는 1초 안에 복구됐고, host ADB daemon 종료 뒤 PD20
+  transport·reverse·device-side readiness가 12초 안에 복구됨
+- paired Wireless Debugging 실기기 failover: PD20에 페어링된 mDNS endpoint가 없어 대기
 - Mac sleep/wake, 물리 USB 분리·재연결, 24시간 soak: 운영 검증 필요

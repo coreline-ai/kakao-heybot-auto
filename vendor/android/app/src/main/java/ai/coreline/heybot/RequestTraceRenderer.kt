@@ -5,7 +5,8 @@ object RequestTraceRenderer {
         if (trace == null) return "최근 진단할 요청이 없어요."
         val room = roomReference ?: "관리방"
         val elapsed = (trace.updatedAtMillis - trace.startedAtMillis).coerceAtLeast(0L)
-        val reason = trace.reasonCode?.let { "\n사유 코드: $it" }.orEmpty()
+        val reasonCode = trace.reasonCode ?: trace.rootReasonCode
+        val reason = reasonCode?.let { "\n사유 코드: $it" }.orEmpty()
         val engine = trace.engine?.let { "\n응답 엔진: $it" }.orEmpty()
         return (
             "최근 요청 진단 ${trace.traceId}\n" +

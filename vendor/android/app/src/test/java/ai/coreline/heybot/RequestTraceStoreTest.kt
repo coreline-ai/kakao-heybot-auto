@@ -116,6 +116,42 @@ class RequestTraceStoreTest {
         tracker.close()
     }
 
+    @Test
+    fun `delivery stages never erase the first terminal reason`() {
+        val store = RequestTraceStore.inMemory()
+        val request = incoming(14L, 30L)
+        store.received(request, RequestTraceKind.VISION)
+        store.record(
+            request.traceId,
+            RequestTraceStage.PROVIDER_FAILED,
+            reasonCode = "VISION_TRANSPORT_UNAVAILABLE"
+        )
+
+        store.record(request.traceId, RequestTraceStage.ENQUEUED)
+        store.record(request.traceId, RequestTraceStage.DB_CONFIRMED)
+
+        val trace = store.get(request.traceId)!!
+        assertEquals(RequestTraceStage.DB_CONFIRMED, trace.stage)
+        assertNull(trace.reasonCode)
+        assertEquals("VISION_TRANSPORT_UNAVAILABLE", trace.rootReasonCode)
+        assertTrue(RequestTraceRenderer.render(trace, "R01").contains("VISION_TRANSPORT_UNAVAILABLE"))
+    }
+
+    @Test
+    fun `loads schema one trace and writes it back as schema two`() {
+        val request = incoming(15L, 30L)
+        val backend = RecordingTraceBackend().apply {
+            bytes = """{"schemaVersion":1,"updatedAtMillis":1000,"traces":[{"traceId":"${request.traceId}","logId":"15","chatId":"30","kind":"VISION","stage":"PROVIDER_FAILED","reasonCode":"VISION_CREATE_FAILED","engine":null,"startedAtMillis":900,"updatedAtMillis":1000}]}""".toByteArray()
+        }
+
+        val store = RequestTraceStore(backend = backend, nowMillis = { 1_000L })
+        assertEquals("VISION_CREATE_FAILED", store.get(request.traceId)?.rootReasonCode)
+        store.record(request.traceId, RequestTraceStage.ENQUEUED)
+
+        assertTrue(backend.bytes!!.toString(Charsets.UTF_8).contains("\"schemaVersion\":2"))
+        assertFalse(backend.quarantined)
+    }
+
     private fun incoming(logId: Long, chatId: Long) = GlmIncomingMessage(
         logId = logId,
         chatId = chatId,
