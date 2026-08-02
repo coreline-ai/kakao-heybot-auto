@@ -5,12 +5,15 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 class ImageAnalysisCoordinatorTest {
     @Test fun `same-account image then explicit command creates and delivers result`() {
-        val replies = mutableListOf<String>()
+        val replies = CopyOnWriteArrayList<String>()
         val gateway = FakeGateway()
         val policy = RoomCapabilityPolicyStore.forTesting(
             rooms = listOf(
@@ -61,7 +64,7 @@ class ImageAnalysisCoordinatorTest {
     }
 
     @Test fun `OCR command creates a task scoped job and renders task label`() {
-        val replies = mutableListOf<String>()
+        val replies = CopyOnWriteArrayList<String>()
         val gateway = FakeGateway()
         val traces = RequestTraceStore.inMemory()
         val coordinator = ImageAnalysisCoordinator(
@@ -89,7 +92,7 @@ class ImageAnalysisCoordinatorTest {
     }
 
     @Test fun `OCR answer applies the shared privacy sanitizer before reply`() {
-        val replies = mutableListOf<String>()
+        val replies = CopyOnWriteArrayList<String>()
         val gateway = FakeGateway("문의 test@example.com 010-1234-5678")
         val coordinator = ImageAnalysisCoordinator(
             settings = ImageAnalysisSettings(
@@ -197,6 +200,137 @@ class ImageAnalysisCoordinatorTest {
         coordinator.close()
     }
 
+    @Test fun `transport create failure retries with one id and succeeds without failure reply`() {
+        val replies = CopyOnWriteArrayList<String>()
+        val gateway = RetryGateway(transportFailures = 2)
+        val coordinator = ImageAnalysisCoordinator(
+            settings = ImageAnalysisSettings(
+                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+            ),
+            trigger = "헤이봇",
+            botId = 20,
+            gateway = gateway,
+            replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
+            roomCapabilityPolicy = policy(),
+            createRetryDelaysMillis = listOf(0L, 0L, 0L)
+        )
+        coordinator.onIncoming(message(80, "2", "", image(80, 10, 20)))
+        coordinator.onIncoming(message(81, "1", "헤이봇 이미지 분석"))
+
+        assertTrue(gateway.succeeded.await(2, TimeUnit.SECONDS))
+        repeat(100) { if (replies.any { it.startsWith("이미지 분석 결과") }) return@repeat; Thread.sleep(2) }
+        assertEquals(3, gateway.attempts.get())
+        assertEquals(1, gateway.requestIds.distinct().size)
+        assertFalse(replies.any { it.contains("자동 복구하지 못했어요") })
+        assertTrue(replies.any { it.startsWith("이미지 분석 결과") })
+        coordinator.close()
+    }
+
+    @Test fun `transport create failure exhausts retries once and preserves root reason`() {
+        val replies = CopyOnWriteArrayList<String>()
+        val gateway = RetryGateway(transportFailures = 4)
+        val traces = RequestTraceStore.inMemory()
+        val coordinator = ImageAnalysisCoordinator(
+            settings = ImageAnalysisSettings(
+                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+            ),
+            trigger = "헤이봇",
+            botId = 20,
+            gateway = gateway,
+            replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
+            roomCapabilityPolicy = policy(),
+            requestTraceStore = traces,
+            createRetryDelaysMillis = listOf(0L, 0L, 0L)
+        )
+        coordinator.onIncoming(message(82, "2", "", image(82, 10, 20)))
+        coordinator.onIncoming(message(83, "1", "헤이봇 이미지 분석"))
+
+        assertTrue(gateway.exhausted.await(2, TimeUnit.SECONDS))
+        repeat(100) { if (replies.isNotEmpty()) return@repeat; Thread.sleep(2) }
+        assertEquals(4, gateway.attempts.get())
+        assertEquals(1, replies.count { it.contains("자동 복구하지 못했어요") })
+        val trace = traces.get(RequestTraceIds.from(10L, 83L))!!
+        assertEquals("VISION_TRANSPORT_UNAVAILABLE", trace.rootReasonCode)
+        coordinator.close()
+    }
+
+    @Test fun `authorization create failure is not retried`() {
+        val replies = CopyOnWriteArrayList<String>()
+        val gateway = RetryGateway(authorizationFailure = true)
+        val coordinator = ImageAnalysisCoordinator(
+            settings = ImageAnalysisSettings(
+                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+            ),
+            trigger = "헤이봇",
+            botId = 20,
+            gateway = gateway,
+            replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
+            roomCapabilityPolicy = policy(),
+            createRetryDelaysMillis = listOf(0L, 0L, 0L)
+        )
+        coordinator.onIncoming(message(84, "2", "", image(84, 10, 20)))
+        coordinator.onIncoming(message(85, "1", "헤이봇 이미지 분석"))
+
+        assertTrue(gateway.exhausted.await(2, TimeUnit.SECONDS))
+        repeat(100) { if (replies.isNotEmpty()) return@repeat; Thread.sleep(2) }
+        assertEquals(1, gateway.attempts.get())
+        assertTrue(replies.single().contains("인증 설정"))
+        coordinator.close()
+    }
+
+    @Test fun `capability change during transport backoff cancels retry silently`() {
+        val replies = CopyOnWriteArrayList<String>()
+        val gateway = RetryGateway(transportFailures = 4)
+        val policy = policy()
+        val coordinator = ImageAnalysisCoordinator(
+            settings = ImageAnalysisSettings(
+                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+            ),
+            trigger = "헤이봇",
+            botId = 20,
+            gateway = gateway,
+            replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
+            roomCapabilityPolicy = policy,
+            createRetryDelaysMillis = listOf(100L, 100L, 100L)
+        )
+        coordinator.onIncoming(message(86, "2", "", image(86, 10, 20)))
+        coordinator.onIncoming(message(87, "1", "헤이봇 이미지 분석"))
+        assertTrue(gateway.attempted.await(2, TimeUnit.SECONDS))
+
+        val preview = policy.preview(999, "R01", RoomCapability.IMAGE_ANALYSIS, false)
+            as RoomCapabilityMutationResult.PreviewReady
+        assertTrue(policy.apply(999, preview.preview.nonce) is RoomCapabilityMutationResult.Applied)
+        Thread.sleep(250)
+
+        assertEquals(1, gateway.attempts.get())
+        assertTrue(replies.isEmpty())
+        coordinator.close()
+    }
+
+    @Test fun `status polling resumes after a transient transport failure`() {
+        val replies = CopyOnWriteArrayList<String>()
+        val gateway = StatusRetryGateway()
+        val coordinator = ImageAnalysisCoordinator(
+            settings = ImageAnalysisSettings(
+                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+            ),
+            trigger = "헤이봇",
+            botId = 20,
+            gateway = gateway,
+            replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
+            roomCapabilityPolicy = policy()
+        )
+        coordinator.onIncoming(message(88, "2", "", image(88, 10, 20)))
+        coordinator.onIncoming(message(89, "1", "헤이봇 이미지 분석"))
+
+        assertTrue(gateway.succeeded.await(2, TimeUnit.SECONDS))
+        repeat(100) { if (replies.any { it.startsWith("이미지 분석 결과") }) return@repeat; Thread.sleep(2) }
+        assertEquals(2, gateway.statusAttempts.get())
+        assertTrue(replies.any { it.contains("상태 조회 재연결 성공") })
+        assertFalse(replies.any { it.contains("자동 복구하지 못했어요") })
+        coordinator.close()
+    }
+
     private fun message(
         log: Long,
         type: String,
@@ -244,6 +378,98 @@ class ImageAnalysisCoordinatorTest {
         override suspend fun status(jobId:String,chatId:Long)=Result.success(job("succeeded",ImageAnalysisResult(2,task,answerOverride ?: if(task==VisionTask.OCR)"HELLO" else "밝은 방에서 로봇이 손을 흔들고 있습니다.",listOf("로봇"),if(task==VisionTask.OCR)listOf("HELLO") else emptyList(),"low")))
         override suspend fun cancel(jobId:String,chatId:Long)=Result.success(job("cancelled"))
         private fun job(status:String,result:ImageAnalysisResult?=null)=ImageAnalysisJob("job",requestId.ifBlank { "vision:10:1:describe" },"10",status,null,result)
+    }
+    private class RetryGateway(
+        private val transportFailures: Int = 0,
+        private val authorizationFailure: Boolean = false
+    ) : ImageAnalysisGateway {
+        val attempts = AtomicInteger()
+        val requestIds = mutableListOf<String>()
+        val attempted = CountDownLatch(1)
+        val succeeded = CountDownLatch(1)
+        val exhausted = CountDownLatch(1)
+
+        override suspend fun create(
+            requestId: String,
+            chatId: Long,
+            userId: Long,
+            source: IncomingImageAttachment,
+            task: VisionTask
+        ): Result<ImageAnalysisJob> {
+            val attempt = attempts.incrementAndGet()
+            attempted.countDown()
+            synchronized(requestIds) { requestIds += requestId }
+            if (authorizationFailure) {
+                exhausted.countDown()
+                return Result.failure(VisionAuthorizationException(401))
+            }
+            if (attempt <= transportFailures) {
+                if (attempt == 4) exhausted.countDown()
+                return Result.failure(VisionTransportException(IOException("offline")))
+            }
+            succeeded.countDown()
+            return Result.success(ImageAnalysisJob("retry-job", requestId, chatId.toString(), "queued", null, null))
+        }
+
+        override suspend fun status(jobId: String, chatId: Long): Result<ImageAnalysisJob> =
+            Result.success(
+                ImageAnalysisJob(
+                    jobId,
+                    requestIds.last(),
+                    chatId.toString(),
+                    "succeeded",
+                    null,
+                    ImageAnalysisResult(2, VisionTask.DESCRIBE, "재시도 성공", emptyList(), emptyList(), "low")
+                )
+            )
+
+        override suspend fun cancel(jobId: String, chatId: Long): Result<ImageAnalysisJob> =
+            Result.success(ImageAnalysisJob(jobId, requestIds.last(), chatId.toString(), "cancelled", null, null))
+    }
+    private class StatusRetryGateway : ImageAnalysisGateway {
+        val statusAttempts = AtomicInteger()
+        val succeeded = CountDownLatch(1)
+        private var requestId = ""
+
+        override suspend fun create(
+            requestId: String,
+            chatId: Long,
+            userId: Long,
+            source: IncomingImageAttachment,
+            task: VisionTask
+        ): Result<ImageAnalysisJob> {
+            this.requestId = requestId
+            return Result.success(
+                ImageAnalysisJob("status-retry-job", requestId, chatId.toString(), "queued", null, null)
+            )
+        }
+
+        override suspend fun status(jobId: String, chatId: Long): Result<ImageAnalysisJob> {
+            if (statusAttempts.incrementAndGet() == 1) {
+                return Result.failure(VisionTransportException(IOException("reverse temporarily unavailable")))
+            }
+            succeeded.countDown()
+            return Result.success(
+                ImageAnalysisJob(
+                    jobId,
+                    requestId,
+                    chatId.toString(),
+                    "succeeded",
+                    null,
+                    ImageAnalysisResult(
+                        2,
+                        VisionTask.DESCRIBE,
+                        "상태 조회 재연결 성공",
+                        emptyList(),
+                        emptyList(),
+                        "low"
+                    )
+                )
+            )
+        }
+
+        override suspend fun cancel(jobId: String, chatId: Long): Result<ImageAnalysisJob> =
+            Result.success(ImageAnalysisJob(jobId, requestId, chatId.toString(), "cancelled", null, null))
     }
     private class MemoryBackend:ConversationMemoryBackend{override fun read():ByteArray?=null;override fun write(bytes:ByteArray)=Unit;override fun quarantine(nowMillis:Long)=Unit}
 }

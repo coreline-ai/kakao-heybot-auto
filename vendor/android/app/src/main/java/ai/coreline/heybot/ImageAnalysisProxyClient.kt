@@ -8,6 +8,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 enum class VisionTask(val wireValue: String) {
@@ -60,6 +61,31 @@ interface ImageAnalysisGateway {
     suspend fun status(jobId: String, chatId: Long): Result<ImageAnalysisJob>
     suspend fun cancel(jobId: String, chatId: Long): Result<ImageAnalysisJob>
 }
+
+sealed class VisionProxyException(
+    val reasonCode: String,
+    cause: Throwable? = null
+) : RuntimeException(reasonCode, cause)
+
+class VisionTransportException(cause: Throwable) :
+    VisionProxyException("VISION_TRANSPORT_UNAVAILABLE", cause)
+
+class VisionAuthorizationException(val statusCode: Int) :
+    VisionProxyException("VISION_ROUTE_UNAUTHORIZED")
+
+class VisionHttpException(val statusCode: Int) :
+    VisionProxyException("VISION_HTTP_$statusCode")
+
+class VisionConfigurationException(cause: Throwable) :
+    VisionProxyException("VISION_CONFIGURATION_INVALID", cause)
+
+class VisionInvalidResponseException(cause: Throwable? = null) :
+    VisionProxyException("VISION_RESULT_INVALID", cause)
+
+fun Throwable.isRetryableVisionTransport(): Boolean = this is VisionTransportException
+
+fun Throwable.visionReasonCode(): String =
+    (this as? VisionProxyException)?.reasonCode ?: "VISION_CREATE_FAILED"
 
 class ImageAnalysisProxyClient(
     private val settings: ImageAnalysisSettings,
@@ -116,54 +142,73 @@ class ImageAnalysisProxyClient(
         }
 
     private fun execute(builder: Request.Builder): ImageAnalysisJob {
-        val authorization = settings.authorizationHeader().getOrThrow()
-        return client.newCall(builder.header("Authorization", authorization).build()).execute().use {
-            val raw = it.body?.string().orEmpty()
-            if (!it.isSuccessful) throw IllegalStateException("VISION_HTTP_${it.code}")
-            val body = json.decodeFromString(VisionJobResponse.serializer(), raw)
-            ImageAnalysisJob(
-                jobId = body.jobId,
-                requestId = body.requestId,
-                chatId = body.chatId,
-                status = body.status,
-                errorCode = body.error?.code,
-                result = body.result?.let { result ->
-                    val task = when (result.version) {
-                        1 -> {
-                            if (result.task != null && result.task != VisionTask.DESCRIBE.wireValue) {
-                                throw IllegalStateException("VISION_RESULT_INVALID")
-                            }
-                            VisionTask.DESCRIBE
-                        }
-                        2 -> VisionTask.fromWire(result.task)
-                            ?: throw IllegalStateException("VISION_RESULT_INVALID")
-                        else -> throw IllegalStateException("VISION_RESULT_INVALID")
-                    }
-                    val answer = when (result.version) {
-                        1 -> result.summary ?: result.answer
-                        2 -> result.answer
-                        else -> null
-                    } ?: throw IllegalStateException("VISION_RESULT_INVALID")
-                    val extractedText = result.extractedText.ifEmpty { result.visibleText }
-                    if (
-                        answer.isBlank() || answer.length > 480 ||
-                        result.visibleObjects.size > 20 ||
-                        result.visibleObjects.any { it.isBlank() || it.length > 80 } ||
-                        extractedText.size > 20 ||
-                        extractedText.any { it.isBlank() || it.length > 120 } ||
-                        result.uncertainty !in setOf("low", "medium", "high")
-                    ) throw IllegalStateException("VISION_RESULT_INVALID")
-                    ImageAnalysisResult(
-                        version = result.version,
-                        task = task,
-                        answer = answer,
-                        visibleObjects = result.visibleObjects,
-                        extractedText = extractedText,
-                        uncertainty = result.uncertainty
-                    )
-                }
-            )
+        val authorization = settings.authorizationHeader().getOrElse {
+            throw VisionConfigurationException(it)
         }
+        try {
+            return client.newCall(builder.header("Authorization", authorization).build()).execute().use {
+                val raw = it.body?.string().orEmpty()
+                if (!it.isSuccessful) {
+                    if (it.code == 401 || it.code == 403) {
+                        throw VisionAuthorizationException(it.code)
+                    }
+                    throw VisionHttpException(it.code)
+                }
+                decodeJob(raw)
+            }
+        } catch (error: VisionProxyException) {
+            throw error
+        } catch (error: IOException) {
+            throw VisionTransportException(error)
+        } catch (error: Exception) {
+            throw VisionInvalidResponseException(error)
+        }
+    }
+
+    private fun decodeJob(raw: String): ImageAnalysisJob {
+        val body = json.decodeFromString(VisionJobResponse.serializer(), raw)
+        return ImageAnalysisJob(
+            jobId = body.jobId,
+            requestId = body.requestId,
+            chatId = body.chatId,
+            status = body.status,
+            errorCode = body.error?.code,
+            result = body.result?.let { result ->
+                val task = when (result.version) {
+                    1 -> {
+                        if (result.task != null && result.task != VisionTask.DESCRIBE.wireValue) {
+                            throw VisionInvalidResponseException()
+                        }
+                        VisionTask.DESCRIBE
+                    }
+                    2 -> VisionTask.fromWire(result.task)
+                        ?: throw VisionInvalidResponseException()
+                    else -> throw VisionInvalidResponseException()
+                }
+                val answer = when (result.version) {
+                    1 -> result.summary ?: result.answer
+                    2 -> result.answer
+                    else -> null
+                } ?: throw VisionInvalidResponseException()
+                val extractedText = result.extractedText.ifEmpty { result.visibleText }
+                if (
+                    answer.isBlank() || answer.length > 480 ||
+                    result.visibleObjects.size > 20 ||
+                    result.visibleObjects.any { it.isBlank() || it.length > 80 } ||
+                    extractedText.size > 20 ||
+                    extractedText.any { it.isBlank() || it.length > 120 } ||
+                    result.uncertainty !in setOf("low", "medium", "high")
+                ) throw VisionInvalidResponseException()
+                ImageAnalysisResult(
+                    version = result.version,
+                    task = task,
+                    answer = answer,
+                    visibleObjects = result.visibleObjects,
+                    extractedText = extractedText,
+                    uncertainty = result.uncertainty
+                )
+            }
+        )
     }
 
     private companion object {

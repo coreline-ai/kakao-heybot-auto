@@ -31,6 +31,7 @@ class ImageAnalysisCoordinator(
     private val log: (String) -> Unit = ::println,
     private val requestTraceStore: RequestTraceStore = RequestTraceStore.inMemory(nowMillis),
     private val textDeliveryTracker: TextDeliveryTracker? = null,
+    private val createRetryDelaysMillis: List<Long> = listOf(2_000L, 5_000L, 10_000L),
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 ) {
     private val pollers = ConcurrentHashMap<String, Job>()
@@ -134,27 +135,71 @@ class ImageAnalysisCoordinator(
         }
         val requestId = "vision:${incoming.chatId}:${source.sourceLogId}:${task.wireValue}"
         requestTraceStore.record(incoming.traceId, RequestTraceStage.PROVIDER_STARTED)
-        gateway.create(requestId, incoming.chatId, incoming.userId, source, task)
-            .onSuccess { remote ->
-                if (remote.chatId != incoming.chatId.toString()) {
-                    counter.decrementAndGet()
-                    reply(incoming, "이미지 분석 요청 정보가 일치하지 않아 중단했어요.")
-                    return@onSuccess
-                }
-                requestTraceStore.record(incoming.traceId, RequestTraceStage.PROVIDER_SUCCEEDED)
-                reply(incoming, "이미지 분석을 시작했어요. 완료되면 이 방에 설명해드릴게요.")
-                startPolling(remote, incoming, revision, counter, task)
+        val created = createWithRetry(
+            requestId = requestId,
+            incoming = incoming,
+            source = source,
+            task = task,
+            revision = revision
+        )
+        val remote = created.getOrElse { error ->
+            counter.decrementAndGet()
+            if (error is VisionCapabilityChangedException) return
+            val reasonCode = error.visionReasonCode()
+            requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.PROVIDER_FAILED,
+                reasonCode = reasonCode
+            )
+            log("Vision job create failed: ${error::class.simpleName} code=$reasonCode")
+            reply(incoming, createFailureMessage(error))
+            return
+        }
+        if (remote.chatId != incoming.chatId.toString()) {
+            counter.decrementAndGet()
+            requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.PROVIDER_FAILED,
+                reasonCode = "VISION_CHAT_SCOPE_MISMATCH"
+            )
+            reply(incoming, "이미지 분석 요청 정보가 일치하지 않아 중단했어요.")
+            return
+        }
+        requestTraceStore.record(incoming.traceId, RequestTraceStage.PROVIDER_SUCCEEDED)
+        reply(incoming, "이미지 분석을 시작했어요. 완료되면 이 방에 설명해드릴게요.")
+        startPolling(remote, incoming, revision, counter, task)
+    }
+
+    private suspend fun createWithRetry(
+        requestId: String,
+        incoming: GlmIncomingMessage,
+        source: IncomingImageAttachment,
+        task: VisionTask,
+        revision: Long
+    ): Result<ImageAnalysisJob> {
+        var result = gateway.create(requestId, incoming.chatId, incoming.userId, source, task)
+        createRetryDelaysMillis.take(MAX_CREATE_RETRIES).forEachIndexed { index, retryDelay ->
+            val error = result.exceptionOrNull() ?: return result
+            if (!error.isRetryableVisionTransport()) return result
+            if (!roomCapabilityPolicy.isCurrent(
+                    revision,
+                    incoming.chatId,
+                    RoomCapability.IMAGE_ANALYSIS
+                )) {
+                return Result.failure(VisionCapabilityChangedException())
             }
-            .onFailure {
-                counter.decrementAndGet()
-                requestTraceStore.record(
-                    incoming.traceId,
-                    RequestTraceStage.PROVIDER_FAILED,
-                    reasonCode = "VISION_CREATE_FAILED"
-                )
-                log("Vision job create failed: ${it::class.simpleName}")
-                reply(incoming, "이미지 분석 서버에 연결하지 못했어요. 다른 기능은 계속 사용할 수 있어요.")
+            log("Vision transport retry scheduled: attempt=${index + 2}")
+            delay(retryDelay.coerceAtLeast(0L))
+            if (!roomCapabilityPolicy.isCurrent(
+                    revision,
+                    incoming.chatId,
+                    RoomCapability.IMAGE_ANALYSIS
+                )) {
+                return Result.failure(VisionCapabilityChangedException())
             }
+            result = gateway.create(requestId, incoming.chatId, incoming.userId, source, task)
+        }
+        return result
     }
 
     private fun startPolling(
@@ -168,12 +213,25 @@ class ImageAnalysisCoordinator(
                 try {
                     val deadline = nowMillis() + settings.jobTimeoutMillis
                     var remote = initial
+                    var lastStatusFailure: Throwable? = null
                     while (nowMillis() < deadline) {
                         when (remote.status) {
                             "queued", "running" -> {
                                 delay(settings.pollIntervalMillis)
                                 val status = gateway.status(remote.jobId, incoming.chatId)
-                                if (status.isFailure) continue
+                                if (status.isFailure) {
+                                    val error = status.exceptionOrNull()!!
+                                    lastStatusFailure = error
+                                    if (error.isRetryableVisionTransport()) continue
+                                    requestTraceStore.record(
+                                        incoming.traceId,
+                                        RequestTraceStage.PROVIDER_FAILED,
+                                        reasonCode = error.visionReasonCode()
+                                    )
+                                    reply(incoming, createFailureMessage(error))
+                                    return@launch
+                                }
+                                lastStatusFailure = null
                                 remote = status.getOrThrow()
                             }
                             "succeeded" -> {
@@ -200,9 +258,13 @@ class ImageAnalysisCoordinator(
                     requestTraceStore.record(
                         incoming.traceId,
                         RequestTraceStage.PROVIDER_FAILED,
-                        reasonCode = "VISION_JOB_TIMEOUT"
+                        reasonCode = lastStatusFailure?.visionReasonCode() ?: "VISION_JOB_TIMEOUT"
                     )
-                    reply(incoming, "이미지 분석 시간이 너무 길어 작업을 종료했어요.")
+                    if (lastStatusFailure?.isRetryableVisionTransport() == true) {
+                        reply(incoming, createFailureMessage(lastStatusFailure))
+                    } else {
+                        reply(incoming, "이미지 분석 시간이 너무 길어 작업을 종료했어요.")
+                    }
                 } finally {
                     counter.decrementAndGet()
                 }
@@ -318,5 +380,20 @@ class ImageAnalysisCoordinator(
         "INVALID_IMAGE", "SOURCE_TOO_LARGE", "FORBIDDEN_SOURCE" ->
             "이 이미지는 안전 검증을 통과하지 못해 분석할 수 없어요."
         else -> "이미지 분석에 실패했어요. 잠시 후 다시 요청해주세요."
+    }
+
+    private fun createFailureMessage(error: Throwable): String = when (error) {
+        is VisionTransportException ->
+            "이미지 분석 연결을 자동 복구하지 못했어요. 잠시 후 다시 요청해주세요. 다른 기능은 계속 사용할 수 있어요."
+        is VisionAuthorizationException,
+        is VisionConfigurationException ->
+            "이미지 분석 서버 인증 설정을 확인할 수 없어요. 다른 기능은 계속 사용할 수 있어요."
+        else -> "이미지 분석 요청을 처리하지 못했어요. 잠시 후 다시 요청해주세요."
+    }
+
+    private class VisionCapabilityChangedException : IllegalStateException()
+
+    private companion object {
+        const val MAX_CREATE_RETRIES = 3
     }
 }

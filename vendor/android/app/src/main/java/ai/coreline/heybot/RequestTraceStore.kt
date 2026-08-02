@@ -49,7 +49,10 @@ data class RequestTrace(
     val reasonCode: String?,
     val engine: String?,
     val startedAtMillis: Long,
-    val updatedAtMillis: Long
+    val updatedAtMillis: Long,
+    /** First terminal failure/policy reason. Delivery tracking may advance the
+     * stage afterwards, but it must never erase the cause of the request. */
+    val rootReasonCode: String? = null
 )
 
 object RequestTraceIds {
@@ -96,7 +99,8 @@ class RequestTraceStore(
             reasonCode = null,
             engine = null,
             startedAtMillis = now,
-            updatedAtMillis = now
+            updatedAtMillis = now,
+            rootReasonCode = null
         )
         trim()
         persist(now)
@@ -132,12 +136,15 @@ class RequestTraceStore(
     ) {
         val current = traces[traceId] ?: return
         val now = nowMillis()
+        val sanitizedReason = reasonCode?.sanitizeCode()
         traces[traceId] = current.copy(
             kind = kind ?: current.kind,
             stage = stage,
-            reasonCode = reasonCode?.sanitizeCode(),
+            reasonCode = sanitizedReason,
             engine = engine?.sanitizeCode(),
-            updatedAtMillis = now
+            updatedAtMillis = now,
+            rootReasonCode = current.rootReasonCode
+                ?: sanitizedReason?.takeIf { stage in ROOT_REASON_STAGES }
         )
         prune(now)
         persist(now)
@@ -182,7 +189,7 @@ class RequestTraceStore(
             log("Request trace quarantined: invalid")
             return
         }
-        if (document.schemaVersion != SCHEMA_VERSION) {
+        if (document.schemaVersion !in MIN_SUPPORTED_SCHEMA_VERSION..SCHEMA_VERSION) {
             runCatching { backend?.quarantine(nowMillis()) }
             persistenceAvailable = false
             log("Request trace quarantined: unsupported-version")
@@ -200,9 +207,17 @@ class RequestTraceStore(
         val stage = runCatching { RequestTraceStage.valueOf(value.stage) }.getOrNull() ?: return null
         if (!value.traceId.matches(TRACE_ID)) return null
         return RequestTrace(
-            value.traceId, logId, chatId, kind, stage,
-            value.reasonCode?.sanitizeCode(), value.engine?.sanitizeCode(),
-            value.startedAtMillis.coerceAtLeast(0L), value.updatedAtMillis.coerceAtLeast(0L)
+            traceId = value.traceId,
+            logId = logId,
+            chatId = chatId,
+            kind = kind,
+            stage = stage,
+            reasonCode = value.reasonCode?.sanitizeCode(),
+            engine = value.engine?.sanitizeCode(),
+            startedAtMillis = value.startedAtMillis.coerceAtLeast(0L),
+            updatedAtMillis = value.updatedAtMillis.coerceAtLeast(0L),
+            rootReasonCode = value.rootReasonCode?.sanitizeCode()
+                ?: value.reasonCode?.sanitizeCode()?.takeIf { stage in ROOT_REASON_STAGES }
         )
     }
 
@@ -221,6 +236,7 @@ class RequestTraceStore(
                         kind = it.kind.name,
                         stage = it.stage.name,
                         reasonCode = it.reasonCode,
+                        rootReasonCode = it.rootReasonCode,
                         engine = it.engine,
                         startedAtMillis = it.startedAtMillis,
                         updatedAtMillis = it.updatedAtMillis
@@ -256,8 +272,20 @@ class RequestTraceStore(
         private const val MAX_ENTRIES_LIMIT = 1_000
         private const val MAX_BYTES = 512 * 1_024
         private const val MAX_CODE_LENGTH = 64
-        private const val SCHEMA_VERSION = 1
+        private const val MIN_SUPPORTED_SCHEMA_VERSION = 1
+        private const val SCHEMA_VERSION = 2
         private val TRACE_ID = Regex("T-[0-9A-F]{8}")
+        private val ROOT_REASON_STAGES = setOf(
+            RequestTraceStage.MODE_DISABLED,
+            RequestTraceStage.POLICY_DENIED,
+            RequestTraceStage.DUPLICATE,
+            RequestTraceStage.RATE_LIMITED,
+            RequestTraceStage.QUEUE_FULL,
+            RequestTraceStage.PROVIDER_FAILED,
+            RequestTraceStage.SAFETY_BLOCKED,
+            RequestTraceStage.DISPATCH_FAILED,
+            RequestTraceStage.UNCONFIRMED
+        )
 
         fun inMemory(
             nowMillis: () -> Long = System::currentTimeMillis
@@ -280,6 +308,7 @@ private data class PersistedRequestTrace(
     val kind: String,
     val stage: String,
     val reasonCode: String? = null,
+    val rootReasonCode: String? = null,
     val engine: String? = null,
     val startedAtMillis: Long,
     val updatedAtMillis: Long
