@@ -958,6 +958,140 @@ class GlmAutoReplyHandlerTest {
         }
     }
 
+    @Test
+    fun `wake word follow-up receives the latest same-user vision context`() = runBlocking {
+        val contexts = VisionConversationContextStore()
+        assertTrue(contexts.put(visionContext(ownerUserId = 999L)))
+        val gateway = RecordingGateway("노란색이에요.")
+        val handler = createHandler(
+            gateway = gateway,
+            roomCapabilityPolicy = visionRoomPolicy(),
+            visionContextStore = contexts
+        ) { _, _, _ -> Unit }
+
+        handler.process(incoming(logId = 101L, message = "헤이봇 가방은 무슨 색이야?"))
+
+        val request = gateway.requests.single()
+        assertTrue(request.messages.any { it.content.contains("이전 이미지 분석") })
+        assertTrue(request.messages.any { it.content.contains("노란 가방") })
+        assertEquals("가방은 무슨 색이야?", request.messages.last().content)
+        handler.close()
+    }
+
+    @Test
+    fun `exact and recent semantic follow-ups allow another participant without ambient mode`() = runBlocking {
+        val contexts = VisionConversationContextStore()
+        assertTrue(contexts.put(visionContext(ownerUserId = 999L, resultLogId = 700L)))
+        val memory = InMemoryConversationMemoryStore(4, 60_000L).also { store ->
+            store.initialize()
+            store.append(
+                ConversationKey(CHAT_ID, 999L),
+                ConversationTurn("소유자의 비공개 이전 질문", "소유자의 이전 답변", System.currentTimeMillis())
+            )
+        }
+        val gateway = RecordingGateway("왼쪽에 있어요.")
+        val replies = mutableListOf<Pair<String, Long?>>()
+        val handler = createHandler(
+            gateway = gateway,
+            roomCapabilityPolicy = visionRoomPolicy(),
+            generalConversationPolicy = GeneralConversationPolicy.forTesting(emptySet()),
+            visionContextStore = contexts,
+            memoryStore = memory
+        ) { _, text, threadId -> replies += text to threadId }
+
+        handler.process(
+            incoming(
+                logId = 702L,
+                userId = 888L,
+                message = "선인장은 어느 쪽에 있어?",
+                threadId = 700L
+            )
+        )
+        handler.process(
+            incoming(
+                logId = 703L,
+                userId = 888L,
+                message = "그 이미지 다시 설명해줘"
+            )
+        )
+
+        assertEquals(2, gateway.requests.size)
+        assertTrue(gateway.requests.all { request ->
+            request.messages.any { it.content.contains("노란 가방") }
+        })
+        assertTrue(gateway.requests.all { request ->
+            request.messages.none { it.content.contains("소유자의 비공개") }
+        })
+        assertEquals(
+            listOf("왼쪽에 있어요." to 700L, "왼쪽에 있어요." to null),
+            replies
+        )
+        handler.close()
+    }
+
+    @Test
+    fun `unrelated plain chat is still ignored while recent image context exists`() = runBlocking {
+        val contexts = VisionConversationContextStore()
+        assertTrue(contexts.put(visionContext(ownerUserId = 777L)))
+        val gateway = RecordingGateway("호출되면 안 됨")
+        val traces = RequestTraceStore.inMemory()
+        val handler = createHandler(
+            gateway = gateway,
+            roomCapabilityPolicy = visionRoomPolicy(),
+            visionContextStore = contexts,
+            requestTraceStore = traces
+        ) { _, _, _ -> Unit }
+
+        handler.process(
+            incoming(logId = 106L, userId = 888L, message = "일본 여행 계획을 짜줘")
+        )
+
+        assertTrue(gateway.requests.isEmpty())
+        assertEquals(
+            RequestTraceStage.MODE_DISABLED,
+            traces.get(RequestTraceIds.from(CHAT_ID, 106L))?.stage
+        )
+        handler.close()
+    }
+
+    @Test
+    fun `personal memory clear also removes vision context`() = runBlocking {
+        val contexts = VisionConversationContextStore()
+        assertTrue(contexts.put(visionContext(ownerUserId = 999L)))
+        val handler = createHandler(
+            gateway = RecordingGateway("사용되면 안 됨"),
+            visionContextStore = contexts
+        ) { _, _, _ -> Unit }
+
+        handler.process(incoming(logId = 104L, message = "헤이봇 내 기억 초기화"))
+
+        assertEquals(0, contexts.stats().contexts)
+        handler.close()
+    }
+
+    @Test
+    fun `exact reply is ignored when image analysis capability is disabled`() = runBlocking {
+        val contexts = VisionConversationContextStore()
+        assertTrue(contexts.put(visionContext(ownerUserId = 999L, resultLogId = 700L)))
+        val gateway = RecordingGateway("사용되면 안 됨")
+        val handler = createHandler(
+            gateway = gateway,
+            roomCapabilityPolicy = RoomCapabilityPolicyStore.legacy(setOf(CHAT_ID)),
+            visionContextStore = contexts
+        ) { _, _, _ -> Unit }
+
+        handler.process(
+            incoming(
+                logId = 105L,
+                message = "가방 색은?",
+                threadId = 700L
+            )
+        )
+
+        assertTrue(gateway.requests.isEmpty())
+        handler.close()
+    }
+
     private fun createHandler(
         gateway: GlmGateway,
         nowMillis: () -> Long = { System.currentTimeMillis() },
@@ -978,6 +1112,7 @@ class GlmAutoReplyHandlerTest {
         requestTraceStore: RequestTraceStore = RequestTraceStore.inMemory(nowMillis),
         textDeliveryTracker: TextDeliveryTracker? = null,
         memoryStore: ConversationMemoryStore = InMemoryConversationMemoryStore(4, 30L * 60L * 1_000L),
+        visionContextStore: VisionConversationContextStore = VisionConversationContextStore(),
         reply: (Long, String, Long?) -> Unit
     ): GlmAutoReplyHandler = GlmAutoReplyHandler(
         settings = GlmSettings(
@@ -1006,7 +1141,8 @@ class GlmAutoReplyHandlerTest {
         roomCapabilityPolicy = roomCapabilityPolicy,
         requestTraceStore = requestTraceStore,
         textDeliveryTracker = textDeliveryTracker,
-        memoryStore = memoryStore
+        memoryStore = memoryStore,
+        visionContextStore = visionContextStore
     )
 
     private class TestConversationModeBackend : ConversationMemoryBackend {
@@ -1027,14 +1163,50 @@ class GlmAutoReplyHandlerTest {
         logId: Long = 1L,
         chatId: Long = CHAT_ID,
         userId: Long = 999L,
-        message: String
+        message: String,
+        threadId: Long? = null
     ) = GlmIncomingMessage(
         logId = logId,
         chatId = chatId,
         userId = userId,
         messageType = "1",
         message = message,
-        threadId = null
+        threadId = threadId
+    )
+
+    private fun visionContext(
+        ownerUserId: Long,
+        resultLogId: Long = 700L
+    ) = VisionConversationContext(
+        chatId = CHAT_ID,
+        ownerUserId = ownerUserId,
+        sourceLogId = 600L,
+        resultLogId = resultLogId,
+        task = VisionTask.DESCRIBE,
+        safeAnswer = "분홍 로봇 왼쪽에 선인장, 오른쪽에 노란 가방이 있습니다.",
+        uncertainty = "low",
+        capabilityRevision = 1L,
+        createdAtMillis = System.currentTimeMillis(),
+        expiresAtMillis = System.currentTimeMillis() + 60_000L
+    )
+
+    private fun visionRoomPolicy() = RoomCapabilityPolicyStore.forTesting(
+        rooms = listOf(
+            ManagedRoomCapability(
+                reference = "R01",
+                chatId = CHAT_ID,
+                label = "테스트",
+                textEnabled = true,
+                generalConversationEnabled = true,
+                imageEnabled = true,
+                videoEnabled = true,
+                imageAnalysisEnabled = true,
+                textRevision = 1L,
+                imageAnalysisRevision = 1L
+            )
+        ),
+        controlChatId = CHAT_ID,
+        backend = TestConversationModeBackend()
     )
 
     private class RecordingGateway(private val response: String) : GlmGateway {

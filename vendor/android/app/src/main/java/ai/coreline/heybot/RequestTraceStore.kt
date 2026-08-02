@@ -8,6 +8,7 @@ enum class RequestTraceKind {
     UNKNOWN,
     WAKE_WORD,
     GENERAL_CONVERSATION,
+    VISION_FOLLOW_UP,
     LOCAL_COMMAND,
     IMAGE,
     VIDEO,

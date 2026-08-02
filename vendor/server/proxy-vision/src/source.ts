@@ -21,12 +21,11 @@ export async function fetchSource(source: VisionSource, config: VisionConfig, si
   validateSource(source, config);
   const response = await fetch(source.url, {
     method: "GET", redirect: "manual", signal,
-    headers: { accept: "image/png,image/jpeg,image/webp" },
+    headers: { accept: "image/png,image/jpeg,image/webp,image/gif" },
   });
   if (response.status >= 300 && response.status < 400) throw new Error("SOURCE_REDIRECT_FORBIDDEN");
   if (!response.ok) throw new Error("SOURCE_FETCH_FAILED");
-  const mediaType = (response.headers.get("content-type") || "").split(";", 1)[0]!;
-  if (!["image/png", "image/jpeg", "image/webp"].includes(mediaType)) throw new Error("INVALID_IMAGE");
+  const declaredMediaType = (response.headers.get("content-type") || "").split(";", 1)[0]!.trim().toLowerCase();
   const length = Number(response.headers.get("content-length") || 0);
   if (length && (length > config.imageMaxBytes || length !== source.declaredBytes)) throw new Error("SOURCE_SIZE_MISMATCH");
   const data = Buffer.from(await response.arrayBuffer());
@@ -35,6 +34,11 @@ export async function fetchSource(source: VisionSource, config: VisionConfig, si
   const png=data.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
   const jpeg=data[0]===0xff && data[1]===0xd8 && data.at(-2)===0xff && data.at(-1)===0xd9;
   const webp=data.subarray(0,4).toString("ascii")==="RIFF" && data.subarray(8,12).toString("ascii")==="WEBP";
-  if (!((mediaType==="image/png"&&png)||(mediaType==="image/jpeg"&&jpeg)||(mediaType==="image/webp"&&webp))) throw new Error("INVALID_IMAGE");
+  const gif=data.subarray(0,6).toString("ascii")==="GIF87a" || data.subarray(0,6).toString("ascii")==="GIF89a";
+  const mediaType = png ? "image/png" : jpeg ? "image/jpeg" : webp ? "image/webp" : gif ? "image/gif" : "";
+  if (!mediaType) throw new Error("INVALID_IMAGE");
+  if (declaredMediaType && declaredMediaType !== "application/octet-stream" && declaredMediaType !== mediaType) {
+    throw new Error("INVALID_IMAGE");
+  }
   return {data,mediaType};
 }

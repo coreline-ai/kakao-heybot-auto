@@ -64,9 +64,17 @@ class GlmAutoReplyHandler(
         ),
     private val selfTestRunner: SelfTestRunner = SelfTestRunner.production(),
     private val requestTraceStore: RequestTraceStore = RequestTraceStore.inMemory(nowMillis),
-    private val textDeliveryTracker: TextDeliveryTracker? = null
+    private val textDeliveryTracker: TextDeliveryTracker? = null,
+    private val visionContextStore: VisionConversationContextStore =
+        VisionConversationContextStore()
 ) {
     private val commandRouter = BotCommandRouter(settings.trigger)
+    private val visionContextResolver = VisionConversationContextResolver(
+        visionContextStore,
+        roomCapabilityPolicy,
+        nowMillis,
+        settings.visionSharedFollowUpWindowMillis
+    )
     private val memoryReady = CompletableDeferred<Unit>()
     private val admission = RequestAdmissionController(
         roomWindowMillis = settings.roomRateWindowMillis,
@@ -84,7 +92,12 @@ class GlmAutoReplyHandler(
         process = { queued ->
             val modeSnapshot = queued.generalConversation
             if (modeSnapshot == null) {
-                executeQuestion(queued.incoming, queued.question, queued.roomCapabilityRevision)
+                executeQuestion(
+                    queued.incoming,
+                    queued.question,
+                    queued.roomCapabilityRevision,
+                    queued.visionResultLogId
+                )
             } else {
                 executeGeneralConversation(
                     queued.incoming,
@@ -110,6 +123,8 @@ class GlmAutoReplyHandler(
             }.onFailure {
                 log("Conversation memory initialization failed: ${it::class.simpleName}")
             }
+            val vision = visionContextStore.stats(nowMillis())
+            log("Vision conversation context ready=${vision.ready} contexts=${vision.contexts}")
             memoryReady.complete(Unit)
         }
         log(
@@ -124,6 +139,17 @@ class GlmAutoReplyHandler(
         requestTraceStore.ensureReceived(incoming)
         val command = commandRouter.route(incoming.message)
         if (command == null) {
+            val exactVision = visionContextResolver.exact(incoming)
+            val implicitVision = exactVision ?: visionContextResolver.implicit(incoming)
+            if (implicitVision != null) {
+                requestTraceStore.record(
+                    incoming.traceId,
+                    RequestTraceStage.CLASSIFIED,
+                    kind = RequestTraceKind.VISION_FOLLOW_UP
+                )
+                submitVisionFollowUp(incoming, implicitVision.resultLogId)
+                return
+            }
             requestTraceStore.record(
                 incoming.traceId,
                 RequestTraceStage.CLASSIFIED,
@@ -231,6 +257,18 @@ class GlmAutoReplyHandler(
         requestTraceStore.ensureReceived(incoming)
         val command = commandRouter.route(incoming.message)
         if (command == null) {
+            val exactVision = visionContextResolver.exact(incoming)
+            val implicitVision = exactVision ?: visionContextResolver.implicit(incoming)
+            if (implicitVision != null) {
+                requestTraceStore.record(
+                    incoming.traceId,
+                    RequestTraceStage.CLASSIFIED,
+                    kind = RequestTraceKind.VISION_FOLLOW_UP
+                )
+                memoryReady.await()
+                processVisionFollowUp(incoming, implicitVision.resultLogId)
+                return
+            }
             requestTraceStore.record(
                 incoming.traceId,
                 RequestTraceStage.CLASSIFIED,
@@ -337,9 +375,20 @@ class GlmAutoReplyHandler(
         incoming: GlmIncomingMessage,
         question: String,
         generalConversation: GeneralConversationModeSnapshot? = null,
-        roomCapabilityRevision: Long
+        roomCapabilityRevision: Long,
+        visionResultLogId: Long? = null
     ) {
-        when (scheduler.submit(QueuedGlmRequest(incoming, question, generalConversation, roomCapabilityRevision))) {
+        when (
+            scheduler.submit(
+                QueuedGlmRequest(
+                    incoming,
+                    question,
+                    generalConversation,
+                    roomCapabilityRevision,
+                    visionResultLogId
+                )
+            )
+        ) {
             is GlmQueueSubmitResult.Accepted -> Unit
             GlmQueueSubmitResult.RoomQueueFull,
             GlmQueueSubmitResult.TotalQueueFull -> {
@@ -363,6 +412,99 @@ class GlmAutoReplyHandler(
                 log("GLM scheduler is closed; request skipped")
             }
         }
+    }
+
+    private fun submitVisionFollowUp(incoming: GlmIncomingMessage, resultLogId: Long) {
+        val textRevision = admitVisionFollowUp(incoming) ?: return
+        when (val result = admission.admit(incoming)) {
+            AdmissionResult.Accepted -> {
+                requestTraceStore.record(incoming.traceId, RequestTraceStage.ADMITTED)
+                submitToQueue(
+                    incoming = incoming,
+                    question = incoming.message.trim(),
+                    roomCapabilityRevision = textRevision,
+                    visionResultLogId = resultLogId
+                )
+            }
+            AdmissionResult.DuplicateLog,
+            AdmissionResult.DuplicateMessage -> requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.DUPLICATE,
+                reasonCode = "DUPLICATE_REQUEST"
+            )
+            is AdmissionResult.RoomRateLimited,
+            is AdmissionResult.UserRateLimited -> {
+                metrics.recordRateLimitDrop()
+                requestTraceStore.record(
+                    incoming.traceId,
+                    RequestTraceStage.RATE_LIMITED,
+                    reasonCode = "REQUEST_RATE_LIMIT"
+                )
+            }
+        }
+    }
+
+    private suspend fun processVisionFollowUp(incoming: GlmIncomingMessage, resultLogId: Long) {
+        val textRevision = admitVisionFollowUp(incoming) ?: return
+        when (val result = admission.admit(incoming)) {
+            AdmissionResult.Accepted -> {
+                requestTraceStore.record(incoming.traceId, RequestTraceStage.ADMITTED)
+                executeQuestion(
+                    incoming,
+                    incoming.message.trim(),
+                    textRevision,
+                    resultLogId
+                )
+            }
+            AdmissionResult.DuplicateLog,
+            AdmissionResult.DuplicateMessage -> requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.DUPLICATE,
+                reasonCode = "DUPLICATE_REQUEST"
+            )
+            is AdmissionResult.RoomRateLimited,
+            is AdmissionResult.UserRateLimited -> {
+                metrics.recordRateLimitDrop()
+                requestTraceStore.record(
+                    incoming.traceId,
+                    RequestTraceStage.RATE_LIMITED,
+                    reasonCode = "REQUEST_RATE_LIMIT"
+                )
+            }
+        }
+    }
+
+    private fun admitVisionFollowUp(incoming: GlmIncomingMessage): Long? {
+        if (!roomCapabilityPolicy.allows(incoming.chatId, RoomCapability.TEXT)) {
+            requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.POLICY_DENIED,
+                reasonCode = "TEXT_CAPABILITY_DISABLED"
+            )
+            return null
+        }
+        if (!roomCapabilityPolicy.allows(incoming.chatId, RoomCapability.IMAGE_ANALYSIS)) {
+            requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.POLICY_DENIED,
+                reasonCode = "IMAGE_ANALYSIS_CAPABILITY_DISABLED"
+            )
+            return null
+        }
+        if (!generalConversationPolicy.allowsUser(incoming.chatId, incoming.userId)) {
+            metrics.recordGeneralPolicyDrop()
+            requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.POLICY_DENIED,
+                reasonCode = "VISION_FOLLOW_UP_USER_POLICY_DENIED"
+            )
+            return null
+        }
+        val revision = roomCapabilityPolicy.snapshot()
+            .capabilityRevision(incoming.chatId, RoomCapability.TEXT)
+            ?: return null
+        requestTraceStore.record(incoming.traceId, RequestTraceStage.POLICY_ALLOWED)
+        return revision
     }
 
     private fun submitGeneralConversation(incoming: GlmIncomingMessage) {
@@ -493,16 +635,31 @@ class GlmAutoReplyHandler(
     private suspend fun executeQuestion(
         incoming: GlmIncomingMessage,
         question: String,
-        roomCapabilityRevision: Long
+        roomCapabilityRevision: Long,
+        visionResultLogId: Long? = null
     ) {
         if (!roomCapabilityPolicy.isCurrent(roomCapabilityRevision, incoming.chatId, RoomCapability.TEXT)) return
         memoryReady.await()
         val now = nowMillis()
         val key = ConversationKey(incoming.chatId, incoming.userId)
         val history = memoryStore.history(key, now)
+        val visionContext = if (visionResultLogId != null) {
+            visionContextResolver.exact(incoming.copy(threadId = visionResultLogId))
+        } else {
+            visionContextResolver.forConversation(incoming)
+        }
+        if (visionResultLogId != null && visionContext == null) {
+            requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.POLICY_DENIED,
+                reasonCode = "VISION_CONTEXT_UNAVAILABLE"
+            )
+            safeReply(incoming, "이미지 대화 문맥이 만료되었거나 사용할 수 없어요. 이미지를 다시 분석해주세요.")
+            return
+        }
         val request = GlmChatRequest(
             model = settings.model,
-            messages = buildPrompt(question, history),
+            messages = buildPrompt(question, history, visionContext),
             temperature = settings.temperature,
             maxTokens = settings.maxTokens
         )
@@ -582,11 +739,13 @@ class GlmAutoReplyHandler(
         val key = ConversationKey(incoming.chatId, incoming.userId)
         val now = nowMillis()
         val pendingMessages = generalConversationPendingStore.messages(key, now)
+        val visionContext = visionContextResolver.forConversation(incoming)
         val request = generalConversationArbiter.buildRequest(
             settings = settings,
             message = message,
             history = memoryStore.history(key, now),
-            pendingMessages = pendingMessages
+            pendingMessages = pendingMessages,
+            visionContext = visionContext
         )
 
         requestTraceStore.record(
@@ -785,11 +944,12 @@ class GlmAutoReplyHandler(
                 )
             }
             BotCommand.ClearMyMemory -> {
-                val saved = memoryStore.clear(ConversationKey(incoming.chatId, incoming.userId))
+                val memorySaved = memoryStore.clear(ConversationKey(incoming.chatId, incoming.userId))
+                val visionSaved = visionContextStore.clear(incoming.chatId, incoming.userId)
                 generalConversationPendingStore.clear(ConversationKey(incoming.chatId, incoming.userId))
                 safeReply(
                     incoming,
-                    if (saved) "이 방에서 나눈 내 대화 기억을 초기화했어요."
+                    if (memorySaved && visionSaved) "이 방에서 나눈 내 대화와 이미지 분석 기억을 초기화했어요."
                     else "기억은 지웠지만 저장 상태를 확인해주세요."
                 )
             }
@@ -807,21 +967,23 @@ class GlmAutoReplyHandler(
             }
 
             BotCommand.ClearAllMemory -> runAdminCommand(incoming, "clear-all-memory") {
-                val saved = memoryStore.clearAll()
+                val memorySaved = memoryStore.clearAll()
+                val visionSaved = visionContextStore.clearAll()
                 generalConversationPendingStore.clearAll()
                 safeReply(
                     incoming,
-                    if (saved) "전체 대화 기억을 초기화했어요."
+                    if (memorySaved && visionSaved) "전체 대화와 이미지 분석 기억을 초기화했어요."
                     else "기억은 지웠지만 저장 상태를 확인해주세요."
                 )
             }
 
             is BotCommand.ClearUserMemory -> runAdminCommand(incoming, "clear-user-memory") {
-                val saved = memoryStore.clearUser(command.targetUserId)
+                val memorySaved = memoryStore.clearUser(command.targetUserId)
+                val visionSaved = visionContextStore.clearUser(command.targetUserId)
                 generalConversationPendingStore.clearUser(command.targetUserId)
                 safeReply(
                     incoming,
-                    if (saved) "해당 사용자의 대화 기억을 초기화했어요."
+                    if (memorySaved && visionSaved) "해당 사용자의 대화와 이미지 분석 기억을 초기화했어요."
                     else "기억은 지웠지만 저장 상태를 확인해주세요."
                 )
             }
@@ -1009,6 +1171,7 @@ class GlmAutoReplyHandler(
             null -> "메모리"
         }
         val now = nowMillis()
+        val vision = visionContextStore.stats(now)
         val lastSuccess = metric.lastSuccessAtMillis?.let { elapsedLabel(now - it) } ?: "-"
         val lastFailure = metric.lastFailureAtMillis?.let {
             "${metric.lastFailureType ?: "Unknown"} ${elapsedLabel(now - it)}"
@@ -1034,7 +1197,8 @@ class GlmAutoReplyHandler(
                 "${metric.generalConversationTruncationRetries} | " +
                 "일반회로 ${if (circuit.tripped) "차단" else "정상"}/" +
                 "${metric.generalCircuitTrips}회/${circuit.lastReason?.name ?: "-"} | " +
-                "기억 ${memory.conversations}명/${memory.turns}턴, 저장 $persistence"
+                "기억 ${memory.conversations}명/${memory.turns}턴, 저장 $persistence | " +
+                "이미지문맥 ${vision.contexts}개/${if (vision.ready) "정상" else "차단"}"
             ).take(MAX_REPLY_LENGTH)
     }
 
@@ -1066,7 +1230,10 @@ class GlmAutoReplyHandler(
                 "${settings.roomQueueCapacity}/${settings.totalQueueCapacity} | " +
                 "방 ${settings.roomRateWindowMillis / 1000}초 ${settings.roomRateMaxRequests}회 | " +
                 "사용자 ${settings.userRateWindowMillis / 1000}초 ${settings.userRateMaxRequests}회 | " +
-                "기억 ${settings.memoryMaxTurns}턴/${settings.memoryTtlMillis / 60_000}분"
+                "기억 ${settings.memoryMaxTurns}턴/${settings.memoryTtlMillis / 60_000}분 | " +
+                "이미지문맥 ${settings.visionContextMaxPerOwner}개/" +
+                "${settings.visionContextTtlMillis / 60_000}분/" +
+                "공유 ${settings.visionSharedFollowUpWindowMillis / 60_000}분"
             ).take(MAX_REPLY_LENGTH)
         }
 
@@ -1228,13 +1395,15 @@ class GlmAutoReplyHandler(
 
     private fun buildPrompt(
         question: String,
-        history: List<ConversationTurn>
+        history: List<ConversationTurn>,
+        visionContext: VisionConversationContext? = null
     ): List<GlmMessage> = buildList {
         add(GlmMessage(role = "system", content = HeybotPersona.wakeWordPrompt()))
         history.forEach { turn ->
             add(GlmMessage(role = "user", content = turn.userMessage))
             add(GlmMessage(role = "assistant", content = turn.assistantMessage))
         }
+        visionContext?.let { add(VisionConversationContextRenderer.render(it)) }
         add(GlmMessage(role = "user", content = question))
     }
 

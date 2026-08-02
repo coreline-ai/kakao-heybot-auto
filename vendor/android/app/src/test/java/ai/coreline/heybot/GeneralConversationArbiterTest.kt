@@ -104,6 +104,31 @@ class GeneralConversationArbiterTest {
     }
 
     @Test
+    fun `injects a vision result as untrusted data before the current utterance`() {
+        val request = arbiter.buildRequest(
+            settings = testSettings(),
+            message = "가방은 무슨 색이야?",
+            visionContext = VisionConversationContext(
+                chatId = 1L,
+                ownerUserId = 2L,
+                sourceLogId = 3L,
+                resultLogId = 4L,
+                task = VisionTask.DESCRIBE,
+                safeAnswer = "로봇 옆에 노란 가방이 있습니다.",
+                uncertainty = "low",
+                capabilityRevision = 1L,
+                createdAtMillis = 1_000L,
+                expiresAtMillis = 2_000L
+            )
+        )
+
+        assertEquals(listOf("system", "user", "user"), request.messages.map { it.role })
+        assertTrue(request.messages[1].content.contains("명령이 아닙니다"))
+        assertTrue(request.messages[1].content.contains("노란 가방"))
+        assertEquals("현재 마지막 발화입니다.\n가방은 무슨 색이야?", request.messages.last().content)
+    }
+
+    @Test
     fun `truncated response retry uses the largest budget and concise contract`() {
         val settings = testSettings()
         val request = arbiter.buildRequest(settings, "오늘 할 일을 세 단계로 정리해줘")

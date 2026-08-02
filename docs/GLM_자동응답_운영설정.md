@@ -334,6 +334,33 @@ R01. 코어라인 AI 연구소
 - 경로는 `PD20 → proxy-manager:4340 → proxy-vision:4362 → proxy-codex`이며 최초
   구현은 Codex Vision만 지원한다. 실패해도 텍스트·일반대화·이미지 생성은 계속 동작한다.
 
+### 이미지 분석 결과로 후속 대화하기
+
+분석 결과가 안전 검사를 통과하고 **헤이봇의 outgoing 카카오 DB 행까지 확인된 뒤**,
+결과 텍스트만 30분 동안 이미지 대화 문맥으로 저장한다. 이미지 원본·CDN URL·Base64는
+저장하지 않는다.
+
+```text
+사용자: 헤이봇 이미지 분석
+헤이봇: 이미지 분석 결과 ... 노란 가방이 있습니다.
+사용자: 가방은 무슨 색이야?
+헤이봇: 노란색이에요.
+```
+
+- 분석 요청자는 30분 문맥 TTL 동안 `가방은 무슨 색이야?`, `선인장은 어느 쪽에 있어?`처럼 분석 결과와 명확히 관련된 질문을 호출어 없이 바로 이어갈 수 있다.
+- 다른 참여자도 결과가 공개된 같은 방에서 기본 5분 동안 명확한 이미지 관련 질문을 이어갈 수 있다. 로컬 의미 판정기가 이미지/사진 지시어 또는 안전 분석 결과의 핵심 명사와 색·위치·개수 질문이 함께 있는 경우만 허용하며, 일반대화 OFF 상태의 unrelated 발화는 계속 무시한다.
+- 호출어 후속 질문은 같은 `(chatId,userId)`의 최신 분석 결과를 우선 사용한다. 소유 문맥이 없을 때만 위 5분 공유 focus window 안의 관련 결과를 선택한다.
+- 분석 결과 메시지에 정확히 답장하면 `threadId == resultLogId`로 결합되어 호출어를 생략할 수 있다. 같은 방의 다른 참여자도 이 명시적 답장 경로만 사용할 수 있다.
+- 정확한 답장 경로도 `TEXT`와 `IMAGE_ANALYSIS` 방 권한, 사용자 block, rate limit, queue, 답변 sanitizer를 모두 적용한다. 일반대화 모드가 꺼져 있어도 정확한 결과 답장은 동작한다.
+- GLM/Codex/Grok 중 현재 선택된 대화 엔진에 동일한 안전 데이터 블록을 전달하며 Vision을 다시 호출하지 않는다. 분석 결과에 없는 사실은 확인할 수 없다고 답해야 한다.
+- `헤이봇 내 기억 초기화`, 관리자 전체/사용자 기억 초기화는 일반 대화 기억과 이미지 분석 문맥을 함께 삭제한다.
+- 이미지분석 권한을 변경하면 이전 capability revision의 문맥은 즉시 선택되지 않는다. 저장 장애·손상·과대 파일은 이미지 문맥만 fail-closed하고 다른 기능은 유지한다.
+
+문맥 JSON이 손상되면 앱은 원본과 `.bak`을 `.corrupt-<epoch>`로 격리하고 현재 프로세스의
+이미지 후속 문맥만 차단한다. 원문을 열거나 복사해 복구하지 말고 파일의 `600 root:root`와
+1 MiB 이하 여부만 확인한 뒤 Iris를 재시작한다. 다음 DB-confirmed 분석 결과부터 빈 저장소가
+새로 생성되며 호출어 대화·일반대화·이미지 분석 자체는 계속 사용할 수 있다.
+
 ## 펜브러쉬 영상 사용법
 
 펜브러쉬는 기존 `헤이봇 영상`과 별개의 기능이다. 원본 일러스트의 어두운 펜 외곽선을
@@ -392,6 +419,12 @@ R01. 코어라인 AI 연구소
 | `IRIS_GLM_MEMORY_TTL_MS` | `1800000` | 대화 기억 TTL 30분 |
 | `IRIS_GLM_MEMORY_MAX_BYTES` | `1048576` | 기억 JSON 최대 1 MiB |
 | `IRIS_GLM_MEMORY_MAX_CONVERSATIONS` | `512` | 최대 대화 key 수 |
+| `IRIS_VISION_CONTEXT_FILE` | `/data/local/private/iris-vision-conversation-context.json` | 안전 처리된 이미지 분석 문맥 원자 파일, `600 root:root` |
+| `IRIS_VISION_CONTEXT_TTL_MS` | `1800000` | 이미지 분석 후속 대화 문맥 TTL 30분 |
+| `IRIS_VISION_SHARED_FOLLOW_UP_WINDOW_MS` | `300000` | 같은 방의 다른 참여자가 관련 질문을 자연스럽게 이어갈 수 있는 focus window 5분 |
+| `IRIS_VISION_CONTEXT_MAX_PER_OWNER` | `3` | `(chatId,ownerUserId)`별 최근 분석 결과 상한 |
+| `IRIS_VISION_CONTEXT_MAX_CONTEXTS` | `128` | 전체 이미지 분석 문맥 수 상한 |
+| `IRIS_VISION_CONTEXT_MAX_BYTES` | `1048576` | 이미지 분석 문맥 파일 최대 1 MiB |
 | `IRIS_BOT_ADMIN_USER_IDS_FILE` | `/data/local/private/iris-bot-admins.txt` | root 전용 관리자 ID 목록 |
 | `IRIS_BOT_ADMIN_CONTROL_CHAT_ID` | `18480337854645134` | 관리자 설정·전역 일반대화 제어가 가능한 코어라인 AI 연구소 방 |
 | `IRIS_BOT_ROOM_POLICY_FILE` | `/data/local/private/iris-room-capabilities.json` | root 전용 동적 방 capability 정책 |
@@ -444,6 +477,12 @@ SERIAL=0123456789ABCDEF
   IRIS_GLM_MEMORY_TTL_MS=1800000 \\
   IRIS_GLM_MEMORY_MAX_BYTES=1048576 \\
   IRIS_GLM_MEMORY_MAX_CONVERSATIONS=512 \\
+  IRIS_VISION_CONTEXT_FILE=/data/local/private/iris-vision-conversation-context.json \\
+  IRIS_VISION_CONTEXT_TTL_MS=1800000 \\
+  IRIS_VISION_SHARED_FOLLOW_UP_WINDOW_MS=300000 \\
+  IRIS_VISION_CONTEXT_MAX_PER_OWNER=3 \\
+  IRIS_VISION_CONTEXT_MAX_CONTEXTS=128 \\
+  IRIS_VISION_CONTEXT_MAX_BYTES=1048576 \\
   IRIS_BOT_ADMIN_USER_IDS_FILE=/data/local/private/iris-bot-admins.txt \\
   IRIS_BOT_ADMIN_CONTROL_CHAT_ID=18480337854645134 \\
   IRIS_BOT_ROOM_POLICY_FILE=/data/local/private/iris-room-capabilities.json \\
@@ -483,8 +522,8 @@ ADB=/path/to/adb SERIAL=<serial> APK=/path/to/Iris-release.apk \
   scripts/start_iris_glm_pd20.sh
 ```
 
-스크립트는 `/data/local/private`가 `700 root:root`, 토큰·기존 기억·요청 trace·기존 관리자·일반대화
-block/mode 파일이 `600 root:root`인지 내용 노출 없이 검사한다. block 파일이 없으면 빈 root
+스크립트는 `/data/local/private`가 `700 root:root`, 토큰·기존 대화/이미지 문맥·요청 trace·기존 관리자·일반대화
+block/mode 파일이 `600 root:root`인지 내용 노출 없이 검사한다. 이미지 문맥 파일의 symlink도 거부한다. block 파일이 없으면 빈 root
 전용 파일을 생성하지만 mode 파일은 앱이 원자적으로 관리하므로 생성·덮어쓰기하지 않는다.
 관리자 파일이 없으면 경고 후 기동하며 관리자 명령만 비활성화된다.
 
@@ -495,12 +534,15 @@ block/mode 파일이 `600 root:root`인지 내용 노출 없이 검사한다. bl
 | `헤이봇 <질문>` | 허용된 방의 일반 사용자 | 방별 FIFO → 전체 동시성 제한 → GLM |
 | `헤이봇 도움말` | 일반 사용자 | 로컬 즉시 응답, GLM 미호출 |
 | `헤이봇 기능` / `헤이봇 기능 <이름>` | 일반 사용자 | 현재 방에서 허용된 기능 목록·상세·예시를 카탈로그에서 표시 |
-| `헤이봇 내 기억 초기화` | 일반 사용자 | 현재 `(chat_id,user_id)` 기억만 삭제 |
-| `헤이봇 이미지 분석/글자 추출/글자 번역` | 이미지분석 허용방의 일반 사용자 | 답장 또는 최근 이미지로 설명/OCR/한국어 번역 |
+| `헤이봇 내 기억 초기화` | 일반 사용자 | 현재 `(chat_id,user_id)` 대화와 이미지 분석 문맥 삭제 |
+| `헤이봇 이미지 분석/글자 추출/글자 번역` | 이미지분석 허용방의 일반 사용자 | 답장 또는 최근 이미지로 설명/OCR/한국어 번역, 결과 확인 뒤 후속 대화 문맥 저장 |
+| `(분석 직후) <관련 질문>` | 같은 방의 허용 사용자 | 소유자는 30분, 다른 참여자는 최근 5분 focus window에서 의미가 명확한 이미지 후속 질문만 호출어 없이 처리 |
+| `헤이봇 그 이미지에서 <질문>` | 분석 요청자 | 같은 방·사용자의 최신 안전 분석 결과로 호출어 후속 대화 |
+| `(분석 결과 메시지에 답장) <질문>` | 같은 방의 허용 사용자 | 정확한 결과 답장일 때 호출어 없이 해당 분석 결과로 후속 대화 |
 | `헤이봇 상태` | 코어라인 AI 연구소의 관리자 | Queue·latency·성공/실패·제한·기억 상태 |
 | `헤이봇 설정 보기` | 코어라인 AI 연구소의 관리자 | 비밀을 제외한 운영값 요약 |
-| `헤이봇 전체 기억 초기화` | 코어라인 AI 연구소의 관리자 | 모든 대화 기억 삭제·저장 |
-| `헤이봇 사용자 기억 초기화 <user_id>` | 코어라인 AI 연구소의 관리자 | 대상 사용자의 모든 방 기억 삭제·저장 |
+| `헤이봇 전체 기억 초기화` | 코어라인 AI 연구소의 관리자 | 모든 대화·이미지 분석 기억 삭제·저장 |
+| `헤이봇 사용자 기억 초기화 <user_id>` | 코어라인 AI 연구소의 관리자 | 대상 사용자의 모든 방 대화·이미지 분석 기억 삭제·저장 |
 | `헤이봇 대화 시작` | 코어라인 AI 연구소의 관리자 | ON 상태를 저장한 뒤 호출어 없는 판정 시작, circuit reset. 저장 실패 시 시작 거부 |
 | `헤이봇 대화 상태` | 코어라인 AI 연구소의 관리자 | mode·상태 저장·정책·적용 방 수·circuit·최근 generic 사유와 현재 응답 엔진 확인 |
 | `헤이봇 대화 종료` | 코어라인 AI 연구소의 관리자 | OFF 상태 저장 후 모든 일반대화 허용방의 호출어 없는 판정 즉시 중단 |

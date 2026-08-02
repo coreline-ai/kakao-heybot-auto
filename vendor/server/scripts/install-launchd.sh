@@ -14,6 +14,7 @@ fi
 NODE_BIN="$(command -v node)"
 CODEX_BIN="$(command -v codex)"
 FFPROBE_BIN="$(command -v ffprobe)"
+FFMPEG_BIN="$(command -v ffmpeg)"
 ADB_BIN="${ADB:-$HOME/Library/Android/sdk/platform-tools/adb}"
 GROK_CLI_COMMAND="${GROK_PROXY_CLI_COMMAND:-$HOME/.grok/bin/grok}"
 GROK_CLI_HOME="${GROK_PROXY_CLI_HOME:-$HOME}"
@@ -162,6 +163,10 @@ write_proxy_plist() {
     extra_environment="
       <key>VIDEO_PROXY_FFPROBE_COMMAND</key>
       <string>$(xml_escape "$FFPROBE_BIN")</string>"
+  elif [[ "$id" == "vision" ]]; then
+    extra_environment="
+      <key>VISION_PROXY_FFMPEG_COMMAND</key>
+      <string>$(xml_escape "$FFMPEG_BIN")</string>"
   fi
   cat >"$output" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>

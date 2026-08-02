@@ -21,10 +21,20 @@ class TextDeliveryTracker(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 ) {
     private val pendingByRoom = ConcurrentHashMap<Long, ConcurrentLinkedQueue<PendingTextDelivery>>()
-    private val confirmations = ConcurrentHashMap<String, CompletableDeferred<Boolean>>()
+    private val confirmations = ConcurrentHashMap<String, CompletableDeferred<Long?>>()
 
     fun enqueued(traceId: String, chatId: Long, message: String, threadId: Long?) {
         if (traces.get(traceId) == null) return
+        // A coordinator can send progress and final text under one request
+        // trace. Only the newest text may satisfy an awaiting final delivery;
+        // superseded progress rows must not time out and overwrite that trace.
+        pendingByRoom[chatId]?.filter { it.traceId == traceId && !it.confirmed }
+            ?.forEach { previous ->
+                previous.confirmed = true
+                previous.confirmation.complete(null)
+                remove(chatId, previous)
+            }
+        confirmations.remove(traceId)?.complete(null)
         val pending = PendingTextDelivery(
             traceId = traceId,
             digest = digest(message),
@@ -32,7 +42,6 @@ class TextDeliveryTracker(
             enqueuedAtMillis = nowMillis(),
             confirmation = CompletableDeferred()
         )
-        confirmations[traceId]?.complete(false)
         confirmations[traceId] = pending.confirmation
         pendingByRoom.computeIfAbsent(chatId) { ConcurrentLinkedQueue() }.add(pending)
         traces.record(traceId, RequestTraceStage.ENQUEUED)
@@ -41,7 +50,7 @@ class TextDeliveryTracker(
             if (!pending.confirmed) {
                 pending.timedOut = true
                 traces.record(traceId, RequestTraceStage.UNCONFIRMED, reasonCode = "KAKAO_DB_TIMEOUT")
-                pending.confirmation.complete(false)
+                pending.confirmation.complete(null)
                 delay((lateWindowMillis - confirmTimeoutMillis).coerceAtLeast(0L))
                 remove(chatId, pending)
                 confirmations.remove(traceId, pending.confirmation)
@@ -60,7 +69,7 @@ class TextDeliveryTracker(
         )
         if (result.isFailure) {
             pending.confirmed = true
-            pending.confirmation.complete(false)
+            pending.confirmation.complete(null)
             remove(chatId, pending)
         }
     }
@@ -79,13 +88,18 @@ class TextDeliveryTracker(
             pending.traceId,
             if (pending.timedOut) RequestTraceStage.DB_CONFIRMED_LATE else RequestTraceStage.DB_CONFIRMED
         )
-        pending.confirmation.complete(true)
+        pending.confirmation.complete(incoming.logId)
         remove(incoming.chatId, pending)
     }
 
     /** Waits for the matching outgoing Kakao DB row, not merely service dispatch. */
     suspend fun awaitConfirmation(traceId: String): Boolean {
-        val deferred = confirmations[traceId] ?: return false
+        return awaitConfirmedLogId(traceId) != null
+    }
+
+    /** Returns the actual outgoing Kakao DB log ID after a digest/thread match. */
+    suspend fun awaitConfirmedLogId(traceId: String): Long? {
+        val deferred = confirmations[traceId] ?: return null
         return try {
             deferred.await()
         } finally {
@@ -95,7 +109,7 @@ class TextDeliveryTracker(
 
     fun close() {
         pendingByRoom.clear()
-        confirmations.values.forEach { it.complete(false) }
+        confirmations.values.forEach { it.complete(null) }
         confirmations.clear()
         scope.cancel()
     }
@@ -121,7 +135,7 @@ class TextDeliveryTracker(
         val digest: String,
         val threadId: Long?,
         val enqueuedAtMillis: Long,
-        val confirmation: CompletableDeferred<Boolean>,
+        val confirmation: CompletableDeferred<Long?>,
         @Volatile var timedOut: Boolean = false,
         @Volatile var confirmed: Boolean = false
     )

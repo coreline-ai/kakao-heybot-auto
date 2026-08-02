@@ -1,6 +1,7 @@
 package ai.coreline.heybot
 
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -113,6 +114,57 @@ class RequestTraceStoreTest {
         )
 
         assertEquals(RequestTraceStage.ENQUEUED, store.get(request.traceId)?.stage)
+        tracker.close()
+    }
+
+    @Test
+    fun `delivery tracker returns the matched outgoing Kakao log id`() = runBlocking {
+        val store = RequestTraceStore.inMemory()
+        val request = incoming(16L, 30L).copy(threadId = 700L)
+        store.received(request, RequestTraceKind.VISION)
+        val tracker = TextDeliveryTracker(
+            botId = 999L,
+            traces = store,
+            confirmTimeoutMillis = 1_000L,
+            lateWindowMillis = 2_000L
+        )
+
+        tracker.enqueued(request.traceId, request.chatId, "이미지 분석 결과", request.threadId)
+        val confirmation = async { tracker.awaitConfirmedLogId(request.traceId) }
+        tracker.onIncoming(
+            request.copy(
+                logId = 321L,
+                userId = 999L,
+                message = "이미지 분석 결과",
+                threadId = 700L
+            )
+        )
+
+        assertEquals(321L, confirmation.await())
+        tracker.close()
+    }
+
+    @Test
+    fun `new text under one trace supersedes progress delivery without a late timeout`() = runBlocking {
+        val store = RequestTraceStore.inMemory()
+        val request = incoming(17L, 30L)
+        store.received(request, RequestTraceKind.VISION)
+        val tracker = TextDeliveryTracker(
+            botId = 999L,
+            traces = store,
+            confirmTimeoutMillis = 30L,
+            lateWindowMillis = 60L
+        )
+
+        tracker.enqueued(request.traceId, request.chatId, "분석 시작", null)
+        tracker.enqueued(request.traceId, request.chatId, "분석 결과", null)
+        val confirmation = async { tracker.awaitConfirmedLogId(request.traceId) }
+        tracker.onIncoming(request.copy(logId = 400L, userId = 999L, message = "분석 시작"))
+        tracker.onIncoming(request.copy(logId = 401L, userId = 999L, message = "분석 결과"))
+
+        assertEquals(401L, confirmation.await())
+        delay(40L)
+        assertEquals(RequestTraceStage.DB_CONFIRMED, store.get(request.traceId)?.stage)
         tracker.close()
     }
 

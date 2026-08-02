@@ -17,6 +17,7 @@ GENERAL_CONVERSATION_BLOCK_FILE=/data/local/private/iris-general-conversation-bl
 GENERAL_CONVERSATION_MODE_FILE=/data/local/private/iris-general-conversation-mode.json
 ROOM_CAPABILITY_POLICY_FILE=/data/local/private/iris-room-capabilities.json
 MEMORY_FILE=/data/local/private/iris-bot-memory.json
+VISION_CONTEXT_FILE=/data/local/private/iris-vision-conversation-context.json
 REQUEST_TRACE_FILE=/data/local/private/iris-request-traces.json
 IMAGE_PROXY_SECRET_FILE=/data/local/private/iris-image-proxy.token
 IMAGE_STATE_FILE=/data/local/private/iris-image-jobs.json
@@ -247,6 +248,21 @@ if [[ "$memory_metadata" != "missing" && "$memory_metadata" != "600 root:root" ]
   fail "Memory file must be mode 600 and root:root (current: $memory_metadata)"
 fi
 
+# This file contains only safety-filtered image result text and correlation
+# IDs. Iris creates it atomically; deployment rejects links and wrong owners.
+vision_context_metadata="$($ADB -s "$SERIAL" shell "su root sh -c '
+  if [ -L $VISION_CONTEXT_FILE ]; then echo symlink; exit 0; fi
+  if [ ! -e $VISION_CONTEXT_FILE ]; then echo missing; exit 0; fi
+  stat -c \"%a %U:%G %s\" $VISION_CONTEXT_FILE
+'" | tr -d '\r')"
+if [[ "$vision_context_metadata" != "missing" ]]; then
+  read -r vision_context_mode vision_context_owner vision_context_size <<<"$vision_context_metadata"
+  [[ "$vision_context_mode $vision_context_owner" == "600 root:root" ]] ||
+    fail "Vision context file must be mode 600 and root:root (current: $vision_context_metadata)"
+  [[ "$vision_context_size" =~ ^[0-9]+$ && "$vision_context_size" -le 1048576 ]] ||
+    fail "Vision context file must not exceed 1048576 bytes (current: $vision_context_size)"
+fi
+
 # Request traces contain metadata only and are created atomically by Iris.
 # Never replace the file during deployment; validate ownership if it exists.
 trace_metadata="$($ADB -s "$SERIAL" shell "su root sh -c '
@@ -301,6 +317,12 @@ printf 'Deploying %s to PD20…\n' "$(basename "$APK")"
   IRIS_GLM_MEMORY_TTL_MS=1800000 \\
   IRIS_GLM_MEMORY_MAX_BYTES=1048576 \\
   IRIS_GLM_MEMORY_MAX_CONVERSATIONS=512 \\
+  IRIS_VISION_CONTEXT_FILE=$VISION_CONTEXT_FILE \\
+  IRIS_VISION_CONTEXT_TTL_MS=1800000 \\
+  IRIS_VISION_SHARED_FOLLOW_UP_WINDOW_MS=300000 \\
+  IRIS_VISION_CONTEXT_MAX_PER_OWNER=3 \\
+  IRIS_VISION_CONTEXT_MAX_CONTEXTS=128 \\
+  IRIS_VISION_CONTEXT_MAX_BYTES=1048576 \\
   IRIS_BOT_ADMIN_USER_IDS_FILE=$ADMIN_FILE \\
   IRIS_BOT_ADMIN_CONTROL_CHAT_ID=18480337854645134 \\
   IRIS_BOT_ROOM_POLICY_FILE=$ROOM_CAPABILITY_POLICY_FILE \\

@@ -31,8 +31,11 @@ class GeneralConversationPolicy private constructor(
     private val reason: GeneralConversationPolicyReason
 ) {
     fun allows(chatId: Long, userId: Long): Boolean =
+        chatId in allowedChatIds && allowsUser(chatId, userId)
+
+    /** Applies the shared user block list without the ambient-room allowlist. */
+    fun allowsUser(chatId: Long, userId: Long): Boolean =
         reason == GeneralConversationPolicyReason.READY &&
-            chatId in allowedChatIds &&
             userId !in globallyBlockedUserIds &&
             (chatId to userId) !in roomBlockedUsers
 

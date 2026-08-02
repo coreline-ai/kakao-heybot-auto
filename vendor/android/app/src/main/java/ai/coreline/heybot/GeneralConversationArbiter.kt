@@ -25,7 +25,8 @@ class GeneralConversationArbiter(
         settings: GlmSettings,
         message: String,
         history: List<ConversationTurn> = emptyList(),
-        pendingMessages: List<String> = emptyList()
+        pendingMessages: List<String> = emptyList(),
+        visionContext: VisionConversationContext? = null
     ): GlmChatRequest = GlmChatRequest(
         model = settings.model,
         messages = buildList {
@@ -34,6 +35,7 @@ class GeneralConversationArbiter(
                 add(GlmMessage(role = "user", content = turn.userMessage))
                 add(GlmMessage(role = "assistant", content = turn.assistantMessage))
             }
+            visionContext?.let { add(VisionConversationContextRenderer.render(it)) }
             pendingMessages.forEach { pending ->
                 add(
                     GlmMessage(

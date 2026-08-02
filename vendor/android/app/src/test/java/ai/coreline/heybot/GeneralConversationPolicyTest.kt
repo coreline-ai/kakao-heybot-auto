@@ -23,6 +23,9 @@ class GeneralConversationPolicyTest {
         assertFalse(policy.allows(1L, 200L))
         assertTrue(policy.allows(2L, 200L))
         assertFalse(policy.allows(3L, 200L))
+        assertTrue(policy.allowsUser(3L, 200L))
+        assertFalse(policy.allowsUser(1L, 200L))
+        assertFalse(policy.allowsUser(3L, 100L))
         assertEquals(GeneralConversationPolicyReason.READY, policy.status().reason)
     }
 

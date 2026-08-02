@@ -12,6 +12,91 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 class ImageAnalysisCoordinatorTest {
+    @Test fun `commits safe context only after the result is confirmed in Kakao DB`() {
+        val traces = RequestTraceStore.inMemory()
+        val tracker = TextDeliveryTracker(
+            botId = 999L,
+            traces = traces,
+            confirmTimeoutMillis = 1_000L,
+            lateWindowMillis = 2_000L
+        )
+        val contexts = VisionConversationContextStore()
+        val outgoingLog = AtomicInteger(500)
+        val coordinator = ImageAnalysisCoordinator(
+            settings = ImageAnalysisSettings(
+                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+            ),
+            trigger = "헤이봇",
+            botId = 999L,
+            gateway = FakeGateway(),
+            replySender = ImageAnalysisReplySender { chatId, text, threadId ->
+                tracker.dispatched(chatId, text, Result.success(Unit))
+                tracker.onIncoming(
+                    GlmIncomingMessage(
+                        logId = outgoingLog.getAndIncrement().toLong(),
+                        chatId = chatId,
+                        userId = 999L,
+                        messageType = "1",
+                        message = text,
+                        threadId = threadId
+                    )
+                )
+            },
+            roomCapabilityPolicy = policy(),
+            requestTraceStore = traces,
+            textDeliveryTracker = tracker,
+            visionContextStore = contexts
+        )
+
+        coordinator.onIncoming(message(90, "2", "", image(90, 10, 20)))
+        coordinator.onIncoming(message(91, "1", "헤이봇 이미지 분석"))
+
+        repeat(200) {
+            if (contexts.stats().contexts == 1) return@repeat
+            Thread.sleep(2)
+        }
+        val stored = contexts.findOwned(10L, 20L, 1L)
+        assertEquals(90L, stored?.sourceLogId)
+        assertEquals(501L, stored?.resultLogId)
+        assertTrue(stored?.safeAnswer?.contains("로봇이 손을 흔들고") == true)
+        coordinator.close()
+        tracker.close()
+    }
+
+    @Test fun `does not commit context when the result is not confirmed in Kakao DB`() {
+        val traces = RequestTraceStore.inMemory()
+        val tracker = TextDeliveryTracker(
+            botId = 999L,
+            traces = traces,
+            confirmTimeoutMillis = 10L,
+            lateWindowMillis = 30L
+        )
+        val contexts = VisionConversationContextStore()
+        val gateway = FakeGateway()
+        val coordinator = ImageAnalysisCoordinator(
+            settings = ImageAnalysisSettings(
+                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+            ),
+            trigger = "헤이봇",
+            botId = 999L,
+            gateway = gateway,
+            replySender = ImageAnalysisReplySender { _, _, _ -> Unit },
+            roomCapabilityPolicy = policy(),
+            requestTraceStore = traces,
+            textDeliveryTracker = tracker,
+            visionContextStore = contexts
+        )
+
+        coordinator.onIncoming(message(92, "2", "", image(92, 10, 20)))
+        coordinator.onIncoming(message(93, "1", "헤이봇 이미지 분석"))
+        assertTrue(gateway.created.await(2, TimeUnit.SECONDS))
+        Thread.sleep(80L)
+
+        assertEquals(0, contexts.stats().contexts)
+        coordinator.close()
+        tracker.close()
+    }
+
     @Test fun `same-account image then explicit command creates and delivers result`() {
         val replies = CopyOnWriteArrayList<String>()
         val gateway = FakeGateway()
@@ -331,6 +416,29 @@ class ImageAnalysisCoordinatorTest {
         coordinator.close()
     }
 
+    @Test fun `invalid image reports a format failure instead of a safety rejection`() {
+        val replies = CopyOnWriteArrayList<String>()
+        val gateway = FailedStatusGateway("INVALID_IMAGE")
+        val coordinator = ImageAnalysisCoordinator(
+            settings = ImageAnalysisSettings(
+                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+            ),
+            trigger = "헤이봇",
+            botId = 20,
+            gateway = gateway,
+            replySender = ImageAnalysisReplySender { _, message, _ -> replies += message },
+            roomCapabilityPolicy = policy()
+        )
+        coordinator.onIncoming(message(90, "2", "", image(90, 10, 20)))
+        coordinator.onIncoming(message(91, "1", "헤이봇 이미지 분석"))
+
+        assertTrue(gateway.failed.await(2, TimeUnit.SECONDS))
+        repeat(100) { if (replies.any { it.contains("이미지 파일 형식") }) return@repeat; Thread.sleep(2) }
+        assertTrue(replies.any { it.contains("이미지 파일 형식") })
+        assertFalse(replies.any { it.contains("안전 검증") })
+        coordinator.close()
+    }
+
     private fun message(
         log: Long,
         type: String,
@@ -468,6 +576,26 @@ class ImageAnalysisCoordinatorTest {
             )
         }
 
+        override suspend fun cancel(jobId: String, chatId: Long): Result<ImageAnalysisJob> =
+            Result.success(ImageAnalysisJob(jobId, requestId, chatId.toString(), "cancelled", null, null))
+    }
+    private class FailedStatusGateway(private val errorCode: String) : ImageAnalysisGateway {
+        val failed = CountDownLatch(1)
+        private var requestId = ""
+        override suspend fun create(
+            requestId: String,
+            chatId: Long,
+            userId: Long,
+            source: IncomingImageAttachment,
+            task: VisionTask
+        ): Result<ImageAnalysisJob> {
+            this.requestId = requestId
+            return Result.success(ImageAnalysisJob("failed-job", requestId, chatId.toString(), "queued", null, null))
+        }
+        override suspend fun status(jobId: String, chatId: Long): Result<ImageAnalysisJob> {
+            failed.countDown()
+            return Result.success(ImageAnalysisJob(jobId, requestId, chatId.toString(), "failed", errorCode, null))
+        }
         override suspend fun cancel(jobId: String, chatId: Long): Result<ImageAnalysisJob> =
             Result.success(ImageAnalysisJob(jobId, requestId, chatId.toString(), "cancelled", null, null))
     }

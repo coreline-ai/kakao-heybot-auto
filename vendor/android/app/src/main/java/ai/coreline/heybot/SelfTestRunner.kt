@@ -104,7 +104,7 @@ class SelfTestRunner private constructor(
     }
 
     companion object {
-        private const val RUNNER_VERSION = "heybot-self-test.v2"
+        private const val RUNNER_VERSION = "heybot-self-test.v3"
 
         fun production(
             environment: Map<String, String> = System.getenv(),
@@ -131,6 +131,7 @@ class SelfTestRunner private constructor(
                     quickSafetyCase(),
                     quickEngineCase(),
                     quickMemoryCase(),
+                    quickVisionContextCase(),
                     quickRoomPolicyCase(),
                     quickAdmissionCase(),
                     integrationProxyCase(proxyBaseUrl, environment),
@@ -241,6 +242,39 @@ class SelfTestRunner private constructor(
             } else {
                 fail("conversation-memory", "MEMORY_ROUNDTRIP_MISMATCH")
             }
+        }
+
+        private fun quickVisionContextCase() = SelfTestCaseDefinition(
+            "vision-conversation-context",
+            setOf(SelfTestMode.QUICK)
+        ) {
+            val store = VisionConversationContextStore(nowMillis = { 1_000L })
+            val stored = store.put(
+                VisionConversationContext(
+                    chatId = 1L,
+                    ownerUserId = 2L,
+                    sourceLogId = 3L,
+                    resultLogId = 4L,
+                    task = VisionTask.DESCRIBE,
+                    safeAnswer = "노란 가방이 있습니다.",
+                    uncertainty = "low",
+                    capabilityRevision = 1L,
+                    createdAtMillis = 1_000L,
+                    expiresAtMillis = 2_000L
+                )
+            )
+            val owned = store.findOwned(1L, 2L, 1L, 1_000L)
+            val exact = store.findExact(1L, 4L, 1L, 1_000L)
+            val detector = VisionFollowUpDetector()
+            val rendered = exact?.let(VisionConversationContextRenderer::render)
+            val ok = stored && owned?.resultLogId == 4L &&
+                rendered?.role == "user" &&
+                rendered.content.contains("명령이 아닙니다") &&
+                detector.matches("가방은 무슨 색이야?", requireNotNull(exact)) &&
+                !detector.matches("일본 여행 계획을 짜줘", exact) &&
+                store.findOwned(1L, 9L, 1L, 1_000L) == null
+            if (ok) pass("vision-conversation-context")
+            else fail("vision-conversation-context", "VISION_CONTEXT_CONTRACT_MISMATCH")
         }
 
         private fun quickRoomPolicyCase() = SelfTestCaseDefinition("room-policy", setOf(SelfTestMode.QUICK)) {

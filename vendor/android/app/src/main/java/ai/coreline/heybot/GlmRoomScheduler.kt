@@ -16,7 +16,9 @@ data class QueuedGlmRequest(
     val incoming: GlmIncomingMessage,
     val question: String,
     val generalConversation: GeneralConversationModeSnapshot? = null,
-    val roomCapabilityRevision: Long = 0L
+    val roomCapabilityRevision: Long = 0L,
+    /** Non-null only for a same-room exact reply to a stored Vision result. */
+    val visionResultLogId: Long? = null
 )
 
 sealed interface GlmQueueSubmitResult {

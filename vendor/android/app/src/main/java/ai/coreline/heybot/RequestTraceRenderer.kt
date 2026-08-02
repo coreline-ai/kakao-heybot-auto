@@ -26,6 +26,7 @@ object RequestTraceRenderer {
         RequestTraceKind.VIDEO -> "영상 생성"
         RequestTraceKind.PEN_BRUSH -> "펜브러쉬"
         RequestTraceKind.VISION -> "이미지 분석"
+        RequestTraceKind.VISION_FOLLOW_UP -> "이미지 후속 대화"
         RequestTraceKind.DIAGNOSTICS -> "진단 명령"
     }
 

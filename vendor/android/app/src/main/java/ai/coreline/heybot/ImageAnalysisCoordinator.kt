@@ -31,6 +31,8 @@ class ImageAnalysisCoordinator(
     private val log: (String) -> Unit = ::println,
     private val requestTraceStore: RequestTraceStore = RequestTraceStore.inMemory(nowMillis),
     private val textDeliveryTracker: TextDeliveryTracker? = null,
+    private val visionContextStore: VisionConversationContextStore =
+        VisionConversationContextStore(),
     private val createRetryDelaysMillis: List<Long> = listOf(2_000L, 5_000L, 10_000L),
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 ) {
@@ -167,7 +169,7 @@ class ImageAnalysisCoordinator(
         }
         requestTraceStore.record(incoming.traceId, RequestTraceStage.PROVIDER_SUCCEEDED)
         reply(incoming, "이미지 분석을 시작했어요. 완료되면 이 방에 설명해드릴게요.")
-        startPolling(remote, incoming, revision, counter, task)
+        startPolling(remote, incoming, source.sourceLogId, revision, counter, task)
     }
 
     private suspend fun createWithRetry(
@@ -205,6 +207,7 @@ class ImageAnalysisCoordinator(
     private fun startPolling(
         initial: ImageAnalysisJob,
         incoming: GlmIncomingMessage,
+        sourceLogId: Long,
         revision: Long,
         counter: AtomicInteger,
         expectedTask: VisionTask
@@ -235,7 +238,13 @@ class ImageAnalysisCoordinator(
                                 remote = status.getOrThrow()
                             }
                             "succeeded" -> {
-                                deliver(incoming, remote.result, revision, expectedTask)
+                                deliver(
+                                    incoming,
+                                    remote.result,
+                                    sourceLogId,
+                                    revision,
+                                    expectedTask
+                                )
                                 return@launch
                             }
                             "failed" -> {
@@ -280,9 +289,10 @@ class ImageAnalysisCoordinator(
         launched.start()
     }
 
-    private fun deliver(
+    private suspend fun deliver(
         incoming: GlmIncomingMessage,
         result: ImageAnalysisResult?,
+        sourceLogId: Long,
         revision: Long,
         expectedTask: VisionTask
     ) {
@@ -310,7 +320,32 @@ class ImageAnalysisCoordinator(
                 VisionTask.TRANSLATE_KO -> "이미지 글자 번역 결과"
                 else -> "이미지 분석 결과"
             }
-            reply(incoming, "$label\n${safe.text}")
+            val resultText = "$label\n${safe.text}"
+            if (!reply(incoming, resultText)) return
+            val confirmedLogId = textDeliveryTracker?.awaitConfirmedLogId(incoming.traceId)
+                ?: return
+            if (!roomCapabilityPolicy.isCurrent(
+                    revision, incoming.chatId, RoomCapability.IMAGE_ANALYSIS
+                )) {
+                log("Vision context skipped: room capability changed")
+                return
+            }
+            val now = nowMillis()
+            val stored = visionContextStore.put(
+                VisionConversationContext(
+                    chatId = incoming.chatId,
+                    ownerUserId = incoming.userId,
+                    sourceLogId = sourceLogId,
+                    resultLogId = confirmedLogId,
+                    task = expectedTask,
+                    safeAnswer = safe.text,
+                    uncertainty = result.uncertainty,
+                    capabilityRevision = revision,
+                    createdAtMillis = now,
+                    expiresAtMillis = now + settings.recentImageWindowMillis
+                )
+            )
+            if (!stored) log("Vision context was not persisted")
         } else {
             requestTraceStore.record(
                 incoming.traceId,
@@ -356,29 +391,37 @@ class ImageAnalysisCoordinator(
         return if (minutes > 0L) "최근 ${minutes}분" else "설정된 최근 시간"
     }
 
-    private fun reply(incoming: GlmIncomingMessage, text: String) {
+    private fun reply(incoming: GlmIncomingMessage, text: String): Boolean {
         textDeliveryTracker?.enqueued(
             incoming.traceId,
             incoming.chatId,
             text,
             incoming.threadId
         ) ?: requestTraceStore.record(incoming.traceId, RequestTraceStage.ENQUEUED)
-        runCatching { replySender.send(incoming.chatId, text, incoming.threadId) }
-            .onFailure {
+        return runCatching { replySender.send(incoming.chatId, text, incoming.threadId) }
+            .fold(
+                onSuccess = { true },
+                onFailure = {
                 requestTraceStore.record(
                     incoming.traceId,
                     RequestTraceStage.DISPATCH_FAILED,
                     reasonCode = "REPLY_SENDER_EXCEPTION"
                 )
-            }
+                    false
+                }
+            )
     }
 
     private fun failureMessage(code: String?): String = when (code) {
         "SOURCE_EXPIRED" -> "이미지 원본 주소가 만료됐어요. 이미지를 다시 보낸 뒤 분석해주세요."
         "VISION_QUEUE_FULL", "ROOM_QUEUE_LIMIT", "CODEX_QUEUE_FULL" ->
             "이미지 분석 요청이 많이 쌓여 있어요. 잠시 후 다시 요청해주세요."
-        "INVALID_IMAGE", "SOURCE_TOO_LARGE", "FORBIDDEN_SOURCE" ->
-            "이 이미지는 안전 검증을 통과하지 못해 분석할 수 없어요."
+        "INVALID_IMAGE", "GIF_CONVERSION_FAILED" ->
+            "이미지 파일 형식을 확인하지 못했어요. 이미지를 다시 저장하거나 다른 이미지로 보내주세요."
+        "SOURCE_TOO_LARGE" ->
+            "이미지 파일이 너무 커서 분석할 수 없어요. 10MB 이하 이미지로 보내주세요."
+        "FORBIDDEN_SOURCE" ->
+            "지원되지 않는 이미지 출처라서 분석할 수 없어요. 카카오톡에 이미지를 직접 올린 뒤 요청해주세요."
         else -> "이미지 분석에 실패했어요. 잠시 후 다시 요청해주세요."
     }
 

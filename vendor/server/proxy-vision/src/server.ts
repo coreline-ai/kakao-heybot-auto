@@ -40,6 +40,12 @@ export function createVisionServer(config:VisionConfig):VisionServerContext{
         if(existing.userId!==input.userId||existing.logId!==input.logId||existing.task!==input.task){
           return json(response,409,{error:{code:"VISION_REQUEST_CONFLICT"}});
         }
+        if(existing.status==="failed"||existing.status==="cancelled"){
+          if(store.countPending()>=config.queueMaxPending)return json(response,429,{error:{code:"VISION_QUEUE_FULL",retryAfterMs:5000}});
+          if(store.countRoomPending(input.chatId)>=config.queueMaxPendingPerRoom)return json(response,429,{error:{code:"ROOM_QUEUE_LIMIT",retryAfterMs:5000}});
+          const retried=store.retry(existing.id,input.source);
+          if(retried){processor.kick();return json(response,202,publicJob(retried));}
+        }
         return json(response,200,publicJob(existing));
       }
       if(store.countPending()>=config.queueMaxPending)return json(response,429,{error:{code:"VISION_QUEUE_FULL",retryAfterMs:5000}});
