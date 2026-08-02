@@ -26,7 +26,7 @@ export class VisionProcessor {
   private async run(id:string,signal:AbortSignal):Promise<void>{
     const job=this.store.get(id);if(!job||!job.source.url)throw new Error("SOURCE_UNAVAILABLE");
     const source=await fetchSource(job.source,this.config,AbortSignal.any([signal,AbortSignal.timeout(this.config.fetchTimeoutMs)]));
-    const result=await this.codex.analyze(job.requestId,source.data,source.mediaType,AbortSignal.any([signal,AbortSignal.timeout(this.config.codexTimeoutMs)]));
+    const result=await this.codex.analyze(job.requestId,source.data,source.mediaType,job.task,AbortSignal.any([signal,AbortSignal.timeout(this.config.codexTimeoutMs)]));
     this.store.succeed(id,result);
   }
 }

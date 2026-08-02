@@ -26,6 +26,7 @@ data class GlmChatRequest(
     val messages: List<GlmMessage>,
     val temperature: Double,
     val maxTokens: Int,
+    val promptVersion: String = HeybotPersona.VERSION,
     /** Null uses the process-wide GLM timeout. */
     val timeoutMillis: Long? = null,
     val kind: GlmRequestKind = GlmRequestKind.WAKE_WORD

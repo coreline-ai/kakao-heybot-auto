@@ -34,7 +34,7 @@ class ConversationProxyClient(
                 requestId = "iris-${System.nanoTime()}",
                 engine = engine.wireValue,
                 kind = request.kind.name,
-                promptVersion = "heybot-conversation-v1",
+                promptVersion = request.promptVersion,
                 messages = request.messages.map { ConversationMessageDto(it.role, it.content) }
             )
             val started = System.nanoTime()

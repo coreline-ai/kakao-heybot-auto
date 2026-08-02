@@ -17,19 +17,34 @@ async function readJson(request: IncomingMessage, max: number): Promise<unknown>
   try { return JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { throw new Error("INVALID_JSON"); }
 }
 
-function validate(value: unknown): { requestId: string; engine: Engine; messages: Message[] } {
+function validate(value: unknown): {
+  requestId: string;
+  engine: Engine;
+  kind: "WAKE_WORD" | "GENERAL_CONVERSATION";
+  promptVersion: string;
+  messages: Message[];
+} {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("INVALID_REQUEST");
   const body = value as Record<string, unknown>;
   if (Object.keys(body).some((key) => !["requestId", "engine", "kind", "promptVersion", "messages"].includes(key)) ||
     typeof body.requestId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(body.requestId) ||
-    !["codex", "grok"].includes(String(body.engine)) || !Array.isArray(body.messages) || body.messages.length < 1 || body.messages.length > 32) throw new Error("INVALID_REQUEST");
+    !["codex", "grok"].includes(String(body.engine)) ||
+    !["WAKE_WORD", "GENERAL_CONVERSATION"].includes(String(body.kind)) ||
+    typeof body.promptVersion !== "string" || !/^heybot-persona-v\d{1,3}$/.test(body.promptVersion) ||
+    !Array.isArray(body.messages) || body.messages.length < 1 || body.messages.length > 32) throw new Error("INVALID_REQUEST");
   const messages = body.messages.map((item) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("INVALID_MESSAGE");
     const message = item as Record<string, unknown>;
     if (Object.keys(message).some((key) => !["role", "content"].includes(key)) || !["system", "user", "assistant"].includes(String(message.role)) || typeof message.content !== "string" || message.content.trim().length < 1 || message.content.length > 4_000) throw new Error("INVALID_MESSAGE");
     return { role: message.role as Message["role"], content: message.content.trim() };
   });
-  return { requestId: body.requestId, engine: body.engine as Engine, messages };
+  return {
+    requestId: body.requestId,
+    engine: body.engine as Engine,
+    kind: body.kind as "WAKE_WORD" | "GENERAL_CONVERSATION",
+    promptVersion: body.promptVersion,
+    messages,
+  };
 }
 
 export interface ConversationServerContext { server: Server; }
@@ -44,6 +59,14 @@ export function createConversationServer(config: ConversationProxyConfig): Conve
       if (!authenticate(request.headers.authorization, secret)) return json(response, 401, { error: { code: "UNAUTHORIZED" } });
       if (request.method !== "POST" || url.pathname !== "/v1/conversation/respond") return json(response, 404, { error: { code: "NOT_FOUND" } });
       const input = validate(await readJson(request, config.requestMaxBytes));
+      console.info(JSON.stringify({
+        event: "conversation.request",
+        requestId: input.requestId,
+        engine: input.engine,
+        kind: input.kind,
+        promptVersion: input.promptVersion,
+        messageCount: input.messages.length,
+      }));
       const result = await providerFor(input.engine, config)(input);
       return json(response, 200, result);
     } catch (error) {

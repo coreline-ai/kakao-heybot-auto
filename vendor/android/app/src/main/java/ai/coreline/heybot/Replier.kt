@@ -86,13 +86,23 @@ class Replier {
             AndroidHiddenApi.startService(intent)
         }
 
-        fun sendMessage(referer: String, chatId: Long, msg: String, threadId: Long?) {
+        fun sendMessage(
+            referer: String,
+            chatId: Long,
+            msg: String,
+            threadId: Long?,
+            onDispatched: (Result<Unit>) -> Unit = {}
+        ) {
             coroutineScope.launch {
-                messageChannel.send(SendMessageRequest {
-                    sendMessageInternal(
-                        referer, chatId, msg, threadId
-                    )
-                })
+                runCatching {
+                    messageChannel.send(SendMessageRequest {
+                        val result = runCatching {
+                            sendMessageInternal(referer, chatId, msg, threadId)
+                        }
+                        onDispatched(result)
+                        result.getOrThrow()
+                    })
+                }.onFailure { onDispatched(Result.failure(it)) }
             }
         }
 

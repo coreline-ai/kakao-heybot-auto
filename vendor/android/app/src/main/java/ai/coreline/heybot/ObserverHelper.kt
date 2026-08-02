@@ -22,7 +22,9 @@ class ObserverHelper(
     private val videoJobCoordinator: VideoJobCoordinator? = null,
     private val penBrushJobCoordinator: PenBrushJobCoordinator? = null,
     private val imageAnalysisCoordinator: ImageAnalysisCoordinator? = null,
-    private val imageAttachmentParser: KakaoImageAttachmentParser = KakaoImageAttachmentParser()
+    private val imageAttachmentParser: KakaoImageAttachmentParser = KakaoImageAttachmentParser(),
+    private val textDeliveryTracker: TextDeliveryTracker? = null,
+    private val requestTraceStore: RequestTraceStore? = null
 ) {
     private var lastLogId: Long = 0
     private val lastDecryptedLogs = LinkedList<Map<String, String?>>()
@@ -198,6 +200,10 @@ class ObserverHelper(
                             threadId = effectiveThreadId,
                             imageAttachment = imageAttachment
                         )
+                        if (messageType == "1" && message.isNotBlank()) {
+                            requestTraceStore?.ensureReceived(incoming)
+                        }
+                        textDeliveryTracker?.onIncoming(incoming)
                         imageAnalysisCoordinator?.onIncoming(incoming)
                         imageJobCoordinator?.onIncoming(incoming)
                         videoJobCoordinator?.onIncoming(incoming)

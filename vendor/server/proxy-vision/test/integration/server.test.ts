@@ -4,9 +4,11 @@ import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { after,before,test } from "node:test";
 import { loadVisionConfig } from "../../src/config.js";
 import { createVisionServer,type VisionServerContext } from "../../src/server.js";
+import { VisionStore } from "../../src/store.js";
 
 const root=mkdtempSync(resolve(tmpdir(),"proxy-vision-test-"));const managerSecret="m".repeat(48);const codexSecret="c".repeat(48);
 const originalFetch=globalThis.fetch;let context:VisionServerContext;let baseUrl="";
@@ -22,7 +24,9 @@ before(async()=>{
     if(url.startsWith("https://talk.kakaocdn.net/"))return new Response(new Uint8Array(png),{status:200,headers:{"content-type":"image/png","content-length":String(png.length)}});
     if(url.endsWith("/internal/v1/codex/vision/analyze")){
       assert.equal((init?.headers as Record<string,string>)["x-heybot-service-id"],"vision");
-      return new Response(JSON.stringify({requestId:"vision:10:20",result:{version:1,summary:"로봇이 손을 흔들고 있습니다.",visibleObjects:["로봇"],visibleText:[],uncertainty:"low"}}),{status:200,headers:{"content-type":"application/json"}});
+      const headers=init?.headers as Record<string,string>;const task=headers["x-heybot-vision-task"]??"";
+      assert.ok(["describe","ocr","translate_ko"].includes(task));
+      return new Response(JSON.stringify({requestId:headers["x-request-id"],result:{version:2,task,answer:`ANSWER_${task}`,visibleObjects:["로봇"],extractedText:task==="describe"?[]:["HELLO"],uncertainty:"low"}}),{status:200,headers:{"content-type":"application/json"}});
     }
     throw new Error(`unexpected fetch ${url}`);
   }) as typeof fetch;
@@ -40,12 +44,40 @@ after(async()=>{globalThis.fetch=originalFetch;context.server.closeIdleConnectio
 async function wait(id:string):Promise<any>{for(let i=0;i<100;i+=1){const response=await originalFetch(`${baseUrl}/v1/vision/jobs/${id}?chatId=10`,{headers:{authorization:`Bearer ${managerSecret}`}});const body=await response.json() as any;if(body.status==="succeeded")return body;await new Promise(r=>setTimeout(r,10));}throw new Error("timeout");}
 
 test("authenticated durable job analyzes exact scoped source without exposing URL",async()=>{
-  const request={requestId:"vision:10:20",chatId:"10",userId:"30",logId:"20",source:{url:"https://talk.kakaocdn.net/fake/image.png?fixture=1",width:100,height:100,declaredBytes:png.length,expiresAtMillis:Date.now()+60_000}};
+  const request={requestId:"vision:10:20:ocr",chatId:"10",userId:"30",logId:"20",task:"ocr",source:{url:"https://talk.kakaocdn.net/fake/image.png?fixture=1",width:100,height:100,declaredBytes:png.length,expiresAtMillis:Date.now()+60_000}};
   const unauthorized=await originalFetch(`${baseUrl}/v1/vision/jobs`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(request)});assert.equal(unauthorized.status,401);
   const created=await originalFetch(`${baseUrl}/v1/vision/jobs`,{method:"POST",headers:{authorization:`Bearer ${managerSecret}`,"content-type":"application/json"},body:JSON.stringify(request)});assert.equal(created.status,202);const initial=await created.json() as any;assert.equal(JSON.stringify(initial).includes("kakaocdn"),false);
   const repeated=await originalFetch(`${baseUrl}/v1/vision/jobs`,{method:"POST",headers:{authorization:`Bearer ${managerSecret}`,"content-type":"application/json"},body:JSON.stringify(request)});assert.equal(repeated.status,200);assert.equal((await repeated.json() as any).jobId,initial.jobId);
   const crossRoom=await originalFetch(`${baseUrl}/v1/vision/jobs/${initial.jobId}?chatId=11`,{headers:{authorization:`Bearer ${managerSecret}`}});assert.equal(crossRoom.status,404);
-  const completed=await wait(initial.jobId);assert.equal(completed.result.version,1);assert.match(completed.result.summary,/로봇/);
+  const completed=await wait(initial.jobId);assert.equal(completed.result.version,2);assert.equal(completed.result.task,"ocr");assert.equal(completed.result.answer,"ANSWER_ocr");
+});
+
+test("same source creates independent describe, OCR, and translation jobs",async()=>{
+  const jobs:any[]=[];
+  for(const task of ["describe","ocr","translate_ko"]){
+    const request={requestId:`vision:10:22:${task}`,chatId:"10",userId:"30",logId:"22",task,source:{url:`https://talk.kakaocdn.net/fake/${task}.png`,width:100,height:100,declaredBytes:png.length,expiresAtMillis:Date.now()+60_000}};
+    const response=await originalFetch(`${baseUrl}/v1/vision/jobs`,{method:"POST",headers:{authorization:`Bearer ${managerSecret}`,"content-type":"application/json"},body:JSON.stringify(request)});
+    assert.equal(response.status,202);jobs.push(await response.json());
+  }
+  assert.equal(new Set(jobs.map(job=>job.jobId)).size,3);
+  const completed=await Promise.all(jobs.map(job=>wait(job.jobId)));
+  assert.deepEqual(completed.map(job=>job.result.task),["describe","ocr","translate_ko"]);
+});
+
+test("rejects invalid task and conflicting idempotency metadata",async()=>{
+  const source={url:"https://talk.kakaocdn.net/fake/conflict.png",width:100,height:100,declaredBytes:png.length,expiresAtMillis:Date.now()+60_000};
+  const invalid=await originalFetch(`${baseUrl}/v1/vision/jobs`,{method:"POST",headers:{authorization:`Bearer ${managerSecret}`,"content-type":"application/json"},body:JSON.stringify({requestId:"vision:10:23:bad",chatId:"10",userId:"30",logId:"23",task:"free_prompt",source})});
+  assert.equal(invalid.status,400);assert.equal((await invalid.json() as any).error.code,"INVALID_VISION_TASK");
+  const initial={requestId:"vision:10:24:ocr",chatId:"10",userId:"30",logId:"24",task:"ocr",source};
+  const created=await originalFetch(`${baseUrl}/v1/vision/jobs`,{method:"POST",headers:{authorization:`Bearer ${managerSecret}`,"content-type":"application/json"},body:JSON.stringify(initial)});assert.equal(created.status,202);
+  const conflict=await originalFetch(`${baseUrl}/v1/vision/jobs`,{method:"POST",headers:{authorization:`Bearer ${managerSecret}`,"content-type":"application/json"},body:JSON.stringify({...initial,task:"describe"})});
+  assert.equal(conflict.status,409);assert.equal((await conflict.json() as any).error.code,"VISION_REQUEST_CONFLICT");
+});
+
+test("migrates legacy durable store with describe task default",()=>{
+  const path=resolve(root,"legacy/vision.sqlite3");mkdirSync(resolve(root,"legacy"),{recursive:true});
+  const legacy=new DatabaseSync(path);legacy.exec(`CREATE TABLE jobs (sequence INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT UNIQUE NOT NULL,request_id TEXT UNIQUE NOT NULL,chat_id TEXT NOT NULL,user_id TEXT NOT NULL,log_id TEXT NOT NULL,source_url TEXT,source_width INTEGER NOT NULL,source_height INTEGER NOT NULL,source_bytes INTEGER NOT NULL,source_expires INTEGER NOT NULL,status TEXT NOT NULL,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,error_code TEXT,result_json TEXT)`);legacy.close();
+  const migrated=new VisionStore(path);migrated.close();const inspection=new DatabaseSync(path);const columns=inspection.prepare("PRAGMA table_info(jobs)").all() as any[];assert.ok(columns.some(column=>column.name==="task"));inspection.close();
 });
 
 test("rejects non-allowlisted source before queueing",async()=>{

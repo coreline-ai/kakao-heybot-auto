@@ -38,27 +38,49 @@ class Main {
                 val kakaoDb = KakaoDB()
                 val roomCapabilityPolicy = createRoomCapabilityPolicy()
                 val selfTestRunner = SelfTestRunner.production()
+                val requestTraceStore = RequestTraceStore(
+                    backend = AndroidAtomicFileBackend(
+                        File(
+                            System.getenv("IRIS_REQUEST_TRACE_FILE")
+                                ?: "/data/local/private/iris-request-traces.json"
+                        )
+                    )
+                )
+                val textDeliveryTracker = TextDeliveryTracker(
+                    botId = Configurable.botId,
+                    traces = requestTraceStore
+                )
                 val glmAutoReplyHandler = createGlmAutoReplyHandler(
                     notificationReferer,
                     roomCapabilityPolicy,
-                    selfTestRunner
+                    selfTestRunner,
+                    requestTraceStore,
+                    textDeliveryTracker
                 )
                 val imageJobCoordinator = createImageJobCoordinator(
                     notificationReferer,
-                    roomCapabilityPolicy
+                    roomCapabilityPolicy,
+                    requestTraceStore,
+                    textDeliveryTracker
                 )
                 val videoJobCoordinator = createVideoJobCoordinator(
                     notificationReferer,
-                    roomCapabilityPolicy
+                    roomCapabilityPolicy,
+                    requestTraceStore,
+                    textDeliveryTracker
                 )
                 val penBrushJobCoordinator = createPenBrushJobCoordinator(
                     notificationReferer,
-                    roomCapabilityPolicy
+                    roomCapabilityPolicy,
+                    requestTraceStore,
+                    textDeliveryTracker
                 )
                 val imageAnalysisCoordinator = createImageAnalysisCoordinator(
                     kakaoDb,
                     notificationReferer,
-                    roomCapabilityPolicy
+                    roomCapabilityPolicy,
+                    requestTraceStore,
+                    textDeliveryTracker
                 )
                 val observerHelper = ObserverHelper(
                     kakaoDb,
@@ -67,7 +89,9 @@ class Main {
                     imageJobCoordinator,
                     videoJobCoordinator,
                     penBrushJobCoordinator,
-                    imageAnalysisCoordinator
+                    imageAnalysisCoordinator,
+                    textDeliveryTracker = textDeliveryTracker,
+                    requestTraceStore = requestTraceStore
                 )
 
                 val dbObserver = DBObserver(kakaoDb, observerHelper)
@@ -151,7 +175,9 @@ class Main {
         private fun createGlmAutoReplyHandler(
             notificationReferer: String,
             roomCapabilityPolicy: RoomCapabilityPolicyStore,
-            selfTestRunner: SelfTestRunner
+            selfTestRunner: SelfTestRunner,
+            requestTraceStore: RequestTraceStore,
+            textDeliveryTracker: TextDeliveryTracker
         ): GlmAutoReplyHandler? {
             return when (val config = GlmSettings.load()) {
                 GlmSettingsLoadResult.Disabled -> {
@@ -215,7 +241,14 @@ class Main {
                         botId = Configurable.botId,
                         gateway = conversationGateway,
                         replySender = GlmReplySender { chatId, message, threadId ->
-                            Replier.sendMessage(notificationReferer, chatId, message, threadId)
+                            Replier.sendMessage(
+                                notificationReferer,
+                                chatId,
+                                message,
+                                threadId
+                            ) { result ->
+                                textDeliveryTracker.dispatched(chatId, message, result)
+                            }
                         },
                         memoryStore = AtomicJsonConversationMemoryStore(
                             backend = AndroidAtomicFileBackend(settings.memoryFile),
@@ -229,7 +262,9 @@ class Main {
                         generalConversationModeStore = generalConversationModeStore,
                         roomCapabilityPolicy = roomCapabilityPolicy,
                         conversationEngineModeStore = modeStore,
-                        selfTestRunner = selfTestRunner
+                        selfTestRunner = selfTestRunner,
+                        requestTraceStore = requestTraceStore,
+                        textDeliveryTracker = textDeliveryTracker
                     )
                 }
             }
@@ -237,7 +272,9 @@ class Main {
 
         private fun createImageJobCoordinator(
             notificationReferer: String,
-            roomCapabilityPolicy: RoomCapabilityPolicyStore
+            roomCapabilityPolicy: RoomCapabilityPolicyStore,
+            requestTraceStore: RequestTraceStore,
+            textDeliveryTracker: TextDeliveryTracker
         ): ImageJobCoordinator? {
             return when (val config = ImageProxySettings.load()) {
                 ImageProxySettingsLoadResult.Disabled -> {
@@ -260,7 +297,9 @@ class Main {
                         botId = Configurable.botId,
                         gateway = ImageProxyClient(settings),
                         textSender = ImageTextReplySender { chatId, message, threadId ->
-                            Replier.sendMessage(notificationReferer, chatId, message, threadId)
+                            Replier.sendMessage(notificationReferer, chatId, message, threadId) {
+                                textDeliveryTracker.dispatched(chatId, message, it)
+                            }
                         },
                         imageSender = ImageBytesReplySender { chatId, bytes ->
                             Replier.sendPhotoBytes(chatId, bytes)
@@ -268,7 +307,9 @@ class Main {
                         stateStore = AtomicJsonImageJobStateStore(
                             AndroidAtomicFileBackend(settings.stateFile)
                         ),
-                        roomCapabilityPolicy = roomCapabilityPolicy
+                        roomCapabilityPolicy = roomCapabilityPolicy,
+                        requestTraceStore = requestTraceStore,
+                        textDeliveryTracker = textDeliveryTracker
                     )
                 }
             }
@@ -276,7 +317,9 @@ class Main {
 
         private fun createVideoJobCoordinator(
             notificationReferer: String,
-            roomCapabilityPolicy: RoomCapabilityPolicyStore
+            roomCapabilityPolicy: RoomCapabilityPolicyStore,
+            requestTraceStore: RequestTraceStore,
+            textDeliveryTracker: TextDeliveryTracker
         ): VideoJobCoordinator? {
             return when (val config = VideoProxySettings.load()) {
                 VideoProxySettingsLoadResult.Disabled -> {
@@ -299,7 +342,9 @@ class Main {
                         botId = Configurable.botId,
                         gateway = VideoProxyClient(settings),
                         textSender = VideoTextReplySender { chatId, message, threadId ->
-                            Replier.sendMessage(notificationReferer, chatId, message, threadId)
+                            Replier.sendMessage(notificationReferer, chatId, message, threadId) {
+                                textDeliveryTracker.dispatched(chatId, message, it)
+                            }
                         },
                         videoSender = VideoBytesReplySender { chatId, bytes ->
                             Replier.sendVideoBytes(chatId, bytes)
@@ -307,7 +352,9 @@ class Main {
                         stateStore = AtomicJsonVideoJobStateStore(
                             AndroidAtomicFileBackend(settings.stateFile)
                         ),
-                        roomCapabilityPolicy = roomCapabilityPolicy
+                        roomCapabilityPolicy = roomCapabilityPolicy,
+                        requestTraceStore = requestTraceStore,
+                        textDeliveryTracker = textDeliveryTracker
                     )
                 }
             }
@@ -316,7 +363,9 @@ class Main {
         private fun createImageAnalysisCoordinator(
             kakaoDb: KakaoDB,
             notificationReferer: String,
-            roomCapabilityPolicy: RoomCapabilityPolicyStore
+            roomCapabilityPolicy: RoomCapabilityPolicyStore,
+            requestTraceStore: RequestTraceStore,
+            textDeliveryTracker: TextDeliveryTracker
         ): ImageAnalysisCoordinator? {
             return when (val config = ImageAnalysisSettings.load()) {
                 ImageAnalysisSettingsLoadResult.Disabled -> {
@@ -337,13 +386,17 @@ class Main {
                         botId = Configurable.botId,
                         gateway = ImageAnalysisProxyClient(settings),
                         replySender = ImageAnalysisReplySender { chatId, message, threadId ->
-                            Replier.sendMessage(notificationReferer, chatId, message, threadId)
+                            Replier.sendMessage(notificationReferer, chatId, message, threadId) {
+                                textDeliveryTracker.dispatched(chatId, message, it)
+                            }
                         },
                         roomCapabilityPolicy = roomCapabilityPolicy,
                         attachmentLookup = KakaoDbImageAttachmentLookup(
                             source = KakaoDbImageLogSource(kakaoDb),
                             parser = KakaoImageAttachmentParser()
-                        )
+                        ),
+                        requestTraceStore = requestTraceStore,
+                        textDeliveryTracker = textDeliveryTracker
                     )
                 }
             }
@@ -351,7 +404,9 @@ class Main {
 
         private fun createPenBrushJobCoordinator(
             notificationReferer: String,
-            roomCapabilityPolicy: RoomCapabilityPolicyStore
+            roomCapabilityPolicy: RoomCapabilityPolicyStore,
+            requestTraceStore: RequestTraceStore,
+            textDeliveryTracker: TextDeliveryTracker
         ): PenBrushJobCoordinator? {
             return when (val config = PenBrushProxySettings.load()) {
                 PenBrushProxySettingsLoadResult.Disabled -> {
@@ -374,7 +429,9 @@ class Main {
                         botId = Configurable.botId,
                         gateway = PenBrushProxyClient(settings),
                         textSender = PenBrushTextReplySender { chatId, message, threadId ->
-                            Replier.sendMessage(notificationReferer, chatId, message, threadId)
+                            Replier.sendMessage(notificationReferer, chatId, message, threadId) {
+                                textDeliveryTracker.dispatched(chatId, message, it)
+                            }
                         },
                         videoSender = PenBrushBytesReplySender { chatId, bytes ->
                             Replier.sendVideoBytes(chatId, bytes)
@@ -382,7 +439,9 @@ class Main {
                         stateStore = AtomicJsonPenBrushJobStateStore(
                             AndroidAtomicFileBackend(settings.stateFile)
                         ),
-                        roomCapabilityPolicy = roomCapabilityPolicy
+                        roomCapabilityPolicy = roomCapabilityPolicy,
+                        requestTraceStore = requestTraceStore,
+                        textDeliveryTracker = textDeliveryTracker
                     )
                 }
             }

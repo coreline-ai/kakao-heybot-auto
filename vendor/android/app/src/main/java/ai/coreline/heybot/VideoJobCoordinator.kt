@@ -34,6 +34,8 @@ class VideoJobCoordinator(
         RoomCapabilityPolicyStore.legacy(settings.allowedChatIds),
     private val log: (String) -> Unit = ::println,
     private val nowMillis: () -> Long = System::currentTimeMillis,
+    private val requestTraceStore: RequestTraceStore = RequestTraceStore.inMemory(nowMillis),
+    private val textDeliveryTracker: TextDeliveryTracker? = null,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 ) {
     private val parser = VideoCommandParser(trigger, settings.promptMaxChars)
@@ -71,6 +73,21 @@ class VideoJobCoordinator(
         }
         if (!isCandidate(incoming)) return
         val command = parser.parse(incoming.message) ?: return
+        requestTraceStore.ensureReceived(incoming, RequestTraceKind.VIDEO)
+        requestTraceStore.record(
+            incoming.traceId,
+            RequestTraceStage.CLASSIFIED,
+            kind = RequestTraceKind.VIDEO
+        )
+        if (!roomCapabilityPolicy.allows(incoming.chatId, RoomCapability.VIDEO)) {
+            requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.POLICY_DENIED,
+                reasonCode = "VIDEO_CAPABILITY_DISABLED"
+            )
+            return
+        }
+        requestTraceStore.record(incoming.traceId, RequestTraceStage.POLICY_ALLOWED)
         scope.launch {
             ready.await()
             when (command) {
@@ -98,20 +115,41 @@ class VideoJobCoordinator(
             )
         ) return
         if (stateStore.countPending(incoming.chatId) >= settings.maxPendingPerRoom) {
+            requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.QUEUE_FULL,
+                reasonCode = "VIDEO_ROOM_QUEUE_FULL"
+            )
             reply(incoming, "이 방의 영상 요청이 이미 진행 중이에요. 완료 후 다시 요청해주세요.")
             return
         }
         when (admission.admit(incoming)) {
-            AdmissionResult.Accepted -> Unit
+            AdmissionResult.Accepted -> requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.ADMITTED
+            )
             AdmissionResult.DuplicateLog,
-            AdmissionResult.DuplicateMessage -> return
+            AdmissionResult.DuplicateMessage -> {
+                requestTraceStore.record(
+                    incoming.traceId,
+                    RequestTraceStage.DUPLICATE,
+                    reasonCode = "DUPLICATE_REQUEST"
+                )
+                return
+            }
             is AdmissionResult.RoomRateLimited,
             is AdmissionResult.UserRateLimited -> {
+                requestTraceStore.record(
+                    incoming.traceId,
+                    RequestTraceStage.RATE_LIMITED,
+                    reasonCode = "REQUEST_RATE_LIMIT"
+                )
                 reply(incoming, "영상 요청 횟수가 많아요. 잠시 후 다시 요청해주세요.")
                 return
             }
         }
         val requestId = "video:${incoming.chatId}:${incoming.logId}"
+        requestTraceStore.record(incoming.traceId, RequestTraceStage.PROVIDER_STARTED)
         gateway.create(
             requestId = requestId,
             chatId = incoming.chatId,
@@ -138,9 +176,15 @@ class VideoJobCoordinator(
                 updatedAtMillis = now
             )
             stateStore.upsert(local)
+            requestTraceStore.record(incoming.traceId, RequestTraceStage.PROVIDER_SUCCEEDED)
             reply(incoming, "영상 요청을 접수했어요. 완성되면 이 방으로 보내드릴게요.")
             startPolling(local)
         }.onFailure {
+            requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.PROVIDER_FAILED,
+                reasonCode = "VIDEO_CREATE_FAILED"
+            )
             log("Video job create failed: ${it::class.simpleName}")
             reply(incoming, "영상 서버에 연결하지 못했어요. 텍스트 대화는 계속 사용할 수 있어요.")
         }
@@ -323,13 +367,40 @@ class VideoJobCoordinator(
     private suspend fun update(job: LocalVideoJob, status: String): LocalVideoJob {
         val updated = job.copy(status = status, updatedAtMillis = nowMillis())
         stateStore.upsert(updated)
+        val traceId = RequestTraceIds.from(job.chatId, job.logId)
+        when (status) {
+            "queued", "running" -> requestTraceStore.record(
+                traceId,
+                RequestTraceStage.PROVIDER_STARTED
+            )
+            "succeeded" -> requestTraceStore.record(
+                traceId,
+                RequestTraceStage.PROVIDER_SUCCEEDED
+            )
+            "failed" -> requestTraceStore.record(
+                traceId,
+                RequestTraceStage.PROVIDER_FAILED,
+                reasonCode = "VIDEO_JOB_FAILED"
+            )
+            "delivery_pending" -> requestTraceStore.record(traceId, RequestTraceStage.ENQUEUED)
+            "delivered" -> requestTraceStore.record(traceId, RequestTraceStage.DB_CONFIRMED)
+            "awaiting_unlock" -> requestTraceStore.record(
+                traceId,
+                RequestTraceStage.UNCONFIRMED,
+                reasonCode = "KAKAO_DB_TIMEOUT"
+            )
+            "cancelled" -> requestTraceStore.record(
+                traceId,
+                RequestTraceStage.FINISHED,
+                reasonCode = "CANCELLED"
+            )
+        }
         return updated
     }
 
     private fun isCandidate(incoming: GlmIncomingMessage): Boolean =
         incoming.messageType == "1" &&
             incoming.chatId in settings.allowedChatIds &&
-            roomCapabilityPolicy.allows(incoming.chatId, RoomCapability.VIDEO) &&
             (botId == 0L || incoming.userId != botId)
 
     private fun isOutgoingVideo(incoming: GlmIncomingMessage): Boolean =
@@ -366,6 +437,12 @@ class VideoJobCoordinator(
     }
 
     private fun reply(incoming: GlmIncomingMessage, message: String) {
+        textDeliveryTracker?.enqueued(
+            incoming.traceId,
+            incoming.chatId,
+            message,
+            incoming.threadId
+        ) ?: requestTraceStore.record(incoming.traceId, RequestTraceStage.ENQUEUED)
         textSender.send(incoming.chatId, message, incoming.threadId)
     }
 

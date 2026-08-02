@@ -23,7 +23,8 @@ class GlmAutoReplyHandlerTest {
 
         assertEquals(1, gateway.requests.size)
         assertEquals("안녕", gateway.requests.single().messages.last().content)
-        assertTrue(gateway.requests.single().messages.first().content.contains("친근하고 자연스러운 해요체"))
+        assertTrue(gateway.requests.single().messages.first().content.contains("자연스러운 한국어 해요체"))
+        assertEquals(HeybotPersona.VERSION, gateway.requests.single().promptVersion)
         assertEquals(listOf("안녕하세요. 무엇을 도와드릴까요?"), replies)
         handler.close()
     }
@@ -894,6 +895,69 @@ class GlmAutoReplyHandlerTest {
         handler.close()
     }
 
+    @Test
+    fun `control-room admin can diagnose the prior silent general-conversation drop`() = runBlocking {
+        val adminFile = File.createTempFile("heybot-admin", ".txt").apply {
+            writeText("999\n")
+        }
+        val traces = RequestTraceStore.inMemory()
+        val replies = mutableListOf<String>()
+        val handler = createHandler(
+            gateway = RecordingGateway("사용되면 안 됨"),
+            adminAuthorizer = AdminAuthorizer.fromFile(adminFile) {},
+            adminControlChatId = CHAT_ID,
+            requestTraceStore = traces
+        ) { _, message, _ -> replies += message }
+
+        try {
+            handler.process(incoming(logId = 91L, message = "일본 여행 계획을 짜줘"))
+            assertEquals(
+                RequestTraceStage.MODE_DISABLED,
+                traces.get(RequestTraceIds.from(CHAT_ID, 91L))?.stage
+            )
+
+            handler.process(incoming(logId = 92L, message = "헤이봇 최근 진단"))
+
+            assertTrue(replies.single().contains("일반대화 꺼짐"))
+            assertTrue(replies.single().contains("GENERAL_CONVERSATION_OFF"))
+            assertFalse(replies.single().contains("일본 여행 계획"))
+        } finally {
+            handler.close()
+            adminFile.delete()
+        }
+    }
+
+    @Test
+    fun `an unconfirmed Kakao DB delivery is not committed to conversation memory`() = runBlocking {
+        val traces = RequestTraceStore.inMemory()
+        val tracker = TextDeliveryTracker(
+            botId = BOT_ID,
+            traces = traces,
+            confirmTimeoutMillis = 10L,
+            lateWindowMillis = 30L
+        )
+        val memory = InMemoryConversationMemoryStore(4, 60_000L)
+        val handler = createHandler(
+            gateway = RecordingGateway("확인되지 않은 답변"),
+            requestTraceStore = traces,
+            textDeliveryTracker = tracker,
+            memoryStore = memory
+        ) { _, _, _ -> Unit }
+
+        try {
+            handler.process(incoming(logId = 93L, message = "헤이봇 테스트"))
+
+            assertTrue(memory.history(ConversationKey(CHAT_ID, 999L), System.currentTimeMillis()).isEmpty())
+            assertEquals(
+                RequestTraceStage.UNCONFIRMED,
+                traces.get(RequestTraceIds.from(CHAT_ID, 93L))?.stage
+            )
+        } finally {
+            handler.close()
+            tracker.close()
+        }
+    }
+
     private fun createHandler(
         gateway: GlmGateway,
         nowMillis: () -> Long = { System.currentTimeMillis() },
@@ -911,6 +975,9 @@ class GlmAutoReplyHandlerTest {
         roomCapabilityPolicy: RoomCapabilityPolicyStore =
             RoomCapabilityPolicyStore.legacy(allowedChatIds),
         roomRateMaxRequests: Int = 3,
+        requestTraceStore: RequestTraceStore = RequestTraceStore.inMemory(nowMillis),
+        textDeliveryTracker: TextDeliveryTracker? = null,
+        memoryStore: ConversationMemoryStore = InMemoryConversationMemoryStore(4, 30L * 60L * 1_000L),
         reply: (Long, String, Long?) -> Unit
     ): GlmAutoReplyHandler = GlmAutoReplyHandler(
         settings = GlmSettings(
@@ -936,7 +1003,10 @@ class GlmAutoReplyHandlerTest {
         adminAuthorizer = adminAuthorizer,
         generalConversationModeStore = generalConversationModeStore,
         generalConversationPolicy = generalConversationPolicy,
-        roomCapabilityPolicy = roomCapabilityPolicy
+        roomCapabilityPolicy = roomCapabilityPolicy,
+        requestTraceStore = requestTraceStore,
+        textDeliveryTracker = textDeliveryTracker,
+        memoryStore = memoryStore
     )
 
     private class TestConversationModeBackend : ConversationMemoryBackend {

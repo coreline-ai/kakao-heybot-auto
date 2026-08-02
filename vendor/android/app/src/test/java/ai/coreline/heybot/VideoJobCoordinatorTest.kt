@@ -14,9 +14,10 @@ class VideoJobCoordinatorTest {
     fun `video command creates and sends only when video capability is allowed`() {
         val sent = CountDownLatch(1)
         val store = InMemoryVideoJobStateStore()
+        val traces = RequestTraceStore.inMemory()
         val gateway = SuccessfulVideoGateway()
         val policy = policy(videoEnabled = true)
-        val coordinator = coordinator(gateway, store, policy) { _, bytes ->
+        val coordinator = coordinator(gateway, store, policy, traces) { _, bytes ->
             assertTrue(VideoJobCoordinator.isValidMp4(bytes, 1024))
             sent.countDown()
         }
@@ -26,6 +27,10 @@ class VideoJobCoordinatorTest {
             coordinator.onIncoming(outgoing(2L))
             assertTrue(awaitStatus(store, "delivered"))
             assertEquals(1, gateway.creates.get())
+            assertEquals(
+                RequestTraceStage.DB_CONFIRMED,
+                traces.get(RequestTraceIds.from(CHAT, 1L))?.stage
+            )
         } finally {
             coordinator.close()
         }
@@ -34,11 +39,21 @@ class VideoJobCoordinatorTest {
     @Test
     fun `video command stays blocked until the room video capability is enabled`() {
         val gateway = SuccessfulVideoGateway()
-        val coordinator = coordinator(gateway, InMemoryVideoJobStateStore(), policy(videoEnabled = false)) { _, _ -> }
+        val traces = RequestTraceStore.inMemory()
+        val coordinator = coordinator(
+            gateway,
+            InMemoryVideoJobStateStore(),
+            policy(videoEnabled = false),
+            traces
+        ) { _, _ -> }
         try {
             coordinator.onIncoming(incoming(3L, "헤이봇 영상 테스트"))
             Thread.sleep(100L)
             assertEquals(0, gateway.creates.get())
+            assertEquals(
+                RequestTraceStage.POLICY_DENIED,
+                traces.get(RequestTraceIds.from(CHAT, 3L))?.stage
+            )
         } finally {
             coordinator.close()
         }
@@ -48,6 +63,7 @@ class VideoJobCoordinatorTest {
         gateway: VideoProxyGateway,
         store: VideoJobStateStore,
         policy: RoomCapabilityPolicyStore,
+        traces: RequestTraceStore,
         sender: (Long, ByteArray) -> Unit
     ) = VideoJobCoordinator(
         settings = VideoProxySettings(
@@ -66,7 +82,8 @@ class VideoJobCoordinatorTest {
         videoSender = VideoBytesReplySender(sender),
         stateStore = store,
         roomCapabilityPolicy = policy,
-        log = {}
+        log = {},
+        requestTraceStore = traces
     )
 
     private fun policy(videoEnabled: Boolean) = RoomCapabilityPolicyStore.forTesting(

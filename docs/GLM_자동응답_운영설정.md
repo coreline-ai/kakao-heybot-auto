@@ -26,6 +26,8 @@
 - 호출어·일반대화의 GLM 텍스트는 전송 직전 동일한 safety policy를 통과한다. secret-like 출력은 전체 차단하고 이메일·전화·주민번호·카드번호 형태는 고정 문구로 마스킹한다.
 - 일반대화의 timeout·429·network·server 실패가 5분 안에 3건 누적되면 일반대화 mode만 자동 OFF한다. 호출어 GLM·이미지는 계속 동작한다. Iris HTTP 관리 API는 기본 비활성화다.
 - 일반대화 ON/OFF 의도는 root 전용 원자적 상태 파일에 저장한다. 정상 재배포·프로세스 재시작은 기존 상태를 복원하며, 파일이 없거나 손상되면 안전하게 OFF로 시작한다.
+- 호출어·일반대화는 `heybot-persona-v2` 정본을 공유한다. GLM/Codex/Grok을 바꿔도 코어라인 AI 연구소의 실무형 핑크 로봇 연구 동료라는 정체성·해요체·2~4문장 원칙은 동일하다.
+- 요청 추적은 메시지·응답 원문, 사용자명, URL, secret을 저장하지 않고 trace ID·방 ID·종류·단계·안정된 사유 코드만 최대 200건·24시간 보관한다.
 
 ## Iris HTTP 관리 API 보안(P0)
 
@@ -204,6 +206,10 @@ GLM은 Android 내부에서 동작하는 기본 엔진입니다. Codex와 Grok�
 세 엔진은 동일한 헤이봇 프롬프트·사용자별 문맥·응답 안전정책을 사용하며, 응답을 만드는
 provider만 바뀝니다.
 
+공통 페르소나 버전은 `heybot-persona-v2`다. 호출어 대화에는 답변 규칙만, 일반대화에는
+같은 core 뒤에 `REPLY/WAIT/IGNORE` JSON 판정 계약만 추가된다. 프록시는 version·kind·
+message 수만 구조화 기록하고 메시지 원문은 기록하지 않는다.
+
 엔진 변경은 코어라인 AI 연구소의 지정 관리자만 실행할 수 있고 모든 텍스트 허용방에
 전역 적용됩니다. 기존 `헤이봇 대화 시작/상태/종료`의 일반대화 모드와 별개로, `대화
 상태`에는 현재 엔진이 함께 표시됩니다.
@@ -309,10 +315,15 @@ R01. 코어라인 AI 연구소
 
 ```text
 헤이봇 이미지 분석
+헤이봇 이미지 글자 추출
+헤이봇 이미지 글자 번역
 ```
 
 - 답장으로 명령하면 해당 `src_logId/threadId` 이미지를 메모리 또는 DB에서 정확히 선택한다. 이 경로에는 임의의 2분 제한이 없으며 실제 CDN 원본 만료만 적용된다.
 - 답장이 아니면 같은 방에서 같은 사용자가 설정 시간 안에 보낸 최신 이미지 1장을 우선 선택한다. 해당 이미지가 없으면 같은 방에서 헤이봇이 보낸 최신 이미지 1장을 CDN 실제 만료 기준으로 선택한다. 동일 사용자 최근 범위의 운영 기본값은 30분이며 `IRIS_VISION_RECENT_IMAGE_WINDOW_MS`로 변경할 수 있다.
+- `이미지 분석`은 보이는 사실을 설명하고, `이미지 글자 추출`은 보이는 문자를 읽는 순서로 OCR하며, `이미지 글자 번역`은 OCR한 문장을 한국어로 번역한다.
+- 세 작업은 동일 이미지라도 `describe/ocr/translate_ko`가 서로 다른 idempotent job이다. Android가 사용자 자유 지시를 Vision prompt로 전달하지 않고 서버의 고정 작업 enum만 사용한다.
+- 이미지 속 문장은 지시가 아닌 분석 대상 데이터다. 도구·브라우저·네트워크·다른 파일 접근을 허용하지 않으며 결과는 텍스트 답변과 같은 secret·개인정보 sanitizer를 통과한다.
 - 앱이 재시작되어 메모리가 비어 있어도 정확한 답장과 동일 사용자 최근 이미지는 `chat_logs` DB에서 다시 찾는다.
 - 헤이봇이 생성·전송한 이미지는 직접 답장해 `헤이봇 이미지 분석`을 입력하면 분석한다. 답장이 없어도 명령 사용자의 최근 이미지가 없으면 같은 방의 최신 헤이봇 이미지 1장을 CDN 실제 만료 범위에서 선택한다. 이미지 전송만으로 자동 분석하지는 않는다.
 - 다른 사용자의 이미지는 그 이미지에 직접 답장한 경우에만 선택한다.
@@ -354,7 +365,7 @@ R01. 코어라인 AI 연구소
 | `IRIS_GLM_BASE_URL` | `https://api.z.ai/api/paas/v4/` | Z.AI 일반 API base URL |
 | `IRIS_GLM_MODEL` | `glm-4.5-flash` | PD20 실측 평균 1.19초의 주 모델 |
 | `IRIS_GLM_FALLBACK_MODEL` | 미설정 | 필요할 때만 주 모델의 429 또는 시간 초과용 대체 모델을 지정 |
-| `IRIS_GLM_TRIGGER` | `헤이봇` | 메시지 앞 호출어 |
+| `IRIS_GLM_TRIGGER` | `헤이봇` | 첫 문장 어느 위치에서든 인식하는 호출어 |
 | `IRIS_GLM_ALLOWED_CHAT_IDS` | 4개 관리 방의 고정 상한 | 동적 room policy가 허용할 수 있는 입력 후보 범위 |
 | `IRIS_GLM_API_KEY_FILE` | `/data/local/private/iris-glm.token` | root 전용 비밀 파일 |
 | `IRIS_GLM_TIMEOUT_MS` | `120000` | API 전체 호출 시간 제한 |
@@ -376,6 +387,7 @@ R01. 코어라인 AI 연구소
 | `IRIS_GLM_USER_RATE_MAX` | `5` | window당 사용자별 허용 건수 |
 | `IRIS_GLM_DUPLICATE_WINDOW_MS` | `8000` | 동일 방·사용자·정규화 메시지 중복 차단 |
 | `IRIS_GLM_MEMORY_FILE` | `/data/local/private/iris-bot-memory.json` | 원자적 대화 기억 파일 |
+| `IRIS_REQUEST_TRACE_FILE` | `/data/local/private/iris-request-traces.json` | 원문 없는 최근 요청 단계, 최대 200건·24시간·`600 root:root` |
 | `IRIS_GLM_MEMORY_MAX_TURNS` | `4` | `(chat_id,user_id)`별 최근 turn 수 |
 | `IRIS_GLM_MEMORY_TTL_MS` | `1800000` | 대화 기억 TTL 30분 |
 | `IRIS_GLM_MEMORY_MAX_BYTES` | `1048576` | 기억 JSON 최대 1 MiB |
@@ -427,6 +439,7 @@ SERIAL=0123456789ABCDEF
   IRIS_GLM_USER_RATE_MAX=5 \\
   IRIS_GLM_DUPLICATE_WINDOW_MS=8000 \\
   IRIS_GLM_MEMORY_FILE=/data/local/private/iris-bot-memory.json \\
+  IRIS_REQUEST_TRACE_FILE=/data/local/private/iris-request-traces.json \\
   IRIS_GLM_MEMORY_MAX_TURNS=4 \\
   IRIS_GLM_MEMORY_TTL_MS=1800000 \\
   IRIS_GLM_MEMORY_MAX_BYTES=1048576 \\
@@ -470,7 +483,7 @@ ADB=/path/to/adb SERIAL=<serial> APK=/path/to/Iris-release.apk \
   scripts/start_iris_glm_pd20.sh
 ```
 
-스크립트는 `/data/local/private`가 `700 root:root`, 토큰·기존 기억·기존 관리자·일반대화
+스크립트는 `/data/local/private`가 `700 root:root`, 토큰·기존 기억·요청 trace·기존 관리자·일반대화
 block/mode 파일이 `600 root:root`인지 내용 노출 없이 검사한다. block 파일이 없으면 빈 root
 전용 파일을 생성하지만 mode 파일은 앱이 원자적으로 관리하므로 생성·덮어쓰기하지 않는다.
 관리자 파일이 없으면 경고 후 기동하며 관리자 명령만 비활성화된다.
@@ -481,7 +494,9 @@ block/mode 파일이 `600 root:root`인지 내용 노출 없이 검사한다. bl
 |---|---|---|
 | `헤이봇 <질문>` | 허용된 방의 일반 사용자 | 방별 FIFO → 전체 동시성 제한 → GLM |
 | `헤이봇 도움말` | 일반 사용자 | 로컬 즉시 응답, GLM 미호출 |
+| `헤이봇 기능` / `헤이봇 기능 <이름>` | 일반 사용자 | 현재 방에서 허용된 기능 목록·상세·예시를 카탈로그에서 표시 |
 | `헤이봇 내 기억 초기화` | 일반 사용자 | 현재 `(chat_id,user_id)` 기억만 삭제 |
+| `헤이봇 이미지 분석/글자 추출/글자 번역` | 이미지분석 허용방의 일반 사용자 | 답장 또는 최근 이미지로 설명/OCR/한국어 번역 |
 | `헤이봇 상태` | 코어라인 AI 연구소의 관리자 | Queue·latency·성공/실패·제한·기억 상태 |
 | `헤이봇 설정 보기` | 코어라인 AI 연구소의 관리자 | 비밀을 제외한 운영값 요약 |
 | `헤이봇 전체 기억 초기화` | 코어라인 AI 연구소의 관리자 | 모든 대화 기억 삭제·저장 |
@@ -494,6 +509,7 @@ block/mode 파일이 `600 root:root`인지 내용 노출 없이 검사한다. bl
 | `헤이봇 대화 그록` | 코어라인 AI 연구소의 관리자 | 호출어·일반대화 응답 엔진을 Grok 프록시로 전역 변경 |
 | `헤이봇 자체진단` | 코어라인 AI 연구소의 관리자 | 외부 호출 없는 QUICK 진단 |
 | `헤이봇 자체진단 통합/기기/카나리` | 코어라인 AI 연구소의 관리자 | readiness·기기 metadata·승인 대기 CANARY 진단 |
+| `헤이봇 최근 진단 [R번호]` | 코어라인 AI 연구소의 관리자 | 직전 비진단 요청의 중단 단계·엔진·안정된 사유 코드 표시 |
 
 관리자 명령은 exact `user_id`와 `IRIS_BOT_ADMIN_CONTROL_CHAT_ID`가 모두 일치해야 한다. 다른 방의 관리자 명령은 실행되지 않는다. 로컬 명령은 GLM Queue를 거치지 않으므로 다른 방에서 120초 요청이 실행 중이어도 처리된다.
 미인가 사용자는 관리자 목록을 알 수 없고 단순 거부 메시지만 받는다.
@@ -503,10 +519,28 @@ block/mode 파일이 `600 root:root`인지 내용 노출 없이 검사한다. bl
 추가한다. 각 메시지는 카카오톡 응답 상한 480자 이내이므로 뒤쪽 관리자 명령이 잘리지
 않는다.
 
+### 최근 요청 진단
+
+```text
+헤이봇 최근 진단
+헤이봇 최근 진단 R03
+```
+
+코어라인 AI 연구소의 exact 관리자만 실행할 수 있다. 진단 명령 자신은 검색에서 제외하고,
+지정 방의 직전 요청에 대해 `DB 수신 → 분류 → 정책/모드 → admission/queue → provider →
+safety → 전송 큐 → 서비스 호출 → Kakao DB 확인` 중 마지막 단계를 표시한다. 출력에는
+`T-XXXXXXXX` trace ID, R번호, 기능 종류, 엔진, 안정된 사유 코드, 경과 시간만 포함한다.
+
+trace 정본은 `/data/local/private/iris-request-traces.json`이며 `600 root:root`, 최대
+200건, 24시간 TTL이다. 메시지·응답 원문, 표시 이름, CDN URL, 파일 경로, token/secret,
+원시 오류 문자열은 저장하지 않는다. 파일 손상·쓰기 실패에서는 기능 실행은 계속하고
+진단 persistence만 비활성화한다.
+
 ### Android 자체진단
 
-`헤이봇 자체진단`은 기본적으로 외부 생성·카카오톡 전송 없이 parser, 정책, 기억,
-엔진 mode, queue/admission, 응답 safety를 fake gateway로 점검한다. 단계별 동작은 다음과 같다.
+`헤이봇 자체진단`은 기본적으로 외부 생성·카카오톡 전송 없이 parser, persona v2,
+스킬 카탈로그, Vision task, 요청 trace, 정책, 기억, 엔진 mode, queue/admission,
+응답 safety를 fake gateway로 점검한다. 단계별 동작은 다음과 같다.
 
 ```text
 헤이봇 자체진단             # QUICK: 네트워크·DB 쓰기·Replier 없음

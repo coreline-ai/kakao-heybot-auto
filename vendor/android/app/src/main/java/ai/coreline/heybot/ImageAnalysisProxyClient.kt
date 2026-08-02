@@ -10,12 +10,34 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 
+enum class VisionTask(val wireValue: String) {
+    DESCRIBE("describe"),
+    OCR("ocr"),
+    TRANSLATE_KO("translate_ko");
+
+    companion object {
+        fun fromWire(value: String?): VisionTask? = entries.firstOrNull { it.wireValue == value }
+    }
+}
+
 data class ImageAnalysisResult(
-    val summary: String,
+    val version: Int,
+    val task: VisionTask,
+    val answer: String,
     val visibleObjects: List<String>,
-    val visibleText: List<String>,
+    val extractedText: List<String>,
     val uncertainty: String
-)
+) {
+    val summary: String get() = answer
+    val visibleText: List<String> get() = extractedText
+
+    constructor(
+        summary: String,
+        visibleObjects: List<String>,
+        visibleText: List<String>,
+        uncertainty: String
+    ) : this(1, VisionTask.DESCRIBE, summary, visibleObjects, visibleText, uncertainty)
+}
 
 data class ImageAnalysisJob(
     val jobId: String,
@@ -31,7 +53,8 @@ interface ImageAnalysisGateway {
         requestId: String,
         chatId: Long,
         userId: Long,
-        source: IncomingImageAttachment
+        source: IncomingImageAttachment,
+        task: VisionTask = VisionTask.DESCRIBE
     ): Result<ImageAnalysisJob>
 
     suspend fun status(jobId: String, chatId: Long): Result<ImageAnalysisJob>
@@ -49,7 +72,8 @@ class ImageAnalysisProxyClient(
         requestId: String,
         chatId: Long,
         userId: Long,
-        source: IncomingImageAttachment
+        source: IncomingImageAttachment,
+        task: VisionTask
     ): Result<ImageAnalysisJob> = withContext(Dispatchers.IO) {
         runCatching {
             execute(
@@ -61,6 +85,7 @@ class ImageAnalysisProxyClient(
                             chatId = chatId.toString(),
                             userId = userId.toString(),
                             logId = source.sourceLogId.toString(),
+                            task = task.wireValue,
                             source = VisionSource(
                                 url = source.url,
                                 width = source.width,
@@ -103,11 +128,38 @@ class ImageAnalysisProxyClient(
                 status = body.status,
                 errorCode = body.error?.code,
                 result = body.result?.let { result ->
+                    val task = when (result.version) {
+                        1 -> {
+                            if (result.task != null && result.task != VisionTask.DESCRIBE.wireValue) {
+                                throw IllegalStateException("VISION_RESULT_INVALID")
+                            }
+                            VisionTask.DESCRIBE
+                        }
+                        2 -> VisionTask.fromWire(result.task)
+                            ?: throw IllegalStateException("VISION_RESULT_INVALID")
+                        else -> throw IllegalStateException("VISION_RESULT_INVALID")
+                    }
+                    val answer = when (result.version) {
+                        1 -> result.summary ?: result.answer
+                        2 -> result.answer
+                        else -> null
+                    } ?: throw IllegalStateException("VISION_RESULT_INVALID")
+                    val extractedText = result.extractedText.ifEmpty { result.visibleText }
+                    if (
+                        answer.isBlank() || answer.length > 480 ||
+                        result.visibleObjects.size > 20 ||
+                        result.visibleObjects.any { it.isBlank() || it.length > 80 } ||
+                        extractedText.size > 20 ||
+                        extractedText.any { it.isBlank() || it.length > 120 } ||
+                        result.uncertainty !in setOf("low", "medium", "high")
+                    ) throw IllegalStateException("VISION_RESULT_INVALID")
                     ImageAnalysisResult(
-                        result.summary,
-                        result.visibleObjects,
-                        result.visibleText,
-                        result.uncertainty
+                        version = result.version,
+                        task = task,
+                        answer = answer,
+                        visibleObjects = result.visibleObjects,
+                        extractedText = extractedText,
+                        uncertainty = result.uncertainty
                     )
                 }
             )
@@ -125,6 +177,7 @@ private data class VisionCreateRequest(
     val chatId: String,
     val userId: String,
     val logId: String,
+    val task: String,
     val source: VisionSource
 )
 
@@ -152,8 +205,11 @@ private data class VisionJobResponse(
 @Serializable
 private data class VisionResult(
     val version: Int,
-    val summary: String,
+    val task: String? = null,
+    val answer: String? = null,
+    val summary: String? = null,
     val visibleObjects: List<String> = emptyList(),
     val visibleText: List<String> = emptyList(),
+    val extractedText: List<String> = emptyList(),
     val uncertainty: String
 )

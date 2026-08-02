@@ -60,6 +60,59 @@ class ImageAnalysisCoordinatorTest {
         coordinator.close()
     }
 
+    @Test fun `OCR command creates a task scoped job and renders task label`() {
+        val replies = mutableListOf<String>()
+        val gateway = FakeGateway()
+        val traces = RequestTraceStore.inMemory()
+        val coordinator = ImageAnalysisCoordinator(
+            settings = ImageAnalysisSettings(
+                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+            ),
+            trigger = "헤이봇",
+            botId = 20,
+            gateway = gateway,
+            replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
+            roomCapabilityPolicy = policy(),
+            requestTraceStore = traces
+        )
+        coordinator.onIncoming(message(70, "2", "", image(70, 10, 20)))
+        coordinator.onIncoming(message(71, "1", "헤이봇 이미지 글자 추출"))
+
+        assertTrue(gateway.created.await(2, TimeUnit.SECONDS))
+        repeat(100) { if (replies.any { it.startsWith("이미지 글자 추출 결과") }) return@repeat; Thread.sleep(2) }
+        assertEquals(VisionTask.OCR, gateway.task)
+        assertTrue(gateway.requestId.endsWith(":ocr"))
+        assertTrue(replies.any { it.contains("HELLO") })
+        assertEquals(RequestTraceKind.VISION, traces.get(RequestTraceIds.from(10L, 71L))?.kind)
+        assertEquals(RequestTraceStage.ENQUEUED, traces.get(RequestTraceIds.from(10L, 71L))?.stage)
+        coordinator.close()
+    }
+
+    @Test fun `OCR answer applies the shared privacy sanitizer before reply`() {
+        val replies = mutableListOf<String>()
+        val gateway = FakeGateway("문의 test@example.com 010-1234-5678")
+        val coordinator = ImageAnalysisCoordinator(
+            settings = ImageAnalysisSettings(
+                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+            ),
+            trigger = "헤이봇",
+            botId = 20,
+            gateway = gateway,
+            replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
+            roomCapabilityPolicy = policy()
+        )
+        coordinator.onIncoming(message(72, "2", "", image(72, 10, 20)))
+        coordinator.onIncoming(message(73, "1", "헤이봇 이미지 글자 추출"))
+
+        assertTrue(gateway.created.await(2, TimeUnit.SECONDS))
+        repeat(100) { if (replies.any { it.startsWith("이미지 글자 추출 결과") }) return@repeat; Thread.sleep(2) }
+        val result = replies.first { it.startsWith("이미지 글자 추출 결과") }
+        assertTrue(result.contains("[이메일 마스킹]"))
+        assertTrue(result.contains("[전화번호 마스킹]"))
+        assertFalse(result.contains("test@example.com"))
+        coordinator.close()
+    }
+
     @Test fun `empty cache falls back to DB for exact reply without two-minute limit`() {
         val gateway = FakeGateway()
         val oldImage = image(41, 10, 999)
@@ -184,12 +237,13 @@ class ImageAnalysisCoordinatorTest {
             return latest?.takeIf { it.chatId == chatId && it.userId == userId }
         }
     }
-    private class FakeGateway:ImageAnalysisGateway {
+    private class FakeGateway(private val answerOverride: String? = null):ImageAnalysisGateway {
         val created=CountDownLatch(1);var source:IncomingImageAttachment?=null
-        override suspend fun create(requestId:String,chatId:Long,userId:Long,source:IncomingImageAttachment):Result<ImageAnalysisJob>{this.source=source;created.countDown();return Result.success(job("queued"))}
-        override suspend fun status(jobId:String,chatId:Long)=Result.success(job("succeeded",ImageAnalysisResult("밝은 방에서 로봇이 손을 흔들고 있습니다.",listOf("로봇"),emptyList(),"low")))
+        var task:VisionTask=VisionTask.DESCRIBE;var requestId:String=""
+        override suspend fun create(requestId:String,chatId:Long,userId:Long,source:IncomingImageAttachment,task:VisionTask):Result<ImageAnalysisJob>{this.source=source;this.task=task;this.requestId=requestId;created.countDown();return Result.success(job("queued"))}
+        override suspend fun status(jobId:String,chatId:Long)=Result.success(job("succeeded",ImageAnalysisResult(2,task,answerOverride ?: if(task==VisionTask.OCR)"HELLO" else "밝은 방에서 로봇이 손을 흔들고 있습니다.",listOf("로봇"),if(task==VisionTask.OCR)listOf("HELLO") else emptyList(),"low")))
         override suspend fun cancel(jobId:String,chatId:Long)=Result.success(job("cancelled"))
-        private fun job(status:String,result:ImageAnalysisResult?=null)=ImageAnalysisJob("job","vision:10:1","10",status,null,result)
+        private fun job(status:String,result:ImageAnalysisResult?=null)=ImageAnalysisJob("job",requestId.ifBlank { "vision:10:1:describe" },"10",status,null,result)
     }
     private class MemoryBackend:ConversationMemoryBackend{override fun read():ByteArray?=null;override fun write(bytes:ByteArray)=Unit;override fun quarantine(nowMillis:Long)=Unit}
 }

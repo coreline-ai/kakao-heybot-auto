@@ -19,6 +19,7 @@ import {
   CliCodexVisionRunner,
   FakeCodexVisionRunner,
   type CodexVisionRunner,
+  type VisionTask,
 } from "../vision/runner.js";
 
 interface JobRequestBody {
@@ -340,11 +341,16 @@ export function createCodexServer(
         }
         const source = await readBytes(request, config.visionMaxInputBytes);
         assertImageMagic(source, mediaType);
+        const task = String(request.headers["x-heybot-vision-task"] ?? "describe") as VisionTask;
+        if (!["describe", "ocr", "translate_ko"].includes(task)) {
+          throw new Error("INVALID_VISION_TASK");
+        }
         const result = await visionQueue.run(() =>
           visionRunner.run(
             requestId,
             source,
             mediaType,
+            task,
             AbortSignal.timeout(config.visionTimeoutMs),
           ),
         );
