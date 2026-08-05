@@ -1256,7 +1256,12 @@ class GlmAutoReplyHandler(
             is BotCommand.GenerateVideo,
             BotCommand.VideoStatus,
             BotCommand.CancelVideo,
-            BotCommand.RetryVideo -> Unit
+            BotCommand.RetryVideo,
+            is BotCommand.DownloadYoutube,
+            BotCommand.YoutubeDownloadStatus,
+            BotCommand.CancelYoutubeDownload,
+            BotCommand.RetryYoutubeDownload,
+            BotCommand.DeleteYoutubeDownload -> Unit
             is BotCommand.GeneratePenBrush,
             BotCommand.PenBrushStatus,
             BotCommand.CancelPenBrush,
@@ -1450,6 +1455,11 @@ class GlmAutoReplyHandler(
         BotCommand.VideoStatus,
         BotCommand.CancelVideo,
         BotCommand.RetryVideo -> RequestTraceKind.VIDEO
+        is BotCommand.DownloadYoutube,
+        BotCommand.YoutubeDownloadStatus,
+        BotCommand.CancelYoutubeDownload,
+        BotCommand.RetryYoutubeDownload,
+        BotCommand.DeleteYoutubeDownload -> RequestTraceKind.YOUTUBE_DOWNLOAD
         is BotCommand.GeneratePenBrush,
         BotCommand.PenBrushStatus,
         BotCommand.CancelPenBrush,
@@ -1474,6 +1484,11 @@ class GlmAutoReplyHandler(
         BotCommand.VideoStatus,
         BotCommand.CancelVideo,
         BotCommand.RetryVideo -> RoomCapability.VIDEO
+        is BotCommand.DownloadYoutube,
+        BotCommand.YoutubeDownloadStatus,
+        BotCommand.CancelYoutubeDownload,
+        BotCommand.RetryYoutubeDownload,
+        BotCommand.DeleteYoutubeDownload -> RoomCapability.YOUTUBE_DOWNLOAD
         is BotCommand.GeneratePenBrush,
         BotCommand.PenBrushStatus,
         BotCommand.CancelPenBrush,

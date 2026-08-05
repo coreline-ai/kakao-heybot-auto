@@ -24,6 +24,7 @@ object RequestTraceRenderer {
         RequestTraceKind.LOCAL_COMMAND -> "로컬 명령"
         RequestTraceKind.IMAGE -> "이미지 생성"
         RequestTraceKind.VIDEO -> "영상 생성"
+        RequestTraceKind.YOUTUBE_DOWNLOAD -> "유튜브 다운로드"
         RequestTraceKind.PEN_BRUSH -> "펜브러쉬"
         RequestTraceKind.VISION -> "이미지 분석"
         RequestTraceKind.VISION_FOLLOW_UP -> "이미지 후속 대화"

@@ -13,6 +13,7 @@ enum class RequestTraceKind {
     LOCAL_COMMAND,
     IMAGE,
     VIDEO,
+    YOUTUBE_DOWNLOAD,
     PEN_BRUSH,
     VISION,
     AUDIO,

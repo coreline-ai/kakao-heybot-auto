@@ -13,6 +13,8 @@ enum class RoomCapability(val commandName: String, val statusName: String) {
     IMAGE("이미지", "이미지"),
     /** Video starts deny-by-default, even for policy files created before it existed. */
     VIDEO("영상", "영상"),
+    /** YouTube downloader is independent from generated video and deny-by-default. */
+    YOUTUBE_DOWNLOAD("유튜브", "유튜브다운로드"),
     /** Pen-brush rendering is billable and starts deny-by-default. */
     PEN_BRUSH("펜브러쉬", "펜브러쉬"),
     /** Analysis of user-provided images is independent from image generation. */
@@ -31,6 +33,7 @@ data class ManagedRoomCapability(
     val generalConversationEnabled: Boolean,
     val imageEnabled: Boolean,
     val videoEnabled: Boolean = false,
+    val youtubeDownloadEnabled: Boolean = false,
     val penBrushEnabled: Boolean = false,
     val imageAnalysisEnabled: Boolean = false,
     val audioAnalysisEnabled: Boolean = false,
@@ -40,6 +43,7 @@ data class ManagedRoomCapability(
     val generalConversationRevision: Long = 0L,
     val imageRevision: Long = 0L,
     val videoRevision: Long = 0L,
+    val youtubeDownloadRevision: Long = 0L,
     val penBrushRevision: Long = 0L,
     val imageAnalysisRevision: Long = 0L,
     val audioAnalysisRevision: Long = 0L,
@@ -55,6 +59,7 @@ data class RoomCapabilitySnapshot(
     val generalConversationRoomCount: Int get() = rooms.count { it.generalConversationEnabled }
     val imageRoomCount: Int get() = rooms.count { it.imageEnabled }
     val videoRoomCount: Int get() = rooms.count { it.videoEnabled }
+    val youtubeDownloadRoomCount: Int get() = rooms.count { it.youtubeDownloadEnabled }
     val penBrushRoomCount: Int get() = rooms.count { it.penBrushEnabled }
     val imageAnalysisRoomCount: Int get() = rooms.count { it.imageAnalysisEnabled }
     val audioAnalysisRoomCount: Int get() = rooms.count { it.audioAnalysisEnabled }
@@ -67,6 +72,7 @@ data class RoomCapabilitySnapshot(
                 RoomCapability.GENERAL_CONVERSATION -> room.generalConversationRevision
                 RoomCapability.IMAGE -> room.imageRevision
                 RoomCapability.VIDEO -> room.videoRevision
+                RoomCapability.YOUTUBE_DOWNLOAD -> room.youtubeDownloadRevision
                 RoomCapability.PEN_BRUSH -> room.penBrushRevision
                 RoomCapability.IMAGE_ANALYSIS -> room.imageAnalysisRevision
                 RoomCapability.AUDIO_ANALYSIS -> room.audioAnalysisRevision
@@ -119,6 +125,7 @@ class RoomCapabilityPolicyStore private constructor(
             RoomCapability.GENERAL_CONVERSATION -> room.generalConversationEnabled
             RoomCapability.IMAGE -> room.imageEnabled
             RoomCapability.VIDEO -> room.videoEnabled
+            RoomCapability.YOUTUBE_DOWNLOAD -> room.youtubeDownloadEnabled
             RoomCapability.PEN_BRUSH -> room.penBrushEnabled
             RoomCapability.IMAGE_ANALYSIS -> room.imageAnalysisEnabled
             RoomCapability.AUDIO_ANALYSIS -> room.audioAnalysisEnabled
@@ -133,6 +140,7 @@ class RoomCapabilityPolicyStore private constructor(
             RoomCapability.GENERAL_CONVERSATION -> room.generalConversationRevision
             RoomCapability.IMAGE -> room.imageRevision
             RoomCapability.VIDEO -> room.videoRevision
+            RoomCapability.YOUTUBE_DOWNLOAD -> room.youtubeDownloadRevision
             RoomCapability.PEN_BRUSH -> room.penBrushRevision
             RoomCapability.IMAGE_ANALYSIS -> room.imageAnalysisRevision
             RoomCapability.AUDIO_ANALYSIS -> room.audioAnalysisRevision
@@ -144,6 +152,7 @@ class RoomCapabilityPolicyStore private constructor(
             RoomCapability.GENERAL_CONVERSATION -> room.generalConversationEnabled
             RoomCapability.IMAGE -> room.imageEnabled
             RoomCapability.VIDEO -> room.videoEnabled
+            RoomCapability.YOUTUBE_DOWNLOAD -> room.youtubeDownloadEnabled
             RoomCapability.PEN_BRUSH -> room.penBrushEnabled
             RoomCapability.IMAGE_ANALYSIS -> room.imageAnalysisEnabled
             RoomCapability.AUDIO_ANALYSIS -> room.audioAnalysisEnabled
@@ -222,6 +231,10 @@ class RoomCapabilityPolicyStore private constructor(
                     videoEnabled = preview.enabled,
                     videoRevision = nextRevision
                 )
+                RoomCapability.YOUTUBE_DOWNLOAD -> room.copy(
+                    youtubeDownloadEnabled = preview.enabled,
+                    youtubeDownloadRevision = nextRevision
+                )
                 RoomCapability.PEN_BRUSH -> room.copy(
                     penBrushEnabled = preview.enabled,
                     penBrushRevision = nextRevision
@@ -275,6 +288,7 @@ class RoomCapabilityPolicyStore private constructor(
                 append("일반대화: ").append(enabledLabel(room.generalConversationEnabled)).append(" | ")
                 append("이미지: ").append(enabledLabel(room.imageEnabled))
                 append(" | 영상: ").append(enabledLabel(room.videoEnabled))
+                append(" | 유튜브: ").append(enabledLabel(room.youtubeDownloadEnabled))
                 append(" | 펜브러쉬: ").append(enabledLabel(room.penBrushEnabled))
                 append(" | 이미지분석: ").append(enabledLabel(room.imageAnalysisEnabled))
                 append(" | 음성: ").append(enabledLabel(room.audioAnalysisEnabled))
@@ -296,6 +310,7 @@ class RoomCapabilityPolicyStore private constructor(
             "일반대화: ${enabledLabel(room.generalConversationEnabled)}\n" +
             "이미지: ${enabledLabel(room.imageEnabled)} | " +
             "영상: ${enabledLabel(room.videoEnabled)} | " +
+            "유튜브: ${enabledLabel(room.youtubeDownloadEnabled)} | " +
             "펜브러쉬: ${enabledLabel(room.penBrushEnabled)} | " +
             "이미지분석: ${enabledLabel(room.imageAnalysisEnabled)}\n" +
             "음성: ${enabledLabel(room.audioAnalysisEnabled)} | " +
@@ -310,6 +325,7 @@ class RoomCapabilityPolicyStore private constructor(
             "일반대화: ${enabledLabel(room.generalConversationEnabled)}\n" +
             "이미지: ${enabledLabel(room.imageEnabled)}\n" +
             "영상: ${enabledLabel(room.videoEnabled)}\n" +
+            "유튜브: ${enabledLabel(room.youtubeDownloadEnabled)}\n" +
             "펜브러쉬: ${enabledLabel(room.penBrushEnabled)}\n" +
             "이미지분석: ${enabledLabel(room.imageAnalysisEnabled)}\n" +
             "음성: ${enabledLabel(room.audioAnalysisEnabled)}\n" +
@@ -330,6 +346,7 @@ class RoomCapabilityPolicyStore private constructor(
                         generalConversationEnabled = it.generalConversationEnabled,
                         imageEnabled = it.imageEnabled,
                         videoEnabled = it.videoEnabled,
+                        youtubeDownloadEnabled = it.youtubeDownloadEnabled,
                         penBrushEnabled = it.penBrushEnabled,
                         imageAnalysisEnabled = it.imageAnalysisEnabled,
                         audioAnalysisEnabled = it.audioAnalysisEnabled,
@@ -338,6 +355,7 @@ class RoomCapabilityPolicyStore private constructor(
                         generalConversationRevision = it.generalConversationRevision,
                         imageRevision = it.imageRevision,
                         videoRevision = it.videoRevision,
+                        youtubeDownloadRevision = it.youtubeDownloadRevision,
                         penBrushRevision = it.penBrushRevision,
                         imageAnalysisRevision = it.imageAnalysisRevision,
                         audioAnalysisRevision = it.audioAnalysisRevision,
@@ -350,7 +368,7 @@ class RoomCapabilityPolicyStore private constructor(
     private data class PendingMutation(val preview: RoomCapabilityPreview)
 
     companion object {
-        private const val VERSION = 4
+        private const val VERSION = 5
         private const val MAX_FILE_BYTES = 64 * 1024
         private const val MAX_REPLY_CHARS = 480
         private const val PREVIEW_TTL_MILLIS = 2 * 60 * 1000L
@@ -447,6 +465,7 @@ class RoomCapabilityPolicyStore private constructor(
                         generalConversationEnabled = it.generalConversationEnabled,
                         imageEnabled = it.imageEnabled,
                         videoEnabled = it.videoEnabled ?: false,
+                        youtubeDownloadEnabled = it.youtubeDownloadEnabled ?: false,
                         // Existing policy documents must never implicitly enable pen-brush rendering.
                         penBrushEnabled = it.penBrushEnabled ?: false,
                         // Existing policies never implicitly enable user-image analysis.
@@ -463,6 +482,7 @@ class RoomCapabilityPolicyStore private constructor(
                         imageRevision = it.imageRevision ?: document.revision,
                         // Existing policy documents must never implicitly enable billable video.
                         videoRevision = it.videoRevision ?: document.revision,
+                        youtubeDownloadRevision = it.youtubeDownloadRevision ?: document.revision,
                         penBrushRevision = it.penBrushRevision ?: document.revision,
                         imageAnalysisRevision = it.imageAnalysisRevision ?: document.revision,
                         audioAnalysisRevision = it.audioAnalysisRevision ?: document.revision,
@@ -490,6 +510,7 @@ class RoomCapabilityPolicyStore private constructor(
                         it.generalConversationRevision > snapshot.revision ||
                         it.imageRevision < 0L || it.imageRevision > snapshot.revision ||
                         it.videoRevision < 0L || it.videoRevision > snapshot.revision ||
+                        it.youtubeDownloadRevision < 0L || it.youtubeDownloadRevision > snapshot.revision ||
                         it.penBrushRevision < 0L || it.penBrushRevision > snapshot.revision ||
                         it.imageAnalysisRevision < 0L ||
                         it.imageAnalysisRevision > snapshot.revision ||
@@ -531,6 +552,7 @@ private data class PersistedManagedRoomCapability(
     val generalConversationEnabled: Boolean,
     val imageEnabled: Boolean,
     val videoEnabled: Boolean? = null,
+    val youtubeDownloadEnabled: Boolean? = null,
     val penBrushEnabled: Boolean? = null,
     val imageAnalysisEnabled: Boolean? = null,
     val audioAnalysisEnabled: Boolean? = null,
@@ -539,6 +561,7 @@ private data class PersistedManagedRoomCapability(
     val generalConversationRevision: Long? = null,
     val imageRevision: Long? = null,
     val videoRevision: Long? = null,
+    val youtubeDownloadRevision: Long? = null,
     val penBrushRevision: Long? = null,
     val imageAnalysisRevision: Long? = null,
     val audioAnalysisRevision: Long? = null,

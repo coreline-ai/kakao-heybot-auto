@@ -30,7 +30,7 @@ write_pair() {
   chmod 600 "$first" "$second"
 }
 
-for package in proxy-manager proxy-image proxy-vision proxy-codex proxy-video proxy-grok proxy-draw proxy-brush proxy-conversation proxy-audio; do
+for package in proxy-manager proxy-image proxy-vision proxy-codex proxy-video proxy-grok proxy-draw proxy-brush proxy-conversation proxy-audio proxy-youtube; do
   mkdir -p "$ROOT/$package/runtime/secrets"
   chmod 700 "$ROOT/$package/runtime" "$ROOT/$package/runtime/secrets"
 done
@@ -90,6 +90,9 @@ write_pair \
 write_pair \
   "$ROOT/proxy-manager/runtime/secrets/proxy-audio.secret" \
   "$ROOT/proxy-audio/runtime/secrets/manager.secret"
+write_pair \
+  "$ROOT/proxy-manager/runtime/secrets/proxy-youtube.secret" \
+  "$ROOT/proxy-youtube/runtime/secrets/manager.secret"
 if [[ "$FORCE" == "true" || ! -s "$ROOT/proxy-audio/runtime/secrets/transcript.key" ]]; then
   secret >"$ROOT/proxy-audio/runtime/secrets/transcript.key"
 fi

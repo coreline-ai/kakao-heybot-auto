@@ -1,0 +1,5 @@
+# Also ignore a local symlink used to share the workspace dependency install.
+node_modules
+dist/
+runtime/
+.env

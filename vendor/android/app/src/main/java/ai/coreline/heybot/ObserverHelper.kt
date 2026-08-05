@@ -20,6 +20,7 @@ class ObserverHelper(
     private val glmAutoReplyHandler: GlmAutoReplyHandler? = null,
     private val imageJobCoordinator: ImageJobCoordinator? = null,
     private val videoJobCoordinator: VideoJobCoordinator? = null,
+    private val youtubeDownloadJobCoordinator: YoutubeDownloadJobCoordinator? = null,
     private val penBrushJobCoordinator: PenBrushJobCoordinator? = null,
     private val imageAnalysisCoordinator: ImageAnalysisCoordinator? = null,
     private val audioAnalysisCoordinator: AudioAnalysisCoordinator? = null,
@@ -223,6 +224,7 @@ class ObserverHelper(
                         imageAnalysisCoordinator?.onIncoming(incoming)
                         imageJobCoordinator?.onIncoming(incoming)
                         videoJobCoordinator?.onIncoming(incoming)
+                        youtubeDownloadJobCoordinator?.onIncoming(incoming)
                         penBrushJobCoordinator?.onIncoming(incoming)
                         glmAutoReplyHandler?.onIncoming(incoming)
 

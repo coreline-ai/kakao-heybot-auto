@@ -284,7 +284,7 @@ class GlmAutoReplyHandlerTest {
         val replies = mutableListOf<String>()
         val policy = RoomCapabilityPolicyStore.forTesting(
             rooms = listOf(
-                ManagedRoomCapability("R01", CHAT_ID, "코어라인 AI 연구소", true, true, true, true, true)
+                ManagedRoomCapability("R01", CHAT_ID, "코어라인 AI 연구소", true, true, true, true, false, true)
             ),
             controlChatId = CHAT_ID,
             backend = object : ConversationMemoryBackend {
@@ -304,7 +304,7 @@ class GlmAutoReplyHandlerTest {
             "헤이봇 지원 카톡방 목록\n\n" +
             "R01. 코어라인 AI 연구소\n" +
             "텍스트: 허용 | 일반대화: 허용 | " +
-            "이미지: 허용 | 영상: 허용 | 펜브러쉬: 허용 | 이미지분석: 불허용 | " +
+            "이미지: 허용 | 영상: 허용 | 유튜브: 불허용 | 펜브러쉬: 허용 | 이미지분석: 불허용 | " +
             "음성: 불허용 | 음성자동: 불허용",
             replies.single()
         )

@@ -14,7 +14,10 @@
       "canaryRequiresExplicitConfirmation": false,
       "managerClientSecretFile": "./runtime/secrets/proxy-conversation.secret",
       "launchdLabel": "ai.coreline.heybot.proxy-conversation",
-      "dependencies": ["codex", "grok"]
+      "dependencies": [
+        "codex",
+        "grok"
+      ]
     },
     {
       "id": "image",
@@ -60,7 +63,9 @@
       "canaryRequiresExplicitConfirmation": false,
       "managerClientSecretFile": "./runtime/secrets/proxy-vision.secret",
       "launchdLabel": "ai.coreline.heybot.proxy-vision",
-      "dependencies": ["codex"]
+      "dependencies": [
+        "codex"
+      ]
     },
     {
       "id": "video",
@@ -138,6 +143,21 @@
       "canaryRequiresExplicitConfirmation": false,
       "managerClientSecretFile": "./runtime/secrets/proxy-audio.secret",
       "launchdLabel": "ai.coreline.heybot.proxy-audio",
+      "dependencies": []
+    },
+    {
+      "id": "youtube",
+      "enabled": true,
+      "exposure": "gateway",
+      "routePrefix": "/v1/youtube",
+      "targetBaseUrl": "http://127.0.0.1:4364",
+      "healthPath": "/health",
+      "readyPath": "/ready",
+      "readinessTestPath": "/v1/self-test/readiness",
+      "canaryTestPath": "/v1/self-test/readiness",
+      "canaryRequiresExplicitConfirmation": false,
+      "managerClientSecretFile": "./runtime/secrets/proxy-youtube.secret",
+      "launchdLabel": "ai.coreline.heybot.proxy-youtube",
       "dependencies": []
     }
   ]

@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "revision": 2,
   "rooms": [
     {
@@ -13,7 +13,8 @@
       "penBrushEnabled": true,
       "imageAnalysisEnabled": true,
       "audioAnalysisEnabled": false,
-      "audioAutoAnalysisEnabled": false
+      "audioAutoAnalysisEnabled": false,
+      "youtubeDownloadEnabled": true
     },
     {
       "reference": "R02",
@@ -26,7 +27,8 @@
       "penBrushEnabled": false,
       "imageAnalysisEnabled": false,
       "audioAnalysisEnabled": false,
-      "audioAutoAnalysisEnabled": false
+      "audioAutoAnalysisEnabled": false,
+      "youtubeDownloadEnabled": false
     },
     {
       "reference": "R03",
@@ -39,7 +41,8 @@
       "penBrushEnabled": false,
       "imageAnalysisEnabled": false,
       "audioAnalysisEnabled": false,
-      "audioAutoAnalysisEnabled": false
+      "audioAutoAnalysisEnabled": false,
+      "youtubeDownloadEnabled": false
     },
     {
       "reference": "R04",
@@ -52,7 +55,8 @@
       "penBrushEnabled": false,
       "imageAnalysisEnabled": false,
       "audioAnalysisEnabled": false,
-      "audioAutoAnalysisEnabled": false
+      "audioAutoAnalysisEnabled": false,
+      "youtubeDownloadEnabled": false
     }
   ]
 }

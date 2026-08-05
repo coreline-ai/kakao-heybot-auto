@@ -1,6 +1,6 @@
 # 헤이봇 개발계획 인덱스
 
-갱신 기준: `2026-08-05 20:00 KST`
+갱신 기준: `2026-08-05 20:31 KST`
 
 여러 개발계획의 미체크 항목을 모두 독립 backlog로 취급하지 않는다. 뒤 계획이
 앞 계획의 결정을 대체하거나 실제 구현이 다른 계획에서 완료된 경우 이 문서를
@@ -33,6 +33,7 @@
 | `implement_20260802_212714.md` | 이미지 분석 결과 후속 대화 문맥 | Phase 0~4·3B 구현/PD20 배포 완료, 사용자 plain follow-up E2E 대기 | DB-confirmed 안전 분석 결과를 `(chatId,userId)` 문맥에 저장하고 호출어·일반대화·exact reply에 더해 의미가 명확한 평문 후속 질문으로 연결했다. 소유자는 30분, 다른 참여자는 같은 방 5분 focus window를 사용하며 unrelated 발화는 계속 무시한다. Android debug/release 각 205개 회귀와 PD20 QUICK/INTEGRATION/DEVICE가 통과했고 사용자 소유 R01 context `30923` 복원을 확인했다. |
 | `implement_20260804_190757.md` | 카카오 음성 STT·유형별 요약 | Phase 6·R01 운영 E2E 완료/고급 schema·후속 문맥은 `192026`으로 이관 | same-room cross-user 선택, 독립 proxy-audio, AES-256-GCM transcript, GLM/Codex/Grok snapshot 요약을 PD20에 배포했다. R01은 수동 음성 ON·자동 OFF이며, 13.1초 clean Korean 세 포맷 전사, 회의록/액션, 상태·취소·원문·근거·재요약·삭제, worker kill/watchdog 복구를 확인했다. |
 | `implement_20260805_192026.md` | 음성 strict evidence·part DB 확인·후속 문맥 | 구현·자동 회귀·PD20 자체진단 완료/R01 제한 E2E 대기 | strict JSON evidence와 1회 repair, part별 Kakao DB confirmation·자동 1회/명시 재전송, DB-confirmed 안전 요약만 저장하는 30분 audio context를 구현했다. Android release test/build와 PD20 QUICK·INTEGRATION·DEVICE를 통과했으며 R01 합성 음성 multipart·exact reply 한 턴만 남았다. |
+| `implement_20260805_203127.md` | YouTube 단일 영상 다운로드·카카오 전송 | 구현 진행/자동 회귀 완료·배포 E2E 대기 | `proxy-youtube` job·yt-dlp pin·방별 권한·MP4 검증·카카오 첨부 DB confirmation/자동 1회 재전송을 구현했다. proxy/PD20은 기본 OFF이며 실제 권한 보유 영상 R01 E2E만 남았다. |
 
 ## 통합 실행 순서
 
@@ -51,6 +52,7 @@
 13. 이미지 분석 결과가 Kakao DB에 확인된 뒤 사용자별 안전 문맥으로 저장되게 하고, 호출어와 분석 결과 exact reply에서 후속 대화를 이어가도록 구현·PD20 제한 검증한다. (`20260802_212714`)
 14. type 18 generic file에서 MP3·M4A·WAV만 안전하게 분리하고, `proxy-audio` STT와 현재 대화 엔진의 유형별 요약을 운영한다. R01 수동 3포맷·3엔진·제어 명령·worker 복구 E2E는 완료했다. strict evidence schema·part별 DB confirmation·음성 후속 문맥 구현은 `192026`으로 이관했다. (`20260804_190757`)
 15. strict evidence JSON, multipart part별 DB confirmation·재전송과 안전한 음성 후속 문맥은 구현·자동 회귀·PD20 자체진단을 완료했다. R01 합성 음성의 실제 multipart 결과와 exact reply 후속 질문 1턴만 제한 E2E로 확인한다. (`20260805_192026`)
+16. `헤이봇 유튜브 다운로드 <링크>`를 최종 1차 목표로 두고, 생성형 video와 분리된 `proxy-youtube`, 방별 `YOUTUBE_DOWNLOAD` 권한, MP4 검증·카카오 첨부 DB confirmation·재전송을 구현한다. 기본은 전 방 불허용이며 R01 제한 E2E 전에는 활성화하지 않는다. (`20260805_203127`)
 
 외부 비봇 카카오 계정이 필요한 단계는 자동 단위 테스트와 분리한다. 해당 E2E가
 대기 중이어도 이미 정의된 fail-closed 코드와 자동 테스트 구현은 계속할 수 있지만,
@@ -58,7 +60,7 @@
 
 ## 현재 자동 검증 기준
 
-- Iris Android JVM test: 최신 release `235`개 통과, 실패 `0`, 오류 `0`; release APK build 통과
+- Iris Android JVM test: 최신 release `237`개 통과, 실패 `0`, 오류 `0`; release APK build 통과
 - Iris release APK build: 통과
 - Node server test: `proxy-manager` 9개, `proxy-image` 6개, `proxy-vision` 11개, `proxy-video` 2개, `proxy-draw` 3개, `proxy-brush` 2개, `proxy-codex` 12개, `proxy-grok` 4개, `proxy-conversation` 1개, `proxy-audio` 7개 통과 및 clean exit
 - 단일 스택 검증: `vendor/server/scripts/self-test-stack.sh`가 watchdog hermetic 회귀·readiness·전체 proxy test·Android `test assembleRelease`를 한 번에 통과
@@ -80,6 +82,7 @@
 - 최신 `INVALID_IMAGE`는 실제로 `512×512 GIF89a`인데 Kakao CDN `Content-Type`이 비어 있어 기존 PNG/JPEG/WebP validator가 차단한 문제였다. GIF magic sniffing·PNG 첫 프레임 변환·실패 job 재큐잉과 정확한 안내 문구를 배포했다. 동일 실제 GIF의 manager→Vision→ffmpeg→Codex 재분석은 `succeeded`했고 source URL 삭제까지 확인했으며, 카카오 결과 메시지 delivery만 남아 있다.
 - 이미지 분석 후속 대화 문맥은 구현·자동 회귀·PD20 배포·self-test v3와 R01 live Vision/context commit까지 완료했다. 합성 이미지 결과 logId `30908`에 대해 비봇 사용자의 호출어 질문과 exact reply 2턴만 재검증한다.
 - 음성 STT·요약은 `whisper.cpp 1.9.1`/`large-v3-turbo` SHA pin으로 운영 활성화했다. R01 수동 MP3·M4A·WAV, clean Korean CER 0.0, GLM/Codex/Grok, 회의록·액션·상태·취소·원문·근거·재요약·삭제와 watchdog 복구를 확인했다. R01 음성자동은 의도대로 OFF이다. strict evidence schema, part별 DB confirmation/context는 구현·자동 회귀·PD20 자체진단까지 완료됐고, 실제 multipart/exact reply R01 제한 E2E가 남아 있다.
+- YouTube 다운로드는 `헤이봇 유튜브 다운로드 <링크>`를 최종 1차 명령으로 구현 진행 중이다. proxy-youtube fake 통합·Android release 회귀까지 완료했지만, yt-dlp 실제 권한 보유 영상 canary, launchd/PD20 배포 및 R01 Kakao attachment DB confirmation은 아직 실행하지 않았다.
 - Mac sleep/wake, 물리 USB 재연결, 24시간 soak
 
 ## 2026-07-25 정합성 판정
