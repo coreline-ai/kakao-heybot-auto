@@ -168,7 +168,7 @@ class RoomCapabilityPolicyTest {
             "현재 카톡방\n" +
                 "R01. 코어라인 AI 연구소\n" +
                 "텍스트: 허용 | 일반대화: 허용\n" +
-                "이미지: 허용 | 영상: 불허용 | 펜브러쉬: 불허용 | 이미지분석: 불허용\n" +
+                "이미지: 허용 | 영상: 불허용 | 유튜브: 불허용 | 펜브러쉬: 불허용 | 이미지분석: 불허용\n" +
                 "음성: 불허용 | 음성자동: 불허용",
             policy.renderCurrentRoom(CONTROL_ROOM)
         )

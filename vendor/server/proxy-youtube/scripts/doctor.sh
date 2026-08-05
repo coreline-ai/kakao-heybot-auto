@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+: "${YOUTUBE_PROXY_YTDLP_BIN:?missing YOUTUBE_PROXY_YTDLP_BIN}"
+: "${YOUTUBE_PROXY_FFPROBE_BIN:?missing YOUTUBE_PROXY_FFPROBE_BIN}"
+test -x "$YOUTUBE_PROXY_YTDLP_BIN"
+test -x "$YOUTUBE_PROXY_FFPROBE_BIN"
+"$YOUTUBE_PROXY_YTDLP_BIN" --version
+"$YOUTUBE_PROXY_FFPROBE_BIN" -version >/dev/null

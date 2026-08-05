@@ -35,6 +35,11 @@ sealed interface BotCommand {
     data object VideoStatus : BotCommand
     data object CancelVideo : BotCommand
     data object RetryVideo : BotCommand
+    data class DownloadYoutube(val url: String) : BotCommand
+    data object YoutubeDownloadStatus : BotCommand
+    data object CancelYoutubeDownload : BotCommand
+    data object RetryYoutubeDownload : BotCommand
+    data object DeleteYoutubeDownload : BotCommand
     data class GeneratePenBrush(val prompt: String) : BotCommand
     data object PenBrushStatus : BotCommand
     data object CancelPenBrush : BotCommand
@@ -96,6 +101,11 @@ class BotCommandRouter(private val trigger: String) {
             "영상 상태" -> BotCommand.VideoStatus
             "영상 취소" -> BotCommand.CancelVideo
             "영상 재전송" -> BotCommand.RetryVideo
+            "유튜브 상태" -> BotCommand.YoutubeDownloadStatus
+            "유튜브 취소" -> BotCommand.CancelYoutubeDownload
+            "유튜브 재전송" -> BotCommand.RetryYoutubeDownload
+            "유튜브 삭제" -> BotCommand.DeleteYoutubeDownload
+            "유튜브", "유튜브 다운로드" -> BotCommand.InvalidLocalCommand(YOUTUBE_HELP)
             "펜브러쉬 상태" -> BotCommand.PenBrushStatus
             "펜브러쉬 취소" -> BotCommand.CancelPenBrush
             "펜브러쉬 재전송" -> BotCommand.RetryPenBrush
@@ -124,6 +134,13 @@ class BotCommandRouter(private val trigger: String) {
                         BotCommand.InvalidLocalCommand("만들 영상 내용을 함께 입력해주세요.")
                     } else {
                         BotCommand.GenerateVideo(prompt)
+                    }
+                } else if (command is BotCommand.GlmQuestion && content.startsWith(YOUTUBE_PREFIX)) {
+                    val url = content.removePrefix(YOUTUBE_PREFIX).trim()
+                    if (url.isBlank() || YoutubeDownloadCommandParser.canonicalVideoId(url) == null) {
+                        BotCommand.InvalidLocalCommand(YOUTUBE_HELP)
+                    } else {
+                        BotCommand.DownloadYoutube(url)
                     }
                 } else if (command is BotCommand.GlmQuestion && content.startsWith(PEN_BRUSH_PREFIX)) {
                     val prompt = content.removePrefix(PEN_BRUSH_PREFIX).trim()
@@ -236,8 +253,10 @@ class BotCommandRouter(private val trigger: String) {
         const val IMAGE_PREFIX = "이미지 "
         const val VIDEO_PREFIX = "영상 "
         const val PEN_BRUSH_PREFIX = "펜브러쉬 "
+        const val YOUTUBE_PREFIX = "유튜브 다운로드 "
         const val SKILL_PREFIX = "기능 "
         const val RECENT_DIAGNOSTICS_PREFIX = "최근 진단 "
+        const val YOUTUBE_HELP = "‘헤이봇 유튜브 다운로드 <YouTube 링크>’처럼 입력해주세요. 단일 YouTube 영상 링크만 지원해요."
         const val ROOM_HELP = "먼저 ‘헤이봇 카톡방’으로 방 이름과 R번호를 확인해주세요. 이후 ‘헤이봇 방 상태 R번호’ 또는 ‘헤이봇 영상 불허용 R01’처럼 입력할 수 있어요."
         val TRIGGER_DELIMITERS = charArrayOf(
             ' ', ',', '，', ':', '：',

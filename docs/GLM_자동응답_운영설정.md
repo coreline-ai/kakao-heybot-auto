@@ -764,3 +764,13 @@ SERIAL=0123456789ABCDEF
 | 일반대화 mode가 자동으로 꺼짐 | 5분 안에 일반대화 외부 장애 3건으로 circuit trip | `헤이봇 대화 상태`의 generic 사유와 Z.AI 상태 확인 후 `헤이봇 대화 시작`으로 수동 복구 |
 | `일반대화 정책이 준비되지 않아...` | allowlist 누락/범위 오류 또는 block 파일 형식·권한 오류 | 시작 로그의 generic policy reason과 root 파일 metadata를 확인 |
 | 답장 없음, 오류 로그 없음 | 호출어/방/텍스트 타입 필터에서 제외 | `헤이봇 <질문>` 형식과 허용 chat_id 확인 |
+
+## YouTube 단일 영상 다운로드 (준비 상태)
+
+- 사용자 명령: `헤이봇 유튜브 다운로드 <YouTube 링크>`
+- 제어: `헤이봇 유튜브 상태`, `헤이봇 유튜브 취소`, `헤이봇 유튜브 재전송`, `헤이봇 유튜브 삭제`
+- 관리자: 코어라인 AI 연구소에서 `헤이봇 유튜브 허용 R01` 후 `헤이봇 방 적용 <코드>`로만 활성화한다. 기본값은 전 방 불허용이다.
+- 서버는 `proxy-youtube`와 고정된 `yt-dlp`/FFmpeg 도구를 사용한다. playlist·로그인/DRM·임의 URL·cookie는 지원하지 않는다.
+- 서버는 Kakao-lite MP4(H.264 Baseline/yuv420p, 24fps, mono AAC)를 완성한다. 기본은 20 MiB hard limit·18 MiB target이며, 5분 이하 480×270, 5~10분 426×240, 10~15분 320×180으로 자동 축소한다.
+- Android는 최종 MP4를 저장·direct share만 하며 재인코딩하지 않는다. Kakao DB 첨부 행이 확인되어야 완료 처리하고, DB 미확인 시 자동으로 두 번째 영상을 보내지 않는다. 사용자가 `헤이봇 유튜브 재전송`을 입력할 때만 재시도한다.
+- R01 실사용 E2E 전에는 `IRIS_YOUTUBE_DOWNLOAD_PROXY_ENABLED=true`로 바꾸거나 room capability를 허용하지 않는다.

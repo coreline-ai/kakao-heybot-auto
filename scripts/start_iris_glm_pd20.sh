@@ -24,6 +24,8 @@ IMAGE_STATE_FILE=/data/local/private/iris-image-jobs.json
 VISION_PROXY_SECRET_FILE=/data/local/private/iris-vision-proxy.token
 VIDEO_PROXY_SECRET_FILE=/data/local/private/iris-video-proxy.token
 VIDEO_STATE_FILE=/data/local/private/iris-video-jobs.json
+YOUTUBE_PROXY_SECRET_FILE=/data/local/private/iris-youtube-proxy.token
+YOUTUBE_STATE_FILE=/data/local/private/iris-youtube-jobs.json
 PEN_BRUSH_PROXY_SECRET_FILE=/data/local/private/iris-pen-brush-proxy.token
 PEN_BRUSH_STATE_FILE=/data/local/private/iris-pen-brush-jobs.json
 CONVERSATION_PROXY_SECRET_FILE=/data/local/private/iris-conversation-proxy.token
@@ -37,6 +39,7 @@ HTTP_API_ENABLED="${IRIS_HTTP_API_ENABLED:-false}"
 IMAGE_PROXY_SECRET_LOCAL="${IMAGE_PROXY_SECRET_LOCAL:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/vendor/server/proxy-manager/runtime/secrets/route.secret}"
 VISION_PROXY_SECRET_LOCAL="${VISION_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}"
 VIDEO_PROXY_SECRET_LOCAL="${VIDEO_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}"
+YOUTUBE_PROXY_SECRET_LOCAL="${YOUTUBE_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}"
 PEN_BRUSH_PROXY_SECRET_LOCAL="${PEN_BRUSH_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}"
 CONVERSATION_PROXY_SECRET_LOCAL="${CONVERSATION_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}"
 AUDIO_PROXY_SECRET_LOCAL="${AUDIO_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}"
@@ -44,6 +47,7 @@ AUDIO_PROXY_SECRET_LOCAL="${AUDIO_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}
 # 스크립트가 기본 false로 실행되면 APK·프록시가 정상이어도 명령이 조용히
 # 무시되므로, 운영 기본값은 켜 둔다. 긴급 중지는 명시적으로 false를 전달한다.
 VIDEO_PROXY_ENABLED="${IRIS_VIDEO_PROXY_ENABLED:-true}"
+YOUTUBE_PROXY_ENABLED="${IRIS_YOUTUBE_DOWNLOAD_PROXY_ENABLED:-false}"
 PEN_BRUSH_PROXY_ENABLED="${IRIS_PEN_BRUSH_PROXY_ENABLED:-true}"
 CONVERSATION_PROXY_ENABLED="${IRIS_CONVERSATION_PROXY_ENABLED:-true}"
 VISION_PROXY_ENABLED="${IRIS_VISION_PROXY_ENABLED:-true}"
@@ -73,6 +77,8 @@ private_metadata="$($ADB -s "$SERIAL" shell "su root sh -c 'stat -c \"%a %U:%G\"
   fail "IRIS_HTTP_API_ENABLED must be true or false"
 [[ "$VIDEO_PROXY_ENABLED" == "true" || "$VIDEO_PROXY_ENABLED" == "false" ]] ||
   fail "IRIS_VIDEO_PROXY_ENABLED must be true or false"
+[[ "$YOUTUBE_PROXY_ENABLED" == "true" || "$YOUTUBE_PROXY_ENABLED" == "false" ]] ||
+  fail "IRIS_YOUTUBE_DOWNLOAD_PROXY_ENABLED must be true or false"
 [[ "$PEN_BRUSH_PROXY_ENABLED" == "true" || "$PEN_BRUSH_PROXY_ENABLED" == "false" ]] ||
   fail "IRIS_PEN_BRUSH_PROXY_ENABLED must be true or false"
 [[ "$CONVERSATION_PROXY_ENABLED" == "true" || "$CONVERSATION_PROXY_ENABLED" == "false" ]] ||
@@ -172,6 +178,17 @@ if [[ "$VIDEO_PROXY_ENABLED" == "true" ]]; then
     chown root:root $VIDEO_PROXY_SECRET_FILE
     chmod 600 $VIDEO_PROXY_SECRET_FILE
     rm -f /data/local/tmp/iris-video-proxy.token
+  '"
+fi
+
+if [[ "$YOUTUBE_PROXY_ENABLED" == "true" ]]; then
+  [[ -s "$YOUTUBE_PROXY_SECRET_LOCAL" ]] || fail "YouTube proxy route secret is missing: $YOUTUBE_PROXY_SECRET_LOCAL"
+  "$ADB" -s "$SERIAL" push "$YOUTUBE_PROXY_SECRET_LOCAL" /data/local/tmp/iris-youtube-proxy.token >/dev/null
+  "$ADB" -s "$SERIAL" shell "su root sh -c '
+    cp /data/local/tmp/iris-youtube-proxy.token $YOUTUBE_PROXY_SECRET_FILE
+    chown root:root $YOUTUBE_PROXY_SECRET_FILE
+    chmod 600 $YOUTUBE_PROXY_SECRET_FILE
+    rm -f /data/local/tmp/iris-youtube-proxy.token
   '"
 fi
 
@@ -418,6 +435,21 @@ printf 'Deploying %s to PD20…\n' "$(basename "$APK")"
   IRIS_PEN_BRUSH_ROOM_RATE_MAX=1 \\
   IRIS_PEN_BRUSH_USER_RATE_MAX=1 \\
   IRIS_PEN_BRUSH_STATE_FILE=$PEN_BRUSH_STATE_FILE \\
+  IRIS_YOUTUBE_DOWNLOAD_PROXY_ENABLED=$YOUTUBE_PROXY_ENABLED \
+  IRIS_YOUTUBE_DOWNLOAD_PROXY_BASE_URL=http://127.0.0.1:4340 \
+  IRIS_YOUTUBE_DOWNLOAD_PROXY_SECRET_FILE=$YOUTUBE_PROXY_SECRET_FILE \
+  IRIS_YOUTUBE_DOWNLOAD_ALLOWED_CHAT_IDS=18480337854645134,18393359886930036,18243496625741211,18226456888539938 \
+  IRIS_YOUTUBE_DOWNLOAD_PROXY_REQUEST_TIMEOUT_MS=30000 \
+  IRIS_YOUTUBE_DOWNLOAD_PROXY_POLL_INTERVAL_MS=1000 \
+  IRIS_YOUTUBE_DOWNLOAD_PROXY_JOB_TIMEOUT_MS=600000 \
+  IRIS_YOUTUBE_DOWNLOAD_URL_MAX_CHARS=2048 \
+  IRIS_YOUTUBE_DOWNLOAD_MAX_BYTES=52428800 \
+  IRIS_YOUTUBE_DOWNLOAD_DELIVERY_CONFIRM_TIMEOUT_MS=45000 \
+  IRIS_YOUTUBE_DOWNLOAD_MAX_PENDING_PER_ROOM=1 \
+  IRIS_YOUTUBE_DOWNLOAD_RATE_WINDOW_MS=600000 \
+  IRIS_YOUTUBE_DOWNLOAD_ROOM_RATE_MAX=1 \
+  IRIS_YOUTUBE_DOWNLOAD_USER_RATE_MAX=1 \
+  IRIS_YOUTUBE_DOWNLOAD_STATE_FILE=$YOUTUBE_STATE_FILE \
   IRIS_CONVERSATION_PROXY_ENABLED=$CONVERSATION_PROXY_ENABLED \\
   IRIS_CONVERSATION_PROXY_BASE_URL=http://127.0.0.1:4340 \\
   IRIS_CONVERSATION_PROXY_SECRET_FILE=$CONVERSATION_PROXY_SECRET_FILE \\
@@ -458,6 +490,10 @@ general_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"General conver
 if [[ "$VIDEO_PROXY_ENABLED" == "true" ]]; then
   video_proxy_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"Video proxy coordinator ready\" $STARTUP_LOG | tail -1'" | tr -d '\r')"
   [[ -n "$video_proxy_mode" ]] || fail "Video proxy coordinator did not become ready"
+fi
+if [[ "$YOUTUBE_PROXY_ENABLED" == "true" ]]; then
+  youtube_proxy_mode="$("$ADB" -s "$SERIAL" shell "su root sh -c 'grep -F \"YouTube download coordinator ready\" $STARTUP_LOG | tail -1'" | tr -d '\r')"
+  [[ -n "$youtube_proxy_mode" ]] || fail "YouTube download coordinator did not become ready"
 fi
 if [[ "$PEN_BRUSH_PROXY_ENABLED" == "true" ]]; then
   pen_brush_proxy_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"PenBrush proxy coordinator ready\" $STARTUP_LOG | tail -1'" | tr -d '\r')"

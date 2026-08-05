@@ -252,11 +252,13 @@ class AudioAnalysisCoordinatorTest {
         coordinator.onIncoming(GlmIncomingMessage(60L, CHAT_ID, OTHER_USER_ID, "18", "", null, audioAttachment = audio))
         coordinator.onIncoming(message(61L, "헤이봇 음성 요약"))
         withTimeout(2_000) {
-            while (stateStore.latest(CHAT_ID, USER_ID)?.delivery?.parts?.firstOrNull()?.attempts != 2) delay(10)
+            while (
+                stateStore.latest(CHAT_ID, USER_ID)?.delivery?.parts?.firstOrNull()?.attempts != 2 ||
+                replies.none { it.startsWith("[1/") && it.contains("재전송") }
+            ) delay(10)
         }
         val pending = stateStore.latest(CHAT_ID, USER_ID)!!.delivery!!
         assertTrue(pending.parts.any { it.confirmedLogId == null })
-        assertTrue(replies.any { it.startsWith("[1/") && it.contains("재전송") })
 
         acceptConfirmation = true
         coordinator.onIncoming(message(62L, "헤이봇 음성 재전송"))

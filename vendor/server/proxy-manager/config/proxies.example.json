@@ -14,7 +14,10 @@
       "canaryRequiresExplicitConfirmation": false,
       "managerClientSecretFile": "./runtime/secrets/proxy-conversation.secret",
       "launchdLabel": "ai.coreline.heybot.proxy-conversation",
-      "dependencies": ["codex", "grok"]
+      "dependencies": [
+        "codex",
+        "grok"
+      ]
     },
     {
       "id": "image",
@@ -29,7 +32,9 @@
       "canaryRequiresExplicitConfirmation": true,
       "managerClientSecretFile": "./runtime/secrets/proxy-image.secret",
       "launchdLabel": "ai.coreline.heybot.proxy-image",
-      "dependencies": ["codex"]
+      "dependencies": [
+        "codex"
+      ]
     },
     {
       "id": "codex",
@@ -58,7 +63,9 @@
       "canaryRequiresExplicitConfirmation": false,
       "managerClientSecretFile": "./runtime/secrets/proxy-vision.secret",
       "launchdLabel": "ai.coreline.heybot.proxy-vision",
-      "dependencies": ["codex"]
+      "dependencies": [
+        "codex"
+      ]
     },
     {
       "id": "video",
@@ -73,7 +80,9 @@
       "canaryRequiresExplicitConfirmation": true,
       "managerClientSecretFile": "./runtime/secrets/proxy-video.secret",
       "launchdLabel": "ai.coreline.heybot.proxy-video",
-      "dependencies": ["grok"]
+      "dependencies": [
+        "grok"
+      ]
     },
     {
       "id": "grok",
@@ -102,6 +111,21 @@
       "canaryRequiresExplicitConfirmation": false,
       "managerClientSecretFile": "./runtime/secrets/proxy-audio.secret",
       "launchdLabel": "ai.coreline.heybot.proxy-audio",
+      "dependencies": []
+    },
+    {
+      "id": "youtube",
+      "enabled": false,
+      "exposure": "gateway",
+      "routePrefix": "/v1/youtube",
+      "targetBaseUrl": "http://127.0.0.1:4364",
+      "healthPath": "/health",
+      "readyPath": "/ready",
+      "readinessTestPath": "/v1/self-test/readiness",
+      "canaryTestPath": "/v1/self-test/readiness",
+      "canaryRequiresExplicitConfirmation": false,
+      "managerClientSecretFile": "./runtime/secrets/proxy-youtube.secret",
+      "launchdLabel": "ai.coreline.heybot.proxy-youtube",
       "dependencies": []
     }
   ]

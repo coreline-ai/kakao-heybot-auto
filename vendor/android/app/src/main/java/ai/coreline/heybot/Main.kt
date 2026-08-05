@@ -26,6 +26,16 @@ class Main {
                     println(Json.encodeToString(report))
                     return
                 }
+                if (args.firstOrNull() == LiveYoutubeCanaryRunner.ARGUMENT) {
+                    val report = runBlocking {
+                        LiveYoutubeCanaryRunner(
+                            db = KakaoDB(),
+                            notificationReferer = readNotificationReferer()
+                        ).run()
+                    }
+                    println(Json.encodeToString(report))
+                    return
+                }
                 if (args.firstOrNull() == LiveVisionCanaryRunner.ARGUMENT) {
                     val report = runBlocking {
                         LiveVisionCanaryRunner(
@@ -93,6 +103,12 @@ class Main {
                     requestTraceStore,
                     textDeliveryTracker
                 )
+                val youtubeDownloadJobCoordinator = createYoutubeDownloadJobCoordinator(
+                    notificationReferer,
+                    roomCapabilityPolicy,
+                    requestTraceStore,
+                    textDeliveryTracker
+                )
                 val penBrushJobCoordinator = createPenBrushJobCoordinator(
                     notificationReferer,
                     roomCapabilityPolicy,
@@ -121,6 +137,7 @@ class Main {
                     glmAutoReplyHandler,
                     imageJobCoordinator,
                     videoJobCoordinator,
+                    youtubeDownloadJobCoordinator,
                     penBrushJobCoordinator,
                     imageAnalysisCoordinator,
                     audioAnalysisCoordinator,
@@ -388,6 +405,51 @@ class Main {
                             Replier.sendVideoBytes(chatId, bytes)
                         },
                         stateStore = AtomicJsonVideoJobStateStore(
+                            AndroidAtomicFileBackend(settings.stateFile)
+                        ),
+                        roomCapabilityPolicy = roomCapabilityPolicy,
+                        requestTraceStore = requestTraceStore,
+                        textDeliveryTracker = textDeliveryTracker
+                    )
+                }
+            }
+        }
+
+        private fun createYoutubeDownloadJobCoordinator(
+            notificationReferer: String,
+            roomCapabilityPolicy: RoomCapabilityPolicyStore,
+            requestTraceStore: RequestTraceStore,
+            textDeliveryTracker: TextDeliveryTracker
+        ): YoutubeDownloadJobCoordinator? {
+            return when (val config = YoutubeDownloadProxySettings.load()) {
+                YoutubeDownloadProxySettingsLoadResult.Disabled -> {
+                    println("YouTube download proxy disabled")
+                    null
+                }
+
+                is YoutubeDownloadProxySettingsLoadResult.Invalid -> {
+                    System.err.println("YouTube download proxy disabled: ${config.reason}")
+                    null
+                }
+
+                is YoutubeDownloadProxySettingsLoadResult.Ready -> {
+                    val settings = config.settings
+                    println("YouTube download proxy enabled")
+                    YoutubeDownloadJobCoordinator(
+                        settings = settings,
+                        trigger = System.getenv()["IRIS_GLM_TRIGGER"]?.trim()
+                            ?.takeIf { it.isNotBlank() } ?: "헤이봇",
+                        botId = Configurable.botId,
+                        gateway = YoutubeDownloadProxyClient(settings),
+                        textSender = YoutubeDownloadTextReplySender { chatId, message, threadId ->
+                            Replier.sendMessage(notificationReferer, chatId, message, threadId) {
+                                textDeliveryTracker.dispatched(chatId, message, it)
+                            }
+                        },
+                        youtubeDownloadSender = YoutubeDownloadBytesReplySender { chatId, bytes ->
+                            Replier.sendVideoBytes(chatId, bytes)
+                        },
+                        stateStore = AtomicJsonYoutubeDownloadJobStateStore(
                             AndroidAtomicFileBackend(settings.stateFile)
                         ),
                         roomCapabilityPolicy = roomCapabilityPolicy,

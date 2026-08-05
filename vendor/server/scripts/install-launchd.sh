@@ -15,6 +15,7 @@ NODE_BIN="$(command -v node)"
 CODEX_BIN="$(command -v codex)"
 FFPROBE_BIN="$(command -v ffprobe)"
 FFMPEG_BIN="$(command -v ffmpeg)"
+YTDLP_BIN="${YOUTUBE_PROXY_YTDLP_BIN:-$ROOT/proxy-youtube/runtime/yt-dlp-venv/bin/yt-dlp}"
 WHISPER_BIN="${AUDIO_PROXY_WHISPER_BIN:-$(command -v whisper-cli || true)}"
 [[ -n "$WHISPER_BIN" ]] || WHISPER_BIN="whisper-cli"
 WHISPER_MODEL_SHA256="${AUDIO_PROXY_WHISPER_MODEL_SHA256:-}"
@@ -48,13 +49,14 @@ if [[ "$RENDER_ONLY" == "false" ]]; then
     ai.coreline.heybot.proxy-draw \
     ai.coreline.heybot.proxy-brush \
     ai.coreline.heybot.proxy-audio \
+    ai.coreline.heybot.proxy-youtube \
     ai.coreline.heybot.proxy-conversation; do
     launchctl bootout "$DOMAIN/$label" 2>/dev/null || true
   done
 fi
 
 "$ROOT/scripts/bootstrap-secrets.sh"
-for package in proxy-codex proxy-image proxy-vision proxy-grok proxy-video proxy-draw proxy-manager proxy-conversation proxy-audio; do
+for package in proxy-codex proxy-image proxy-vision proxy-grok proxy-video proxy-draw proxy-manager proxy-conversation proxy-audio proxy-youtube; do
   (cd "$ROOT/$package" && npm run build >/dev/null)
   mkdir -p "$ROOT/$package/runtime/logs" "$ROOT/$package/runtime/state"
 done
@@ -103,7 +105,7 @@ sync_package() {
   find "$target/runtime/secrets" -type f -exec chmod 600 {} +
 }
 
-for id in codex image vision grok video draw manager conversation audio; do
+for id in codex image vision grok video draw manager conversation audio youtube; do
   sync_package "$id"
 done
 
@@ -176,6 +178,14 @@ write_proxy_plist() {
   elif [[ "$id" == "vision" ]]; then
     extra_environment="
       <key>VISION_PROXY_FFMPEG_COMMAND</key>
+      <string>$(xml_escape "$FFMPEG_BIN")</string>"
+  elif [[ "$id" == "youtube" ]]; then
+    extra_environment="
+      <key>YOUTUBE_PROXY_YTDLP_BIN</key>
+      <string>$(xml_escape "$YTDLP_BIN")</string>
+      <key>YOUTUBE_PROXY_FFPROBE_BIN</key>
+      <string>$(xml_escape "$FFPROBE_BIN")</string>
+      <key>YOUTUBE_PROXY_FFMPEG_BIN</key>
       <string>$(xml_escape "$FFMPEG_BIN")</string>"
   elif [[ "$id" == "audio" ]]; then
     extra_environment="
@@ -290,7 +300,7 @@ EOF
   plutil -lint "$output" >/dev/null
 }
 
-for id in grok video codex image vision brush draw conversation audio manager; do
+for id in grok video codex image vision brush draw conversation audio youtube manager; do
   write_proxy_plist "$id"
 done
 write_watchdog_plist
@@ -319,6 +329,7 @@ for label in \
   ai.coreline.heybot.proxy-video \
   ai.coreline.heybot.proxy-brush \
   ai.coreline.heybot.proxy-audio \
+  ai.coreline.heybot.proxy-youtube \
   ai.coreline.heybot.proxy-draw \
   ai.coreline.heybot.proxy-conversation \
   ai.coreline.heybot.proxy-manager \
@@ -334,6 +345,7 @@ for label in \
   ai.coreline.heybot.proxy-vision \
   ai.coreline.heybot.proxy-brush \
   ai.coreline.heybot.proxy-audio \
+  ai.coreline.heybot.proxy-youtube \
   ai.coreline.heybot.proxy-draw \
   ai.coreline.heybot.proxy-conversation \
   ai.coreline.heybot.proxy-manager; do
