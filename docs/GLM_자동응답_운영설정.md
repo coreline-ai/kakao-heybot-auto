@@ -425,6 +425,7 @@ R01. 코어라인 AI 연구소
 | `IRIS_VISION_CONTEXT_MAX_PER_OWNER` | `3` | `(chatId,ownerUserId)`별 최근 분석 결과 상한 |
 | `IRIS_VISION_CONTEXT_MAX_CONTEXTS` | `128` | 전체 이미지 분석 문맥 수 상한 |
 | `IRIS_VISION_CONTEXT_MAX_BYTES` | `1048576` | 이미지 분석 문맥 파일 최대 1 MiB |
+| `IRIS_AUDIO_CONTEXT_FILE` | `/data/local/private/iris-audio-context.json` | DB-confirmed 안전 음성 요약 문맥 원자 파일, `600 root:root` |
 | `IRIS_BOT_ADMIN_USER_IDS_FILE` | `/data/local/private/iris-bot-admins.txt` | root 전용 관리자 ID 목록 |
 | `IRIS_BOT_ADMIN_CONTROL_CHAT_ID` | `18480337854645134` | 관리자 설정·전역 일반대화 제어가 가능한 코어라인 AI 연구소 방 |
 | `IRIS_BOT_ROOM_POLICY_FILE` | `/data/local/private/iris-room-capabilities.json` | root 전용 동적 방 capability 정책 |
@@ -645,6 +646,58 @@ HTTP API OFF이므로 카카오톡 관리자 명령 또는 `app_process --self-t
 OFF 상태도 mode 파일에 저장하므로 프로세스 재시작으로 자동 재활성화되지 않는다.
 대기·진행 중이던 오래된 일반대화 결과도 전송하지 않는다. 자동 재활성화는 하지 않으며
 코어라인 AI 연구소 관리자가 `헤이봇 대화 시작`을 다시 실행하면 실패 window를 초기화한다.
+
+## 음성 STT·요약 사용법과 활성 조건
+
+지원 파일은 카카오톡에 직접 올린 MP3·M4A·WAV다. type 18의 ZIP·PDF 등 일반 파일은 조용히 무시한다. 같은 방의 누구나 음성을 올리고 다른 참여자가 요약을 요청할 수 있다. 답장 명령은 그 음성을 정확히 선택하고, 답장하지 않은 명령은 같은 방에 최근 30분 안에 올라온 최신 지원 음성을 선택한다. 작업 상태·취소·원문·근거·삭제는 분석을 요청한 사용자 기준으로 분리한다.
+
+```text
+헤이봇 음성 요약
+헤이봇 음성 요약 회의 회의록
+헤이봇 음성 요약 회의 액션
+헤이봇 음성 상태
+헤이봇 음성 취소
+헤이봇 음성 재요약
+헤이봇 음성 재전송
+헤이봇 음성 원문 1
+헤이봇 음성 근거 1
+헤이봇 음성 삭제
+```
+
+관리자는 코어라인 AI 연구소에서 방별 권한을 미리보기→적용 순서로 변경한다.
+
+```text
+헤이봇 음성 허용 R01
+헤이봇 방 적용 <확인코드>
+헤이봇 음성자동 허용 R01
+헤이봇 방 적용 <확인코드>
+```
+
+음성 요약은 전사 segment ID를 근거로 하는 엄격한 JSON만 표시한다. 여러 카카오 text part는 각 part의 DB 행이 확인될 때만 완료 처리하며, 확인되지 않은 part는 `헤이봇 음성 재전송`으로만 재전송한다. DB 확인된 안전 요약은 30분 동안 요청자에게 후속 대화 문맥으로 제공하고, 다른 참여자는 결과 메시지 답장 또는 `그 음성/음성 요약`처럼 명시적으로 참조한 짧은 질문만 같은 방에서 사용할 수 있다. 음성 삭제·내 기억 초기화·전체/사용자 기억 초기화는 이 문맥도 제거한다.
+
+`음성자동`은 해당 방의 `텍스트`와 `음성`이 모두 허용되어야 한다. `음성` 또는 `텍스트`를 끄면 자동 분석도 함께 꺼진다. STT job 시작 시 현재 `대화 기본/코덱스/그록` 엔진을 고정하며, `음성 재요약`은 저장된 전사문을 다시 STT하지 않고 재요약 시점의 엔진을 새로 고정한다.
+
+운영 활성화 전 다음 조건을 모두 충족해야 한다.
+
+1. `whisper.cpp` 실행 파일과 한국어 benchmark를 통과한 model을 runtime에 설치한다.
+2. model SHA-256을 `AUDIO_PROXY_WHISPER_MODEL_SHA256`에 설정하고 `proxy-audio/scripts/doctor.sh`를 통과한다.
+3. manager registry의 audio `enabled`와 PD20 `IRIS_AUDIO_PROXY_ENABLED`를 명시적으로 true로 바꾼다.
+4. R01에서 합성·동의된 한국어 음성으로 STT→요약→카카오 DB 전송 확인 E2E를 통과한다.
+
+현재 운영값은 manager/PD20 audio가 ON이고 R01의 `음성`은 허용, `음성자동`은 불허용이다. 따라서 R01은 파일 전송 후 `헤이봇 음성 요약`을 입력하는 수동 분석이 기본이며, 파일 전송만으로 자동 분석하지 않는다. 다른 방은 방 정책에서 별도로 허용하기 전까지 fail-closed다. model 또는 checksum이 없으면 `/ready`가 503을 반환하며 기존 텍스트·이미지·영상 기능은 계속 동작한다. transcript는 서버 SQLite에 AES-256-GCM으로 암호화하고 기본 24시간 뒤 삭제하며, 원본과 정규화 오디오는 작업 종료 시 즉시 삭제한다.
+
+### 음성 운영 검증
+
+- PD20 고정 serial은 `0123456789ABCDEF`이며 Android에서는 manager `127.0.0.1:4340`만 호출한다.
+- R01 MP3·M4A·WAV 수동 STT→요약→Kakao DB 전송 확인 canary는 `scripts/run_live_audio_canary_pd20.sh`로 실행한다.
+- 상태·원문·근거·재요약·삭제 제어는 `IRIS_LIVE_AUDIO_CANARY_VERIFY_CONTROLS=true`, 취소는 `IRIS_LIVE_AUDIO_CANARY_CANCEL_AFTER_START=true`로 제한 검증한다.
+- GLM/Codex/Grok 비교 canary의 `ENGINE`은 임시 mode 파일만 사용하며 운영 전역 대화 엔진을 변경하지 않는다.
+- `scripts/run_audio_soak_pd20.sh`는 manager/audio/conversation readiness, ADB 연결, reverse 4340, Iris process를 주기적으로 검사한다.
+- 1.6 GiB model SHA-256은 최초·metadata 변경 시 fail-closed로 검증하고, size/mtime가 동일한 5분 주기 재검증은 마지막 verified 결과를 반환하며 background에서 하나만 수행한다. manager 3초 health timeout을 막지 않으며 수정 후 2,239초 soak에서 timeout 0건을 확인했다.
+- audio worker가 재시작되면 중간 상태 job은 `AUDIO_WORKER_RESTARTED`로 안전하게 종료하고 URL을 폐기한다. watchdog은 서비스를 복구하며 이 장애는 다른 기능의 circuit을 끄지 않는다.
+
+외부 runtime·model의 버전, SHA-256, GPL 비번들 경계는
+`vendor/server/proxy-audio/THIRD_PARTY.md`에 기록한다.
 
 ## 제한 E2E 테스트
 

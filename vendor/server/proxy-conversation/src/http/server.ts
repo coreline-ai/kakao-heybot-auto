@@ -20,7 +20,7 @@ async function readJson(request: IncomingMessage, max: number): Promise<unknown>
 function validate(value: unknown): {
   requestId: string;
   engine: Engine;
-  kind: "WAKE_WORD" | "GENERAL_CONVERSATION";
+  kind: "WAKE_WORD" | "GENERAL_CONVERSATION" | "AUDIO_SUMMARY";
   promptVersion: string;
   messages: Message[];
 } {
@@ -29,19 +29,20 @@ function validate(value: unknown): {
   if (Object.keys(body).some((key) => !["requestId", "engine", "kind", "promptVersion", "messages"].includes(key)) ||
     typeof body.requestId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(body.requestId) ||
     !["codex", "grok"].includes(String(body.engine)) ||
-    !["WAKE_WORD", "GENERAL_CONVERSATION"].includes(String(body.kind)) ||
+    !["WAKE_WORD", "GENERAL_CONVERSATION", "AUDIO_SUMMARY"].includes(String(body.kind)) ||
     typeof body.promptVersion !== "string" || !/^heybot-persona-v\d{1,3}$/.test(body.promptVersion) ||
     !Array.isArray(body.messages) || body.messages.length < 1 || body.messages.length > 32) throw new Error("INVALID_REQUEST");
+  const maxMessageChars = body.kind === "AUDIO_SUMMARY" ? 16_000 : 4_000;
   const messages = body.messages.map((item) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("INVALID_MESSAGE");
     const message = item as Record<string, unknown>;
-    if (Object.keys(message).some((key) => !["role", "content"].includes(key)) || !["system", "user", "assistant"].includes(String(message.role)) || typeof message.content !== "string" || message.content.trim().length < 1 || message.content.length > 4_000) throw new Error("INVALID_MESSAGE");
+    if (Object.keys(message).some((key) => !["role", "content"].includes(key)) || !["system", "user", "assistant"].includes(String(message.role)) || typeof message.content !== "string" || message.content.trim().length < 1 || message.content.length > maxMessageChars) throw new Error("INVALID_MESSAGE");
     return { role: message.role as Message["role"], content: message.content.trim() };
   });
   return {
     requestId: body.requestId,
     engine: body.engine as Engine,
-    kind: body.kind as "WAKE_WORD" | "GENERAL_CONVERSATION",
+    kind: body.kind as "WAKE_WORD" | "GENERAL_CONVERSATION" | "AUDIO_SUMMARY",
     promptVersion: body.promptVersion,
     messages,
   };
@@ -57,8 +58,13 @@ export function createConversationServer(config: ConversationProxyConfig): Conve
       if (request.method === "GET" && url.pathname === "/health") return json(response, 200, { ok: true, service: "proxy-conversation" });
       if (request.method === "GET" && url.pathname === "/ready") return json(response, 200, { ready: true, engines: ["codex", "grok"] });
       if (!authenticate(request.headers.authorization, secret)) return json(response, 401, { error: { code: "UNAUTHORIZED" } });
-      if (request.method !== "POST" || url.pathname !== "/v1/conversation/respond") return json(response, 404, { error: { code: "NOT_FOUND" } });
+      const responseRoute = url.pathname === "/v1/conversation/respond";
+      const audioRoute = url.pathname === "/v1/conversation/audio-summary";
+      if (request.method !== "POST" || (!responseRoute && !audioRoute)) return json(response, 404, { error: { code: "NOT_FOUND" } });
       const input = validate(await readJson(request, config.requestMaxBytes));
+      if (audioRoute !== (input.kind === "AUDIO_SUMMARY")) {
+        return json(response, 400, { error: { code: "CONVERSATION_KIND_ROUTE_MISMATCH" } });
+      }
       console.info(JSON.stringify({
         event: "conversation.request",
         requestId: input.requestId,

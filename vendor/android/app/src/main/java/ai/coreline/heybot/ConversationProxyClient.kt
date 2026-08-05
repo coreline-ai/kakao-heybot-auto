@@ -38,9 +38,14 @@ class ConversationProxyClient(
                 messages = request.messages.map { ConversationMessageDto(it.role, it.content) }
             )
             val started = System.nanoTime()
+            val route = if (request.kind == GlmRequestKind.AUDIO_SUMMARY) {
+                "/v1/conversation/audio-summary"
+            } else {
+                "/v1/conversation/respond"
+            }
             val response = client.newCall(
                 Request.Builder()
-                    .url("${settings.baseUrl}/v1/conversation/respond")
+                    .url("${settings.baseUrl}$route")
                     .header("Authorization", authorization)
                     .header("Content-Type", "application/json")
                     .post(json.encodeToString(ConversationRequestDto.serializer(), body).toRequestBody(JSON))

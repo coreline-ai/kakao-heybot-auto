@@ -88,6 +88,21 @@
       "managerClientSecretFile": "./runtime/secrets/proxy-grok.secret",
       "launchdLabel": "ai.coreline.heybot.proxy-grok",
       "dependencies": []
+    },
+    {
+      "id": "audio",
+      "enabled": false,
+      "exposure": "gateway",
+      "routePrefix": "/v1/audio",
+      "targetBaseUrl": "http://127.0.0.1:4363",
+      "healthPath": "/health",
+      "readyPath": "/ready",
+      "readinessTestPath": "/v1/self-test/readiness",
+      "canaryTestPath": "/v1/self-test/readiness",
+      "canaryRequiresExplicitConfirmation": false,
+      "managerClientSecretFile": "./runtime/secrets/proxy-audio.secret",
+      "launchdLabel": "ai.coreline.heybot.proxy-audio",
+      "dependencies": []
     }
   ]
 }

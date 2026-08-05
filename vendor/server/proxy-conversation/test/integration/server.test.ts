@@ -64,6 +64,24 @@ test("routes only authenticated conversation requests to the selected provider",
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { requestId: "r1", engine: "grok", text: "grok reply", latencyMillis: 3 });
 
+  const audioBody = JSON.stringify({
+    requestId: "audio-summary-r1", engine: "grok", kind: "AUDIO_SUMMARY",
+    promptVersion: "heybot-persona-v2", messages: [
+      { role: "system", content: "음성 요약" },
+      { role: "user", content: "S0001 ".repeat(800) },
+    ],
+  });
+  const audioResponse = await fetch(`${baseUrl}/v1/conversation/audio-summary`, {
+    method: "POST", body: audioBody,
+    headers: { authorization: `Bearer ${managerSecret}`, "content-type": "application/json" },
+  });
+  assert.equal(audioResponse.status, 200);
+  const mismatchedRoute = await fetch(`${baseUrl}/v1/conversation/respond`, {
+    method: "POST", body: audioBody,
+    headers: { authorization: `Bearer ${managerSecret}`, "content-type": "application/json" },
+  });
+  assert.equal(mismatchedRoute.status, 400);
+
   const invalidVersion = await fetch(`${baseUrl}/v1/conversation/respond`, {
     method: "POST",
     body: JSON.stringify({

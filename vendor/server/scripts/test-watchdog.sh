@@ -349,7 +349,7 @@ rm -f "$TEST_ROOT/runtime/watchdog/run.lock/pid"
 rmdir "$TEST_ROOT/runtime/watchdog/run.lock"
 
 # Healthy manager clears failures; three host readiness failures restart all
-# nine fixed service labels in dependency order.
+# ten fixed service labels in dependency order, including proxy-audio.
 printf '0\n' >"$TEST_ROOT/runtime/watchdog/started-at"
 printf '2\n' >"$TEST_ROOT/runtime/watchdog/consecutive-failures"
 reset_link_fixture
@@ -362,8 +362,9 @@ run_watchdog FAKE_NOW=2202 FAKE_ADB_STATE=device FAKE_DEVICE_READY=ok FAKE_CURL_
 assert_count 'kickstart' '0' "$FAKE_STATE/launchctl.log"
 run_watchdog FAKE_NOW=2203 FAKE_ADB_STATE=device FAKE_DEVICE_READY=ok FAKE_CURL_STATUS=fail
 assert_equals '0' "$(<"$TEST_ROOT/runtime/watchdog/consecutive-failures")" 'threshold reset'
-assert_count 'kickstart' '9' "$FAKE_STATE/launchctl.log"
+assert_count 'kickstart' '10' "$FAKE_STATE/launchctl.log"
 assert_equals 'kickstart -k gui/'"$(id -u)"'/ai.coreline.heybot.proxy-grok' "$(sed -n '1p' "$FAKE_STATE/launchctl.log")" 'restart grok first'
-assert_equals 'kickstart -k gui/'"$(id -u)"'/ai.coreline.heybot.proxy-manager' "$(sed -n '9p' "$FAKE_STATE/launchctl.log")" 'restart manager last'
+assert_equals 'kickstart -k gui/'"$(id -u)"'/ai.coreline.heybot.proxy-audio' "$(sed -n '8p' "$FAKE_STATE/launchctl.log")" 'restart audio before conversation'
+assert_equals 'kickstart -k gui/'"$(id -u)"'/ai.coreline.heybot.proxy-manager' "$(sed -n '10p' "$FAKE_STATE/launchctl.log")" 'restart manager last'
 
 printf '%s\n' 'watchdog transport self-heal regression checks passed.'

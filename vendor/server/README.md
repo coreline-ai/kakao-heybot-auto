@@ -2,7 +2,7 @@
 
 이 디렉터리는 Mac mini에서 실행하는 헤이봇 서버 기능들의 상위 컨테이너다.
 
-외부 진입점과 프록시 관리는 [`proxy-manager`](proxy-manager/README.md), 이미지 생성은 [`proxy-image`](proxy-image/README.md), 사용자 이미지 분석은 [`proxy-vision`](proxy-vision/README.md), 공용 Codex CLI 실행은 [`proxy-codex`](proxy-codex/README.md)에서 각각 독립적으로 구현한다. 이후 기능 프록시는 `proxy-<기능>` 형식의 형제 패키지로 추가하고, Codex가 필요하면 `proxy-codex`의 내부 capability API를 호출한다.
+외부 진입점과 프록시 관리는 [`proxy-manager`](proxy-manager/README.md), 이미지 생성은 [`proxy-image`](proxy-image/README.md), 사용자 이미지 분석은 [`proxy-vision`](proxy-vision/README.md), 음성 STT는 [`proxy-audio`](proxy-audio/README.md), 공용 Codex CLI 실행은 [`proxy-codex`](proxy-codex/README.md)에서 각각 독립적으로 구현한다. 이후 기능 프록시는 `proxy-<기능>` 형식의 형제 패키지로 추가하고, Codex가 필요하면 `proxy-codex`의 내부 capability API를 호출한다.
 
 향후 비디오는 [`proxy-video`](proxy-video/README.md)가 담당하고 Grok CLI 실행은 [`proxy-grok`](proxy-grok/README.md)에 위임한다. 두 패키지는 현재 비활성 구조 예약 상태다.
 
@@ -32,6 +32,7 @@
 - [프록시 관리자](proxy-manager/README.md)
 - [이미지 프록시](proxy-image/README.md)
 - [이미지 분석 프록시](proxy-vision/README.md)
+- [음성 STT 프록시](proxy-audio/README.md)
 - [Codex CLI 프록시](proxy-codex/README.md)
 - [비디오 프록시—향후](proxy-video/README.md)
 - [Grok CLI 프록시—향후](proxy-grok/README.md)
@@ -54,6 +55,7 @@
 - Codex 프록시 내부 포트: `127.0.0.1:4348`
 - 비디오 프록시 예약 포트 `4357`: 비활성
 - Grok 프록시 예약 포트 `4358`: 비활성
+- 음성 프록시 내부 포트 `4363`: 구현 완료, STT model benchmark 전 registry 비활성
 - PD20 ADB reverse: `tcp:4340 -> tcp:4340` 적용
 
 Codex 인증정보는 서버 runtime으로 복사하지 않는다. readiness와 비용이 발생할 수 있는 실제 생성 canary는 분리한다.
@@ -90,6 +92,7 @@ vendor/server/
 ├── proxy-manager/           # 단일 진입점·registry·분기·점검·관리
 ├── proxy-image/             # 이미지 job·도메인 정책·픽셀 QC
 ├── proxy-vision/            # Kakao CDN 검증·Vision job·분석 결과 계약
+├── proxy-audio/             # Kakao 음성 검증·FFmpeg·한국어 STT job
 ├── proxy-codex/             # 공용 Codex CLI 실행·전역 queue·artifact
 ├── proxy-video/             # 향후 비디오 job·미디어 QC
 └── proxy-grok/              # 향후 Grok CLI 실행

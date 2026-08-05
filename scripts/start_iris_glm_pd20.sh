@@ -28,6 +28,9 @@ PEN_BRUSH_PROXY_SECRET_FILE=/data/local/private/iris-pen-brush-proxy.token
 PEN_BRUSH_STATE_FILE=/data/local/private/iris-pen-brush-jobs.json
 CONVERSATION_PROXY_SECRET_FILE=/data/local/private/iris-conversation-proxy.token
 CONVERSATION_ENGINE_FILE=/data/local/private/iris-conversation-engine.conf
+AUDIO_PROXY_SECRET_FILE=/data/local/private/iris-audio-proxy.token
+AUDIO_STATE_FILE=/data/local/private/iris-audio-jobs.json
+AUDIO_CONTEXT_FILE=/data/local/private/iris-audio-context.json
 CONFIG_FILE=/data/local/private/iris-config.json
 HTTP_ADMIN_SECRET_FILE=/data/local/private/iris-http-admin.token
 HTTP_API_ENABLED="${IRIS_HTTP_API_ENABLED:-false}"
@@ -36,6 +39,7 @@ VISION_PROXY_SECRET_LOCAL="${VISION_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCA
 VIDEO_PROXY_SECRET_LOCAL="${VIDEO_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}"
 PEN_BRUSH_PROXY_SECRET_LOCAL="${PEN_BRUSH_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}"
 CONVERSATION_PROXY_SECRET_LOCAL="${CONVERSATION_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}"
+AUDIO_PROXY_SECRET_LOCAL="${AUDIO_PROXY_SECRET_LOCAL:-$IMAGE_PROXY_SECRET_LOCAL}"
 # 영상·펜브러쉬는 방 단위 capability 정책이 실제 허용 범위를 결정한다. 이 배포
 # 스크립트가 기본 false로 실행되면 APK·프록시가 정상이어도 명령이 조용히
 # 무시되므로, 운영 기본값은 켜 둔다. 긴급 중지는 명시적으로 false를 전달한다.
@@ -43,6 +47,9 @@ VIDEO_PROXY_ENABLED="${IRIS_VIDEO_PROXY_ENABLED:-true}"
 PEN_BRUSH_PROXY_ENABLED="${IRIS_PEN_BRUSH_PROXY_ENABLED:-true}"
 CONVERSATION_PROXY_ENABLED="${IRIS_CONVERSATION_PROXY_ENABLED:-true}"
 VISION_PROXY_ENABLED="${IRIS_VISION_PROXY_ENABLED:-true}"
+# The fixed PD20 production model has passed checksum, Korean STT and proxy
+# doctor verification. Room capability policy still fails closed per room.
+AUDIO_PROXY_ENABLED="${IRIS_AUDIO_PROXY_ENABLED:-true}"
 ROOM_CAPABILITY_BOOTSTRAP_LOCAL="${ROOM_CAPABILITY_BOOTSTRAP_LOCAL:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/config/iris-room-capabilities.bootstrap.json}"
 STARTUP_LOG=/data/local/private/iris-glm-startup.log
 
@@ -72,6 +79,8 @@ private_metadata="$($ADB -s "$SERIAL" shell "su root sh -c 'stat -c \"%a %U:%G\"
   fail "IRIS_CONVERSATION_PROXY_ENABLED must be true or false"
 [[ "$VISION_PROXY_ENABLED" == "true" || "$VISION_PROXY_ENABLED" == "false" ]] ||
   fail "IRIS_VISION_PROXY_ENABLED must be true or false"
+[[ "$AUDIO_PROXY_ENABLED" == "true" || "$AUDIO_PROXY_ENABLED" == "false" ]] ||
+  fail "IRIS_AUDIO_PROXY_ENABLED must be true or false"
 
 config_metadata="$($ADB -s "$SERIAL" shell "su root sh -c '
   if [ -L $CONFIG_FILE ]; then echo symlink; exit 0; fi
@@ -183,6 +192,18 @@ if [[ "$CONVERSATION_PROXY_ENABLED" == "true" ]]; then
   '"
 fi
 
+if [[ "$AUDIO_PROXY_ENABLED" == "true" ]]; then
+  [[ -s "$AUDIO_PROXY_SECRET_LOCAL" ]] ||
+    fail "Audio proxy route secret is missing: $AUDIO_PROXY_SECRET_LOCAL"
+  "$ADB" -s "$SERIAL" push "$AUDIO_PROXY_SECRET_LOCAL" /data/local/tmp/iris-audio-proxy.token >/dev/null
+  "$ADB" -s "$SERIAL" shell "su root sh -c '
+    cp /data/local/tmp/iris-audio-proxy.token $AUDIO_PROXY_SECRET_FILE
+    chown root:root $AUDIO_PROXY_SECRET_FILE
+    chmod 600 $AUDIO_PROXY_SECRET_FILE
+    rm -f /data/local/tmp/iris-audio-proxy.token
+  '"
+fi
+
 # Admin IDs are optional at process level, but an existing file must be private.
 # The script never prints its numeric contents.
 admin_metadata="$($ADB -s "$SERIAL" shell "su root sh -c '
@@ -261,6 +282,20 @@ if [[ "$vision_context_metadata" != "missing" ]]; then
     fail "Vision context file must be mode 600 and root:root (current: $vision_context_metadata)"
   [[ "$vision_context_size" =~ ^[0-9]+$ && "$vision_context_size" -le 1048576 ]] ||
     fail "Vision context file must not exceed 1048576 bytes (current: $vision_context_size)"
+fi
+
+# Audio context stores only safety-filtered summaries and DB result IDs.
+audio_context_metadata="$($ADB -s "$SERIAL" shell "su root sh -c '
+  if [ -L $AUDIO_CONTEXT_FILE ]; then echo symlink; exit 0; fi
+  if [ ! -e $AUDIO_CONTEXT_FILE ]; then echo missing; exit 0; fi
+  stat -c "%a %U:%G %s" $AUDIO_CONTEXT_FILE
+'" | tr -d '\r')"
+if [[ "$audio_context_metadata" != "missing" ]]; then
+  read -r audio_context_mode audio_context_owner audio_context_size <<<"$audio_context_metadata"
+  [[ "$audio_context_mode $audio_context_owner" == "600 root:root" ]] ||
+    fail "Audio context file must be mode 600 and root:root (current: $audio_context_metadata)"
+  [[ "$audio_context_size" =~ ^[0-9]+$ && "$audio_context_size" -le 1048576 ]] ||
+    fail "Audio context file must not exceed 1048576 bytes (current: $audio_context_size)"
 fi
 
 # Request traces contain metadata only and are created atomically by Iris.
@@ -388,6 +423,20 @@ printf 'Deploying %s to PD20…\n' "$(basename "$APK")"
   IRIS_CONVERSATION_PROXY_SECRET_FILE=$CONVERSATION_PROXY_SECRET_FILE \\
   IRIS_CONVERSATION_ENGINE_FILE=$CONVERSATION_ENGINE_FILE \\
   IRIS_CONVERSATION_PROXY_TIMEOUT_MS=100000 \\
+  IRIS_AUDIO_PROXY_ENABLED=$AUDIO_PROXY_ENABLED \\
+  IRIS_AUDIO_PROXY_BASE_URL=http://127.0.0.1:4340 \\
+  IRIS_AUDIO_PROXY_SECRET_FILE=$AUDIO_PROXY_SECRET_FILE \\
+  IRIS_AUDIO_ALLOWED_CHAT_IDS=18480337854645134,18393359886930036,18243496625741211,18226456888539938 \\
+  IRIS_AUDIO_PROXY_REQUEST_TIMEOUT_MS=30000 \\
+  IRIS_AUDIO_PROXY_POLL_INTERVAL_MS=1000 \\
+  IRIS_AUDIO_PROXY_JOB_TIMEOUT_MS=1800000 \\
+  IRIS_AUDIO_RECENT_WINDOW_MS=1800000 \\
+  IRIS_AUDIO_MAX_PENDING_PER_ROOM=1 \\
+  IRIS_AUDIO_RATE_WINDOW_MS=600000 \\
+  IRIS_AUDIO_ROOM_RATE_MAX=3 \\
+  IRIS_AUDIO_USER_RATE_MAX=2 \\
+  IRIS_AUDIO_STATE_FILE=$AUDIO_STATE_FILE \\
+  IRIS_AUDIO_CONTEXT_FILE=$AUDIO_CONTEXT_FILE \\
   CLASSPATH=$REMOTE_APK \\
   app_process / ai.coreline.heybot.Main \\
   > $STARTUP_LOG 2>&1 &
@@ -421,6 +470,10 @@ fi
 if [[ "$VISION_PROXY_ENABLED" == "true" ]]; then
   vision_proxy_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"Vision proxy enabled\" $STARTUP_LOG | tail -1'" | tr -d '\r')"
   [[ -n "$vision_proxy_mode" ]] || fail "Vision proxy was not enabled"
+fi
+if [[ "$AUDIO_PROXY_ENABLED" == "true" ]]; then
+  audio_proxy_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"Audio proxy enabled\" $STARTUP_LOG | tail -1'" | tr -d '\r')"
+  [[ -n "$audio_proxy_mode" ]] || fail "Audio proxy was not enabled"
 fi
 if [[ "$HTTP_API_ENABLED" == "false" ]]; then
   http_mode="$($ADB -s "$SERIAL" shell "su root sh -c 'grep -F \"Iris HTTP API disabled\" $STARTUP_LOG | tail -1'" | tr -d '\r')"

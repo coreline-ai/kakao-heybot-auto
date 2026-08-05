@@ -12,7 +12,9 @@ for label in \
   ai.coreline.heybot.proxy-video \
   ai.coreline.heybot.proxy-grok \
   ai.coreline.heybot.proxy-draw \
-  ai.coreline.heybot.proxy-brush; do
+  ai.coreline.heybot.proxy-brush \
+  ai.coreline.heybot.proxy-audio \
+  ai.coreline.heybot.proxy-conversation; do
   launchctl bootout "$DOMAIN/$label" 2>/dev/null || true
   rm -f "$DESTINATION/$label.plist"
 done

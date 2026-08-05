@@ -16,7 +16,11 @@ enum class RoomCapability(val commandName: String, val statusName: String) {
     /** Pen-brush rendering is billable and starts deny-by-default. */
     PEN_BRUSH("펜브러쉬", "펜브러쉬"),
     /** Analysis of user-provided images is independent from image generation. */
-    IMAGE_ANALYSIS("이미지분석", "이미지분석")
+    IMAGE_ANALYSIS("이미지분석", "이미지분석"),
+    /** Manual STT and summary command for a supported Kakao file attachment. */
+    AUDIO_ANALYSIS("음성", "음성분석"),
+    /** Automatic STT starts deny-by-default and additionally requires TEXT+AUDIO_ANALYSIS. */
+    AUDIO_AUTO_ANALYSIS("음성자동", "음성자동분석")
 }
 
 data class ManagedRoomCapability(
@@ -29,13 +33,17 @@ data class ManagedRoomCapability(
     val videoEnabled: Boolean = false,
     val penBrushEnabled: Boolean = false,
     val imageAnalysisEnabled: Boolean = false,
+    val audioAnalysisEnabled: Boolean = false,
+    val audioAutoAnalysisEnabled: Boolean = false,
     /** Independent tokens keep a text/general update from cancelling an image job. */
     val textRevision: Long = 0L,
     val generalConversationRevision: Long = 0L,
     val imageRevision: Long = 0L,
     val videoRevision: Long = 0L,
     val penBrushRevision: Long = 0L,
-    val imageAnalysisRevision: Long = 0L
+    val imageAnalysisRevision: Long = 0L,
+    val audioAnalysisRevision: Long = 0L,
+    val audioAutoAnalysisRevision: Long = 0L
 )
 
 data class RoomCapabilitySnapshot(
@@ -49,6 +57,8 @@ data class RoomCapabilitySnapshot(
     val videoRoomCount: Int get() = rooms.count { it.videoEnabled }
     val penBrushRoomCount: Int get() = rooms.count { it.penBrushEnabled }
     val imageAnalysisRoomCount: Int get() = rooms.count { it.imageAnalysisEnabled }
+    val audioAnalysisRoomCount: Int get() = rooms.count { it.audioAnalysisEnabled }
+    val audioAutoAnalysisRoomCount: Int get() = rooms.count { it.audioAutoAnalysisEnabled }
 
     fun capabilityRevision(chatId: Long, capability: RoomCapability): Long? =
         rooms.firstOrNull { it.chatId == chatId }?.let { room ->
@@ -59,6 +69,8 @@ data class RoomCapabilitySnapshot(
                 RoomCapability.VIDEO -> room.videoRevision
                 RoomCapability.PEN_BRUSH -> room.penBrushRevision
                 RoomCapability.IMAGE_ANALYSIS -> room.imageAnalysisRevision
+                RoomCapability.AUDIO_ANALYSIS -> room.audioAnalysisRevision
+                RoomCapability.AUDIO_AUTO_ANALYSIS -> room.audioAutoAnalysisRevision
             }
         }
 }
@@ -109,6 +121,8 @@ class RoomCapabilityPolicyStore private constructor(
             RoomCapability.VIDEO -> room.videoEnabled
             RoomCapability.PEN_BRUSH -> room.penBrushEnabled
             RoomCapability.IMAGE_ANALYSIS -> room.imageAnalysisEnabled
+            RoomCapability.AUDIO_ANALYSIS -> room.audioAnalysisEnabled
+            RoomCapability.AUDIO_AUTO_ANALYSIS -> room.audioAutoAnalysisEnabled
         }
     }
 
@@ -121,6 +135,8 @@ class RoomCapabilityPolicyStore private constructor(
             RoomCapability.VIDEO -> room.videoRevision
             RoomCapability.PEN_BRUSH -> room.penBrushRevision
             RoomCapability.IMAGE_ANALYSIS -> room.imageAnalysisRevision
+            RoomCapability.AUDIO_ANALYSIS -> room.audioAnalysisRevision
+            RoomCapability.AUDIO_AUTO_ANALYSIS -> room.audioAutoAnalysisRevision
         }
         if (currentRevision != revision) return false
         return when (capability) {
@@ -130,6 +146,8 @@ class RoomCapabilityPolicyStore private constructor(
             RoomCapability.VIDEO -> room.videoEnabled
             RoomCapability.PEN_BRUSH -> room.penBrushEnabled
             RoomCapability.IMAGE_ANALYSIS -> room.imageAnalysisEnabled
+            RoomCapability.AUDIO_ANALYSIS -> room.audioAnalysisEnabled
+            RoomCapability.AUDIO_AUTO_ANALYSIS -> room.audioAutoAnalysisEnabled
         }
     }
 
@@ -147,6 +165,11 @@ class RoomCapabilityPolicyStore private constructor(
         }
         if (capability == RoomCapability.GENERAL_CONVERSATION && enabled && !room.textEnabled) {
             return@synchronized RoomCapabilityMutationResult.Rejected("일반대화는 텍스트 권한이 허용된 방에서만 켤 수 있어요.")
+        }
+        if (capability == RoomCapability.AUDIO_AUTO_ANALYSIS && enabled &&
+            (!room.textEnabled || !room.audioAnalysisEnabled)
+        ) {
+            return@synchronized RoomCapabilityMutationResult.Rejected("음성자동은 텍스트와 음성 권한이 모두 허용된 방에서만 켤 수 있어요.")
         }
         val preview = RoomCapabilityPreview(
             nonce = UUID.randomUUID().toString().replace("-", "").take(8).uppercase(),
@@ -176,12 +199,16 @@ class RoomCapabilityPolicyStore private constructor(
                 RoomCapability.TEXT -> room.copy(
                     textEnabled = preview.enabled,
                     generalConversationEnabled = if (preview.enabled) room.generalConversationEnabled else false,
+                    audioAutoAnalysisEnabled = if (preview.enabled) room.audioAutoAnalysisEnabled else false,
                     textRevision = nextRevision,
                     generalConversationRevision = if (!preview.enabled && room.generalConversationEnabled) {
                         nextRevision
                     } else {
                         room.generalConversationRevision
-                    }
+                    },
+                    audioAutoAnalysisRevision = if (!preview.enabled && room.audioAutoAnalysisEnabled) {
+                        nextRevision
+                    } else room.audioAutoAnalysisRevision
                 )
                 RoomCapability.GENERAL_CONVERSATION -> room.copy(
                     generalConversationEnabled = preview.enabled,
@@ -202,6 +229,18 @@ class RoomCapabilityPolicyStore private constructor(
                 RoomCapability.IMAGE_ANALYSIS -> room.copy(
                     imageAnalysisEnabled = preview.enabled,
                     imageAnalysisRevision = nextRevision
+                )
+                RoomCapability.AUDIO_ANALYSIS -> room.copy(
+                    audioAnalysisEnabled = preview.enabled,
+                    audioAutoAnalysisEnabled = if (preview.enabled) room.audioAutoAnalysisEnabled else false,
+                    audioAnalysisRevision = nextRevision,
+                    audioAutoAnalysisRevision = if (!preview.enabled && room.audioAutoAnalysisEnabled) {
+                        nextRevision
+                    } else room.audioAutoAnalysisRevision
+                )
+                RoomCapability.AUDIO_AUTO_ANALYSIS -> room.copy(
+                    audioAutoAnalysisEnabled = preview.enabled,
+                    audioAutoAnalysisRevision = nextRevision
                 )
             }
         }
@@ -238,6 +277,8 @@ class RoomCapabilityPolicyStore private constructor(
                 append(" | 영상: ").append(enabledLabel(room.videoEnabled))
                 append(" | 펜브러쉬: ").append(enabledLabel(room.penBrushEnabled))
                 append(" | 이미지분석: ").append(enabledLabel(room.imageAnalysisEnabled))
+                append(" | 음성: ").append(enabledLabel(room.audioAnalysisEnabled))
+                append(" | 음성자동: ").append(enabledLabel(room.audioAutoAnalysisEnabled))
             }
         }.take(MAX_REPLY_CHARS)
     }
@@ -256,7 +297,9 @@ class RoomCapabilityPolicyStore private constructor(
             "이미지: ${enabledLabel(room.imageEnabled)} | " +
             "영상: ${enabledLabel(room.videoEnabled)} | " +
             "펜브러쉬: ${enabledLabel(room.penBrushEnabled)} | " +
-            "이미지분석: ${enabledLabel(room.imageAnalysisEnabled)}"
+            "이미지분석: ${enabledLabel(room.imageAnalysisEnabled)}\n" +
+            "음성: ${enabledLabel(room.audioAnalysisEnabled)} | " +
+            "음성자동: ${enabledLabel(room.audioAutoAnalysisEnabled)}"
     }
 
     fun renderStatus(reference: String): String {
@@ -268,7 +311,9 @@ class RoomCapabilityPolicyStore private constructor(
             "이미지: ${enabledLabel(room.imageEnabled)}\n" +
             "영상: ${enabledLabel(room.videoEnabled)}\n" +
             "펜브러쉬: ${enabledLabel(room.penBrushEnabled)}\n" +
-            "이미지분석: ${enabledLabel(room.imageAnalysisEnabled)}"
+            "이미지분석: ${enabledLabel(room.imageAnalysisEnabled)}\n" +
+            "음성: ${enabledLabel(room.audioAnalysisEnabled)}\n" +
+            "음성자동: ${enabledLabel(room.audioAutoAnalysisEnabled)}"
     }
 
     private fun encode(snapshot: RoomCapabilitySnapshot): ByteArray =
@@ -287,12 +332,16 @@ class RoomCapabilityPolicyStore private constructor(
                         videoEnabled = it.videoEnabled,
                         penBrushEnabled = it.penBrushEnabled,
                         imageAnalysisEnabled = it.imageAnalysisEnabled,
+                        audioAnalysisEnabled = it.audioAnalysisEnabled,
+                        audioAutoAnalysisEnabled = it.audioAutoAnalysisEnabled,
                         textRevision = it.textRevision,
                         generalConversationRevision = it.generalConversationRevision,
                         imageRevision = it.imageRevision,
                         videoRevision = it.videoRevision,
                         penBrushRevision = it.penBrushRevision,
-                        imageAnalysisRevision = it.imageAnalysisRevision
+                        imageAnalysisRevision = it.imageAnalysisRevision,
+                        audioAnalysisRevision = it.audioAnalysisRevision,
+                        audioAutoAnalysisRevision = it.audioAutoAnalysisRevision
                     )
                 }
             )
@@ -301,7 +350,7 @@ class RoomCapabilityPolicyStore private constructor(
     private data class PendingMutation(val preview: RoomCapabilityPreview)
 
     companion object {
-        private const val VERSION = 3
+        private const val VERSION = 4
         private const val MAX_FILE_BYTES = 64 * 1024
         private const val MAX_REPLY_CHARS = 480
         private const val PREVIEW_TTL_MILLIS = 2 * 60 * 1000L
@@ -402,6 +451,9 @@ class RoomCapabilityPolicyStore private constructor(
                         penBrushEnabled = it.penBrushEnabled ?: false,
                         // Existing policies never implicitly enable user-image analysis.
                         imageAnalysisEnabled = it.imageAnalysisEnabled ?: false,
+                        // Existing policies never implicitly enable audio processing.
+                        audioAnalysisEnabled = it.audioAnalysisEnabled ?: false,
+                        audioAutoAnalysisEnabled = it.audioAutoAnalysisEnabled ?: false,
                         // Version 1 policy files did not carry per-capability
                         // revisions. Their global revision safely represents
                         // each capability's last known state.
@@ -412,7 +464,9 @@ class RoomCapabilityPolicyStore private constructor(
                         // Existing policy documents must never implicitly enable billable video.
                         videoRevision = it.videoRevision ?: document.revision,
                         penBrushRevision = it.penBrushRevision ?: document.revision,
-                        imageAnalysisRevision = it.imageAnalysisRevision ?: document.revision
+                        imageAnalysisRevision = it.imageAnalysisRevision ?: document.revision,
+                        audioAnalysisRevision = it.audioAnalysisRevision ?: document.revision,
+                        audioAutoAnalysisRevision = it.audioAutoAnalysisRevision ?: document.revision
                     )
                 }
             )
@@ -439,7 +493,13 @@ class RoomCapabilityPolicyStore private constructor(
                         it.penBrushRevision < 0L || it.penBrushRevision > snapshot.revision ||
                         it.imageAnalysisRevision < 0L ||
                         it.imageAnalysisRevision > snapshot.revision ||
-                        (it.generalConversationEnabled && !it.textEnabled)
+                        it.audioAnalysisRevision < 0L ||
+                        it.audioAnalysisRevision > snapshot.revision ||
+                        it.audioAutoAnalysisRevision < 0L ||
+                        it.audioAutoAnalysisRevision > snapshot.revision ||
+                        (it.generalConversationEnabled && !it.textEnabled) ||
+                        (it.audioAutoAnalysisEnabled &&
+                            (!it.textEnabled || !it.audioAnalysisEnabled))
                 }
             ) return false
             return controlChatId == null || snapshot.rooms.any { it.chatId == controlChatId && it.textEnabled }
@@ -473,10 +533,14 @@ private data class PersistedManagedRoomCapability(
     val videoEnabled: Boolean? = null,
     val penBrushEnabled: Boolean? = null,
     val imageAnalysisEnabled: Boolean? = null,
+    val audioAnalysisEnabled: Boolean? = null,
+    val audioAutoAnalysisEnabled: Boolean? = null,
     val textRevision: Long? = null,
     val generalConversationRevision: Long? = null,
     val imageRevision: Long? = null,
     val videoRevision: Long? = null,
     val penBrushRevision: Long? = null,
-    val imageAnalysisRevision: Long? = null
+    val imageAnalysisRevision: Long? = null,
+    val audioAnalysisRevision: Long? = null,
+    val audioAutoAnalysisRevision: Long? = null
 )

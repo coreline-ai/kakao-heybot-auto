@@ -27,6 +27,8 @@ object RequestTraceRenderer {
         RequestTraceKind.PEN_BRUSH -> "펜브러쉬"
         RequestTraceKind.VISION -> "이미지 분석"
         RequestTraceKind.VISION_FOLLOW_UP -> "이미지 후속 대화"
+        RequestTraceKind.AUDIO_FOLLOW_UP -> "음성 후속 대화"
+        RequestTraceKind.AUDIO -> "음성 분석"
         RequestTraceKind.DIAGNOSTICS -> "진단 명령"
     }
 

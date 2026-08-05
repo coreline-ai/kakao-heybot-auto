@@ -128,6 +128,35 @@ class RoomCapabilityPolicyTest {
     }
 
     @Test
+    fun `legacy policy migrates audio to deny and auto requires text plus audio`() {
+        val file = File.createTempFile("room-policy-audio", ".json")
+        val backend = MemoryBackend().apply {
+            bytes = """{"version":3,"revision":6,"rooms":[{"reference":"R01","chatId":"$CONTROL_ROOM","label":"코어라인 AI 연구소","textEnabled":true,"generalConversationEnabled":true,"imageEnabled":true,"videoEnabled":true,"penBrushEnabled":true,"imageAnalysisEnabled":true}]}""".toByteArray()
+        }
+        val policy = RoomCapabilityPolicyStore.load(
+            settings = RoomCapabilitySettings(file),
+            managedChatIds = setOf(CONTROL_ROOM),
+            controlChatId = CONTROL_ROOM,
+            backend = backend,
+            metadataVerifier = { true }
+        )
+        assertFalse(policy.allows(CONTROL_ROOM, RoomCapability.AUDIO_ANALYSIS))
+        assertFalse(policy.allows(CONTROL_ROOM, RoomCapability.AUDIO_AUTO_ANALYSIS))
+        assertTrue(
+            policy.preview(ADMIN_ID, "R01", RoomCapability.AUDIO_AUTO_ANALYSIS, true)
+                is RoomCapabilityMutationResult.Rejected
+        )
+        val audio = policy.preview(ADMIN_ID, "R01", RoomCapability.AUDIO_ANALYSIS, true)
+            as RoomCapabilityMutationResult.PreviewReady
+        assertTrue(policy.apply(ADMIN_ID, audio.preview.nonce) is RoomCapabilityMutationResult.Applied)
+        val auto = policy.preview(ADMIN_ID, "R01", RoomCapability.AUDIO_AUTO_ANALYSIS, true)
+            as RoomCapabilityMutationResult.PreviewReady
+        assertTrue(policy.apply(ADMIN_ID, auto.preview.nonce) is RoomCapabilityMutationResult.Applied)
+        assertTrue(policy.allows(CONTROL_ROOM, RoomCapability.AUDIO_AUTO_ANALYSIS))
+        file.delete()
+    }
+
+    @Test
     fun `current room response identifies the entered Kakao room by title and reference`() {
         val policy = RoomCapabilityPolicyStore.forTesting(
             rooms = rooms(),
@@ -139,7 +168,8 @@ class RoomCapabilityPolicyTest {
             "현재 카톡방\n" +
                 "R01. 코어라인 AI 연구소\n" +
                 "텍스트: 허용 | 일반대화: 허용\n" +
-                "이미지: 허용 | 영상: 불허용 | 펜브러쉬: 불허용 | 이미지분석: 불허용",
+                "이미지: 허용 | 영상: 불허용 | 펜브러쉬: 불허용 | 이미지분석: 불허용\n" +
+                "음성: 불허용 | 음성자동: 불허용",
             policy.renderCurrentRoom(CONTROL_ROOM)
         )
         assertEquals("이 카톡방은 헤이봇 관리 대상이 아니에요.", policy.renderCurrentRoom(99L))
