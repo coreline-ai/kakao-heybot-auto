@@ -163,6 +163,28 @@ class Replier {
             }
         }
 
+        /** Sends a validated audio fixture through Kakao's direct-share path.
+         * The callback confirms local dispatch only; callers must verify the
+         * resulting Kakao DB row before treating the upload as delivered. */
+        fun sendAudioBytes(
+            room: Long,
+            audioBytes: ByteArray,
+            format: KakaoAudioShareFormat = KakaoAudioShareFormat.M4A,
+            onDispatched: (Result<Unit>) -> Unit = {}
+        ) {
+            coroutineScope.launch {
+                runCatching {
+                    messageChannel.send(SendMessageRequest {
+                        val result = runCatching {
+                            sendAudioBytesInternal(room, audioBytes, format)
+                        }
+                        onDispatched(result)
+                        result.getOrThrow()
+                    })
+                }.onFailure { onDispatched(Result.failure(it)) }
+            }
+        }
+
         private fun sendPhotoInternal(room: Long, base64ImageDataString: String) {
             sendMultiplePhotosInternal(room, listOf(base64ImageDataString))
         }
@@ -251,6 +273,41 @@ class Replier {
             }
         }
 
+        private fun sendAudioBytesInternal(
+            room: Long,
+            audioBytes: ByteArray,
+            format: KakaoAudioShareFormat
+        ) {
+            val mediaDir = File(IMAGE_DIR_PATH).apply {
+                if (!exists()) mkdirs()
+            }
+            val audioFile = File(
+                mediaDir,
+                "heybot_audio_${System.currentTimeMillis()}.${format.extension}"
+            ).apply {
+                writeBytes(audioBytes)
+            }
+            val audioUri = Uri.fromFile(audioFile)
+            mediaScan(audioUri)
+
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                setPackage("com.kakao.talk")
+                type = format.mimeType
+                putExtra(Intent.EXTRA_STREAM, audioUri)
+                putExtra("key_id", room)
+                putExtra("key_type", 1)
+                putExtra("key_from_direct_share", true)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+
+            try {
+                AndroidHiddenApi.startActivity(intent)
+            } catch (e: Exception) {
+                System.err.println("Error starting activity for sending audio: $e")
+                throw e
+            }
+        }
+
 
         internal fun interface SendMessageRequest {
             suspend fun send()
@@ -262,5 +319,32 @@ class Replier {
             }
             AndroidHiddenApi.broadcastIntent(mediaScanIntent)
         }
+    }
+}
+
+enum class KakaoAudioShareFormat(val extension: String, val mimeType: String) {
+    // KakaoTalk's direct-share receiver recognizes audio/mp3 for an MP3 file;
+    // audio/mpeg opens the picker but does not create the target chat DB row.
+    MP3("mp3", "audio/mp3"),
+    M4A("m4a", "audio/mp4"),
+    WAV("wav", "audio/wav");
+
+    fun matchesMagic(header: ByteArray): Boolean = when (this) {
+        MP3 -> (header.size >= 3 && header.copyOfRange(0, 3).contentEquals(MP3_ID3)) ||
+            (header.size >= 2 && header[0] == 0xff.toByte() && (header[1].toInt() and 0xe0) == 0xe0)
+        M4A -> header.size >= 8 && header.copyOfRange(4, 8).contentEquals(M4A_FTYP)
+        WAV -> header.size >= 12 && header.copyOfRange(0, 4).contentEquals(WAV_RIFF) &&
+            header.copyOfRange(8, 12).contentEquals(WAV_WAVE)
+    }
+
+    companion object {
+        fun parse(raw: String?): KakaoAudioShareFormat? = entries.firstOrNull {
+            it.extension.equals(raw?.trim(), ignoreCase = true)
+        }
+
+        private val MP3_ID3 = "ID3".toByteArray()
+        private val M4A_FTYP = "ftyp".toByteArray()
+        private val WAV_RIFF = "RIFF".toByteArray()
+        private val WAV_WAVE = "WAVE".toByteArray()
     }
 }

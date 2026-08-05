@@ -228,7 +228,7 @@ class GlmAutoReplyHandlerTest {
         handler.process(incoming(message = "헤이봇 도움말"))
 
         assertTrue(gateway.requests.isEmpty())
-        assertEquals(2, replies.size)
+        assertEquals(HeybotSkillCatalog.userHelpMessages().size, replies.size)
         val help = replies.joinToString("\n")
         assertTrue(help.contains("문장 어디에 ‘헤이봇’이 있어도"))
         assertTrue(help.contains("헤이봇 내 기억 초기화"))
@@ -236,6 +236,8 @@ class GlmAutoReplyHandlerTest {
         assertTrue(help.contains("헤이봇 이미지 <설명>"))
         assertTrue(help.contains("헤이봇 영상 상태 / 취소 / 재전송"))
         assertTrue(help.contains("헤이봇 펜브러쉬 <설명>"))
+        assertTrue(help.contains("헤이봇 음성 요약"))
+        assertTrue(help.contains("같은 방에 최근 30분 안에 올라온 최신 음성"))
         assertTrue(replies.all { it.length <= 480 })
         handler.close()
     }
@@ -257,7 +259,11 @@ class GlmAutoReplyHandlerTest {
         handler.process(incoming(userId = 100L, message = "헤이봇 도움말"))
 
         assertTrue(gateway.requests.isEmpty())
-        assertEquals(5, replies.size)
+        assertEquals(
+            HeybotSkillCatalog.userHelpMessages().size +
+                HeybotSkillCatalog.adminHelpMessages().size,
+            replies.size
+        )
         val help = replies.joinToString("\n")
         assertTrue(help.contains("헤이봇 대화 시작"))
         assertTrue(help.contains("헤이봇 대화 상태"))
@@ -298,7 +304,8 @@ class GlmAutoReplyHandlerTest {
             "헤이봇 지원 카톡방 목록\n\n" +
             "R01. 코어라인 AI 연구소\n" +
             "텍스트: 허용 | 일반대화: 허용 | " +
-            "이미지: 허용 | 영상: 허용 | 펜브러쉬: 허용 | 이미지분석: 불허용",
+            "이미지: 허용 | 영상: 허용 | 펜브러쉬: 허용 | 이미지분석: 불허용 | " +
+            "음성: 불허용 | 음성자동: 불허용",
             replies.single()
         )
         handler.close()
@@ -959,6 +966,49 @@ class GlmAutoReplyHandlerTest {
     }
 
     @Test
+    fun `wake word and exact reply receive only DB-confirmed audio summary context`() = runBlocking {
+        val contexts = AudioConversationContextStore()
+        assertTrue(contexts.put(audioContext(ownerUserId = 999L)))
+        val gateway = RecordingGateway("다음 주 화요일에 다시 확인하면 돼요.")
+        val handler = createHandler(
+            gateway = gateway,
+            roomCapabilityPolicy = audioRoomPolicy(),
+            audioContextStore = contexts
+        ) { _, _, _ -> Unit }
+
+        handler.process(incoming(logId = 98L, message = "헤이봇 다음 단계는 뭐야?"))
+        handler.process(incoming(logId = 99L, userId = 888L, message = "그 음성 요약의 결정은 뭐야?", threadId = 701L))
+
+        assertEquals(2, gateway.requests.size)
+        assertTrue(gateway.requests.all { request ->
+            request.messages.any { it.content.contains("이전 음성 분석") && it.content.contains("화요일 재검토") }
+        })
+        handler.close()
+    }
+
+    @Test
+    fun `wake word selects one relevant media context instead of blending audio and vision`() = runBlocking {
+        val visionContexts = VisionConversationContextStore()
+        val audioContexts = AudioConversationContextStore()
+        assertTrue(visionContexts.put(visionContext(ownerUserId = 999L)))
+        assertTrue(audioContexts.put(audioContext(ownerUserId = 999L)))
+        val gateway = RecordingGateway("다음 단계입니다.")
+        val handler = createHandler(
+            gateway = gateway,
+            roomCapabilityPolicy = combinedMediaRoomPolicy(),
+            visionContextStore = visionContexts,
+            audioContextStore = audioContexts
+        ) { _, _, _ -> Unit }
+
+        handler.process(incoming(logId = 97L, message = "헤이봇 다음 단계는 뭐야?"))
+
+        val request = gateway.requests.single()
+        assertTrue(request.messages.any { it.content.contains("회의에서 다음 주 화요일") })
+        assertTrue(request.messages.none { it.content.contains("노란 가방") })
+        handler.close()
+    }
+
+    @Test
     fun `wake word follow-up receives the latest same-user vision context`() = runBlocking {
         val contexts = VisionConversationContextStore()
         assertTrue(contexts.put(visionContext(ownerUserId = 999L)))
@@ -1113,6 +1163,7 @@ class GlmAutoReplyHandlerTest {
         textDeliveryTracker: TextDeliveryTracker? = null,
         memoryStore: ConversationMemoryStore = InMemoryConversationMemoryStore(4, 30L * 60L * 1_000L),
         visionContextStore: VisionConversationContextStore = VisionConversationContextStore(),
+        audioContextStore: AudioConversationContextStore = AudioConversationContextStore(),
         reply: (Long, String, Long?) -> Unit
     ): GlmAutoReplyHandler = GlmAutoReplyHandler(
         settings = GlmSettings(
@@ -1142,7 +1193,8 @@ class GlmAutoReplyHandlerTest {
         requestTraceStore = requestTraceStore,
         textDeliveryTracker = textDeliveryTracker,
         memoryStore = memoryStore,
-        visionContextStore = visionContextStore
+        visionContextStore = visionContextStore,
+        audioContextStore = audioContextStore
     )
 
     private class TestConversationModeBackend : ConversationMemoryBackend {
@@ -1188,6 +1240,45 @@ class GlmAutoReplyHandlerTest {
         capabilityRevision = 1L,
         createdAtMillis = System.currentTimeMillis(),
         expiresAtMillis = System.currentTimeMillis() + 60_000L
+    )
+
+    private fun audioContext(ownerUserId: Long, resultLogId: Long = 701L) = AudioConversationContext(
+        chatId = CHAT_ID,
+        ownerUserId = ownerUserId,
+        jobId = "audio-job",
+        sourceLogId = 690L,
+        resultLogIds = listOf(resultLogId),
+        profile = AudioSummaryProfile(),
+        safeSummary = "회의에서 다음 주 화요일 재검토를 결정했습니다.",
+        evidenceIds = listOf("S0001"),
+        capabilityRevision = 1L,
+        createdAtMillis = System.currentTimeMillis(),
+        expiresAtMillis = System.currentTimeMillis() + 60_000L
+    )
+
+    private fun audioRoomPolicy() = RoomCapabilityPolicyStore.forTesting(
+        rooms = listOf(
+            ManagedRoomCapability(
+                reference = "R01", chatId = CHAT_ID, label = "테스트",
+                textEnabled = true, generalConversationEnabled = true, imageEnabled = true,
+                audioAnalysisEnabled = true, textRevision = 1L, audioAnalysisRevision = 1L
+            )
+        ),
+        controlChatId = CHAT_ID,
+        backend = TestConversationModeBackend()
+    )
+
+    private fun combinedMediaRoomPolicy() = RoomCapabilityPolicyStore.forTesting(
+        rooms = listOf(
+            ManagedRoomCapability(
+                reference = "R01", chatId = CHAT_ID, label = "테스트",
+                textEnabled = true, generalConversationEnabled = true, imageEnabled = true,
+                imageAnalysisEnabled = true, audioAnalysisEnabled = true,
+                textRevision = 1L, imageAnalysisRevision = 1L, audioAnalysisRevision = 1L
+            )
+        ),
+        controlChatId = CHAT_ID,
+        backend = TestConversationModeBackend()
     )
 
     private fun visionRoomPolicy() = RoomCapabilityPolicyStore.forTesting(

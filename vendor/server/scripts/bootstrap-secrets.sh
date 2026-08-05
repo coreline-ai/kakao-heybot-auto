@@ -30,7 +30,7 @@ write_pair() {
   chmod 600 "$first" "$second"
 }
 
-for package in proxy-manager proxy-image proxy-vision proxy-codex proxy-video proxy-grok proxy-draw proxy-brush proxy-conversation; do
+for package in proxy-manager proxy-image proxy-vision proxy-codex proxy-video proxy-grok proxy-draw proxy-brush proxy-conversation proxy-audio; do
   mkdir -p "$ROOT/$package/runtime/secrets"
   chmod 700 "$ROOT/$package/runtime" "$ROOT/$package/runtime/secrets"
 done
@@ -87,6 +87,13 @@ write_pair \
 write_pair \
   "$ROOT/proxy-conversation/runtime/secrets/grok-conversation.secret" \
   "$ROOT/proxy-grok/runtime/secrets/grok-conversation.secret"
+write_pair \
+  "$ROOT/proxy-manager/runtime/secrets/proxy-audio.secret" \
+  "$ROOT/proxy-audio/runtime/secrets/manager.secret"
+if [[ "$FORCE" == "true" || ! -s "$ROOT/proxy-audio/runtime/secrets/transcript.key" ]]; then
+  secret >"$ROOT/proxy-audio/runtime/secrets/transcript.key"
+fi
+chmod 600 "$ROOT/proxy-audio/runtime/secrets/transcript.key"
 
 # These secrets are used by the manager's authenticated health contract.  The
 # internal grok/brush readiness endpoints are deliberately unauthenticated but

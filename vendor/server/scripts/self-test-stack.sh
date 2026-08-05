@@ -28,7 +28,8 @@ for package in \
   proxy-brush \
   proxy-codex \
   proxy-grok \
-  proxy-conversation; do
+  proxy-conversation \
+  proxy-audio; do
   printf 'Testing %s...\n' "$package"
   (cd "$ROOT/$package" && npm test)
 done

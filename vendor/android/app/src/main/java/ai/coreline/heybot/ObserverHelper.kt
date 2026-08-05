@@ -22,7 +22,9 @@ class ObserverHelper(
     private val videoJobCoordinator: VideoJobCoordinator? = null,
     private val penBrushJobCoordinator: PenBrushJobCoordinator? = null,
     private val imageAnalysisCoordinator: ImageAnalysisCoordinator? = null,
+    private val audioAnalysisCoordinator: AudioAnalysisCoordinator? = null,
     private val imageAttachmentParser: KakaoImageAttachmentParser = KakaoImageAttachmentParser(),
+    private val audioAttachmentParser: KakaoAudioAttachmentParser = KakaoAudioAttachmentParser(),
     private val textDeliveryTracker: TextDeliveryTracker? = null,
     private val requestTraceStore: RequestTraceStore? = null
 ) {
@@ -191,6 +193,18 @@ class ObserverHelper(
                             is ImageAttachmentParseResult.Parsed -> parsed.attachment
                             is ImageAttachmentParseResult.Rejected -> null
                         }
+                        val audioAttachment = when (
+                            val parsed = audioAttachmentParser.parse(
+                                sourceLogId = currentLogId,
+                                chatId = chatId,
+                                userId = userId,
+                                messageType = messageType,
+                                decryptedAttachment = attachment
+                            )
+                        ) {
+                            is AudioAttachmentParseResult.Parsed -> parsed.attachment
+                            is AudioAttachmentParseResult.Rejected -> null
+                        }
                         val incoming = GlmIncomingMessage(
                             logId = currentLogId,
                             chatId = chatId,
@@ -198,12 +212,14 @@ class ObserverHelper(
                             messageType = messageType,
                             message = message.orEmpty(),
                             threadId = effectiveThreadId,
-                            imageAttachment = imageAttachment
+                            imageAttachment = imageAttachment,
+                            audioAttachment = audioAttachment
                         )
                         if (messageType == "1" && message.isNotBlank()) {
                             requestTraceStore?.ensureReceived(incoming)
                         }
                         textDeliveryTracker?.onIncoming(incoming)
+                        audioAnalysisCoordinator?.onIncoming(incoming)
                         imageAnalysisCoordinator?.onIncoming(incoming)
                         imageJobCoordinator?.onIncoming(incoming)
                         videoJobCoordinator?.onIncoming(incoming)

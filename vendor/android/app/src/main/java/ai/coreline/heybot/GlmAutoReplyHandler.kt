@@ -18,6 +18,8 @@ data class GlmIncomingMessage(
     val threadId: Long?,
     /** Strictly parsed metadata only; decrypted attachment JSON is never retained here. */
     val imageAttachment: IncomingImageAttachment? = null,
+    /** Strictly parsed type-18 audio metadata; generic files remain null. */
+    val audioAttachment: IncomingAudioAttachment? = null,
     val traceId: String = RequestTraceIds.from(chatId, logId)
 )
 
@@ -66,7 +68,9 @@ class GlmAutoReplyHandler(
     private val requestTraceStore: RequestTraceStore = RequestTraceStore.inMemory(nowMillis),
     private val textDeliveryTracker: TextDeliveryTracker? = null,
     private val visionContextStore: VisionConversationContextStore =
-        VisionConversationContextStore()
+        VisionConversationContextStore(),
+    private val audioContextStore: AudioConversationContextStore =
+        AudioConversationContextStore()
 ) {
     private val commandRouter = BotCommandRouter(settings.trigger)
     private val visionContextResolver = VisionConversationContextResolver(
@@ -75,6 +79,14 @@ class GlmAutoReplyHandler(
         nowMillis,
         settings.visionSharedFollowUpWindowMillis
     )
+    private val audioContextResolver = AudioConversationContextResolver(
+        audioContextStore,
+        roomCapabilityPolicy,
+        nowMillis,
+        settings.visionSharedFollowUpWindowMillis
+    )
+    private val visionFollowUpDetector = VisionFollowUpDetector()
+    private val audioFollowUpDetector = AudioFollowUpDetector()
     private val memoryReady = CompletableDeferred<Unit>()
     private val admission = RequestAdmissionController(
         roomWindowMillis = settings.roomRateWindowMillis,
@@ -96,7 +108,8 @@ class GlmAutoReplyHandler(
                     queued.incoming,
                     queued.question,
                     queued.roomCapabilityRevision,
-                    queued.visionResultLogId
+                    queued.visionResultLogId,
+                    queued.audioResultLogId
                 )
             } else {
                 executeGeneralConversation(
@@ -124,7 +137,9 @@ class GlmAutoReplyHandler(
                 log("Conversation memory initialization failed: ${it::class.simpleName}")
             }
             val vision = visionContextStore.stats(nowMillis())
+            val audio = audioContextStore.stats(nowMillis())
             log("Vision conversation context ready=${vision.ready} contexts=${vision.contexts}")
+            log("Audio conversation context ready=${audio.ready} contexts=${audio.contexts}")
             memoryReady.complete(Unit)
         }
         log(
@@ -148,6 +163,17 @@ class GlmAutoReplyHandler(
                     kind = RequestTraceKind.VISION_FOLLOW_UP
                 )
                 submitVisionFollowUp(incoming, implicitVision.resultLogId)
+                return
+            }
+            val exactAudio = audioContextResolver.exact(incoming)
+            val implicitAudio = exactAudio ?: audioContextResolver.implicit(incoming)
+            if (implicitAudio != null) {
+                requestTraceStore.record(
+                    incoming.traceId,
+                    RequestTraceStage.CLASSIFIED,
+                    kind = RequestTraceKind.AUDIO_FOLLOW_UP
+                )
+                submitAudioFollowUp(incoming, incoming.threadId ?: implicitAudio.resultLogIds.maxOrNull() ?: return)
                 return
             }
             requestTraceStore.record(
@@ -269,6 +295,18 @@ class GlmAutoReplyHandler(
                 processVisionFollowUp(incoming, implicitVision.resultLogId)
                 return
             }
+            val exactAudio = audioContextResolver.exact(incoming)
+            val implicitAudio = exactAudio ?: audioContextResolver.implicit(incoming)
+            if (implicitAudio != null) {
+                requestTraceStore.record(
+                    incoming.traceId,
+                    RequestTraceStage.CLASSIFIED,
+                    kind = RequestTraceKind.AUDIO_FOLLOW_UP
+                )
+                memoryReady.await()
+                processAudioFollowUp(incoming, incoming.threadId ?: implicitAudio.resultLogIds.maxOrNull() ?: return)
+                return
+            }
             requestTraceStore.record(
                 incoming.traceId,
                 RequestTraceStage.CLASSIFIED,
@@ -376,7 +414,8 @@ class GlmAutoReplyHandler(
         question: String,
         generalConversation: GeneralConversationModeSnapshot? = null,
         roomCapabilityRevision: Long,
-        visionResultLogId: Long? = null
+        visionResultLogId: Long? = null,
+        audioResultLogId: Long? = null
     ) {
         when (
             scheduler.submit(
@@ -385,7 +424,8 @@ class GlmAutoReplyHandler(
                     question,
                     generalConversation,
                     roomCapabilityRevision,
-                    visionResultLogId
+                    visionResultLogId,
+                    audioResultLogId
                 )
             )
         ) {
@@ -503,6 +543,92 @@ class GlmAutoReplyHandler(
         val revision = roomCapabilityPolicy.snapshot()
             .capabilityRevision(incoming.chatId, RoomCapability.TEXT)
             ?: return null
+        requestTraceStore.record(incoming.traceId, RequestTraceStage.POLICY_ALLOWED)
+        return revision
+    }
+
+    private fun submitAudioFollowUp(incoming: GlmIncomingMessage, resultLogId: Long) {
+        val textRevision = admitAudioFollowUp(incoming) ?: return
+        when (val result = admission.admit(incoming)) {
+            AdmissionResult.Accepted -> {
+                requestTraceStore.record(incoming.traceId, RequestTraceStage.ADMITTED)
+                submitToQueue(
+                    incoming = incoming,
+                    question = incoming.message.trim(),
+                    roomCapabilityRevision = textRevision,
+                    audioResultLogId = resultLogId
+                )
+            }
+            AdmissionResult.DuplicateLog,
+            AdmissionResult.DuplicateMessage -> requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.DUPLICATE,
+                reasonCode = "DUPLICATE_REQUEST"
+            )
+            is AdmissionResult.RoomRateLimited,
+            is AdmissionResult.UserRateLimited -> {
+                metrics.recordRateLimitDrop()
+                requestTraceStore.record(
+                    incoming.traceId,
+                    RequestTraceStage.RATE_LIMITED,
+                    reasonCode = "REQUEST_RATE_LIMIT"
+                )
+            }
+        }
+    }
+
+    private suspend fun processAudioFollowUp(incoming: GlmIncomingMessage, resultLogId: Long) {
+        val textRevision = admitAudioFollowUp(incoming) ?: return
+        when (val result = admission.admit(incoming)) {
+            AdmissionResult.Accepted -> {
+                requestTraceStore.record(incoming.traceId, RequestTraceStage.ADMITTED)
+                executeQuestion(
+                    incoming = incoming,
+                    question = incoming.message.trim(),
+                    roomCapabilityRevision = textRevision,
+                    audioResultLogId = resultLogId
+                )
+            }
+            AdmissionResult.DuplicateLog,
+            AdmissionResult.DuplicateMessage -> requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.DUPLICATE,
+                reasonCode = "DUPLICATE_REQUEST"
+            )
+            is AdmissionResult.RoomRateLimited,
+            is AdmissionResult.UserRateLimited -> {
+                metrics.recordRateLimitDrop()
+                requestTraceStore.record(
+                    incoming.traceId,
+                    RequestTraceStage.RATE_LIMITED,
+                    reasonCode = "REQUEST_RATE_LIMIT"
+                )
+            }
+        }
+    }
+
+    private fun admitAudioFollowUp(incoming: GlmIncomingMessage): Long? {
+        if (!roomCapabilityPolicy.allows(incoming.chatId, RoomCapability.TEXT)) {
+            requestTraceStore.record(
+                incoming.traceId, RequestTraceStage.POLICY_DENIED, reasonCode = "TEXT_CAPABILITY_DISABLED"
+            )
+            return null
+        }
+        if (!roomCapabilityPolicy.allows(incoming.chatId, RoomCapability.AUDIO_ANALYSIS)) {
+            requestTraceStore.record(
+                incoming.traceId, RequestTraceStage.POLICY_DENIED, reasonCode = "AUDIO_ANALYSIS_CAPABILITY_DISABLED"
+            )
+            return null
+        }
+        if (!generalConversationPolicy.allowsUser(incoming.chatId, incoming.userId)) {
+            metrics.recordGeneralPolicyDrop()
+            requestTraceStore.record(
+                incoming.traceId, RequestTraceStage.POLICY_DENIED, reasonCode = "AUDIO_FOLLOW_UP_USER_POLICY_DENIED"
+            )
+            return null
+        }
+        val revision = roomCapabilityPolicy.snapshot()
+            .capabilityRevision(incoming.chatId, RoomCapability.TEXT) ?: return null
         requestTraceStore.record(incoming.traceId, RequestTraceStage.POLICY_ALLOWED)
         return revision
     }
@@ -636,19 +762,18 @@ class GlmAutoReplyHandler(
         incoming: GlmIncomingMessage,
         question: String,
         roomCapabilityRevision: Long,
-        visionResultLogId: Long? = null
+        visionResultLogId: Long? = null,
+        audioResultLogId: Long? = null
     ) {
         if (!roomCapabilityPolicy.isCurrent(roomCapabilityRevision, incoming.chatId, RoomCapability.TEXT)) return
         memoryReady.await()
         val now = nowMillis()
         val key = ConversationKey(incoming.chatId, incoming.userId)
         val history = memoryStore.history(key, now)
-        val visionContext = if (visionResultLogId != null) {
-            visionContextResolver.exact(incoming.copy(threadId = visionResultLogId))
-        } else {
-            visionContextResolver.forConversation(incoming)
+        val forcedVision = visionResultLogId?.let {
+            visionContextResolver.exact(incoming.copy(threadId = it))
         }
-        if (visionResultLogId != null && visionContext == null) {
+        if (visionResultLogId != null && forcedVision == null) {
             requestTraceStore.record(
                 incoming.traceId,
                 RequestTraceStage.POLICY_DENIED,
@@ -657,9 +782,31 @@ class GlmAutoReplyHandler(
             safeReply(incoming, "이미지 대화 문맥이 만료되었거나 사용할 수 없어요. 이미지를 다시 분석해주세요.")
             return
         }
+        val forcedAudio = audioResultLogId?.let {
+            audioContextResolver.exact(incoming.copy(threadId = it))
+        }
+        if (audioResultLogId != null && forcedAudio == null) {
+            requestTraceStore.record(
+                incoming.traceId,
+                RequestTraceStage.POLICY_DENIED,
+                reasonCode = "AUDIO_CONTEXT_UNAVAILABLE"
+            )
+            safeReply(incoming, "음성 요약 대화 문맥이 만료되었거나 사용할 수 없어요. 음성을 다시 요약해주세요.")
+            return
+        }
+        // A wake-word question may coexist with both recent image and audio
+        // results. Pick exactly one relevant context; never blend unrelated
+        // media summaries into one prompt.
+        val selected = when {
+            forcedVision != null -> forcedVision to null
+            forcedAudio != null -> null to forcedAudio
+            else -> selectRelevantMediaContext(incoming, question)
+        }
+        val visionContext = selected.first
+        val audioContext = selected.second
         val request = GlmChatRequest(
             model = settings.model,
-            messages = buildPrompt(question, history, visionContext),
+            messages = buildPrompt(question, history, visionContext, audioContext),
             temperature = settings.temperature,
             maxTokens = settings.maxTokens
         )
@@ -739,13 +886,18 @@ class GlmAutoReplyHandler(
         val key = ConversationKey(incoming.chatId, incoming.userId)
         val now = nowMillis()
         val pendingMessages = generalConversationPendingStore.messages(key, now)
-        val visionContext = visionContextResolver.forConversation(incoming)
+        // Ambient general conversation is routed through the conservative
+        // implicit resolver before it reaches this point. Do not attach an
+        // owner’s unrelated image/audio context as a fallback here.
+        val visionContext: VisionConversationContext? = null
+        val audioContext: AudioConversationContext? = null
         val request = generalConversationArbiter.buildRequest(
             settings = settings,
             message = message,
             history = memoryStore.history(key, now),
             pendingMessages = pendingMessages,
-            visionContext = visionContext
+            visionContext = visionContext,
+            audioContext = audioContext
         )
 
         requestTraceStore.record(
@@ -946,10 +1098,11 @@ class GlmAutoReplyHandler(
             BotCommand.ClearMyMemory -> {
                 val memorySaved = memoryStore.clear(ConversationKey(incoming.chatId, incoming.userId))
                 val visionSaved = visionContextStore.clear(incoming.chatId, incoming.userId)
+                val audioSaved = audioContextStore.clear(incoming.chatId, incoming.userId)
                 generalConversationPendingStore.clear(ConversationKey(incoming.chatId, incoming.userId))
                 safeReply(
                     incoming,
-                    if (memorySaved && visionSaved) "이 방에서 나눈 내 대화와 이미지 분석 기억을 초기화했어요."
+                    if (memorySaved && visionSaved && audioSaved) "이 방에서 나눈 내 대화·이미지·음성 분석 기억을 초기화했어요."
                     else "기억은 지웠지만 저장 상태를 확인해주세요."
                 )
             }
@@ -969,10 +1122,11 @@ class GlmAutoReplyHandler(
             BotCommand.ClearAllMemory -> runAdminCommand(incoming, "clear-all-memory") {
                 val memorySaved = memoryStore.clearAll()
                 val visionSaved = visionContextStore.clearAll()
+                val audioSaved = audioContextStore.clearAll()
                 generalConversationPendingStore.clearAll()
                 safeReply(
                     incoming,
-                    if (memorySaved && visionSaved) "전체 대화와 이미지 분석 기억을 초기화했어요."
+                    if (memorySaved && visionSaved && audioSaved) "전체 대화와 이미지·음성 분석 기억을 초기화했어요."
                     else "기억은 지웠지만 저장 상태를 확인해주세요."
                 )
             }
@@ -980,10 +1134,11 @@ class GlmAutoReplyHandler(
             is BotCommand.ClearUserMemory -> runAdminCommand(incoming, "clear-user-memory") {
                 val memorySaved = memoryStore.clearUser(command.targetUserId)
                 val visionSaved = visionContextStore.clearUser(command.targetUserId)
+                val audioSaved = audioContextStore.clearUser(command.targetUserId)
                 generalConversationPendingStore.clearUser(command.targetUserId)
                 safeReply(
                     incoming,
-                    if (memorySaved && visionSaved) "해당 사용자의 대화와 이미지 분석 기억을 초기화했어요."
+                    if (memorySaved && visionSaved && audioSaved) "해당 사용자의 대화와 이미지·음성 분석 기억을 초기화했어요."
                     else "기억은 지웠지만 저장 상태를 확인해주세요."
                 )
             }
@@ -1106,6 +1261,14 @@ class GlmAutoReplyHandler(
             BotCommand.PenBrushStatus,
             BotCommand.CancelPenBrush,
             BotCommand.RetryPenBrush -> Unit
+            is BotCommand.SummarizeAudio,
+            BotCommand.AudioStatus,
+            BotCommand.CancelAudio,
+            BotCommand.ResummarizeAudio,
+            BotCommand.ResendAudio,
+            is BotCommand.AudioTranscript,
+            is BotCommand.AudioEvidence,
+            BotCommand.DeleteAudio -> Unit
             is BotCommand.GlmQuestion -> Unit
         }
     }
@@ -1172,6 +1335,7 @@ class GlmAutoReplyHandler(
         }
         val now = nowMillis()
         val vision = visionContextStore.stats(now)
+        val audio = audioContextStore.stats(now)
         val lastSuccess = metric.lastSuccessAtMillis?.let { elapsedLabel(now - it) } ?: "-"
         val lastFailure = metric.lastFailureAtMillis?.let {
             "${metric.lastFailureType ?: "Unknown"} ${elapsedLabel(now - it)}"
@@ -1198,7 +1362,8 @@ class GlmAutoReplyHandler(
                 "일반회로 ${if (circuit.tripped) "차단" else "정상"}/" +
                 "${metric.generalCircuitTrips}회/${circuit.lastReason?.name ?: "-"} | " +
                 "기억 ${memory.conversations}명/${memory.turns}턴, 저장 $persistence | " +
-                "이미지문맥 ${vision.contexts}개/${if (vision.ready) "정상" else "차단"}"
+                "이미지문맥 ${vision.contexts}개/${if (vision.ready) "정상" else "차단"} | " +
+                "음성문맥 ${audio.contexts}개/${if (audio.ready) "정상" else "차단"}"
             ).take(MAX_REPLY_LENGTH)
     }
 
@@ -1222,6 +1387,8 @@ class GlmAutoReplyHandler(
                 "영상 ${roomCapabilityPolicy.snapshot().videoRoomCount}개, " +
                 "펜브러쉬 ${roomCapabilityPolicy.snapshot().penBrushRoomCount}개 | " +
                 "이미지분석 ${roomCapabilityPolicy.snapshot().imageAnalysisRoomCount}개 | " +
+                "음성 ${roomCapabilityPolicy.snapshot().audioAnalysisRoomCount}개, " +
+                "자동 ${roomCapabilityPolicy.snapshot().audioAutoAnalysisRoomCount}개 | " +
                 "일반대화 ${if (mode.enabled) "켜짐" else "꺼짐"}/저장 ${modePersistenceLabel(mode)} | " +
                 "일반정책 ${if (policy.ready) "정상" else "비활성"}/${policy.allowedRoomCount}방 | " +
                 "일반회로 ${if (circuit.tripped) "차단" else "정상"}/" +
@@ -1287,6 +1454,13 @@ class GlmAutoReplyHandler(
         BotCommand.PenBrushStatus,
         BotCommand.CancelPenBrush,
         BotCommand.RetryPenBrush -> RequestTraceKind.PEN_BRUSH
+        is BotCommand.SummarizeAudio,
+        BotCommand.AudioStatus,
+        BotCommand.CancelAudio,
+        BotCommand.ResummarizeAudio,
+        is BotCommand.AudioTranscript,
+        is BotCommand.AudioEvidence,
+        BotCommand.DeleteAudio -> RequestTraceKind.AUDIO
         is BotCommand.RecentDiagnostics -> RequestTraceKind.DIAGNOSTICS
         else -> RequestTraceKind.LOCAL_COMMAND
     }
@@ -1305,6 +1479,13 @@ class GlmAutoReplyHandler(
         BotCommand.CancelPenBrush,
         BotCommand.RetryPenBrush -> RoomCapability.PEN_BRUSH
         is BotCommand.AnalyzeImage -> RoomCapability.IMAGE_ANALYSIS
+        is BotCommand.SummarizeAudio,
+        BotCommand.AudioStatus,
+        BotCommand.CancelAudio,
+        BotCommand.ResummarizeAudio,
+        is BotCommand.AudioTranscript,
+        is BotCommand.AudioEvidence,
+        BotCommand.DeleteAudio -> RoomCapability.AUDIO_ANALYSIS
         else -> null
     }
 
@@ -1393,10 +1574,28 @@ class GlmAutoReplyHandler(
         return result
     }
 
+    private fun selectRelevantMediaContext(
+        incoming: GlmIncomingMessage,
+        question: String
+    ): Pair<VisionConversationContext?, AudioConversationContext?> {
+        val audio = audioContextResolver.forConversation(incoming)
+        val audioMatches = audio != null && if (audio.ownerUserId == incoming.userId) {
+            audioFollowUpDetector.matchesOwner(question, audio)
+        } else {
+            audioFollowUpDetector.matches(question, audio)
+        }
+        if (audioMatches) return null to audio
+
+        val vision = visionContextResolver.forConversation(incoming)
+        if (vision != null && visionFollowUpDetector.matches(question, vision)) return vision to null
+        return null to null
+    }
+
     private fun buildPrompt(
         question: String,
         history: List<ConversationTurn>,
-        visionContext: VisionConversationContext? = null
+        visionContext: VisionConversationContext? = null,
+        audioContext: AudioConversationContext? = null
     ): List<GlmMessage> = buildList {
         add(GlmMessage(role = "system", content = HeybotPersona.wakeWordPrompt()))
         history.forEach { turn ->
@@ -1404,6 +1603,7 @@ class GlmAutoReplyHandler(
             add(GlmMessage(role = "assistant", content = turn.assistantMessage))
         }
         visionContext?.let { add(VisionConversationContextRenderer.render(it)) }
+        audioContext?.let { add(AudioConversationContextRenderer.render(it)) }
         add(GlmMessage(role = "user", content = question))
     }
 

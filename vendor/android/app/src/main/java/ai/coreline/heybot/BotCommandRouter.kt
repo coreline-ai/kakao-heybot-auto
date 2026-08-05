@@ -39,6 +39,14 @@ sealed interface BotCommand {
     data object PenBrushStatus : BotCommand
     data object CancelPenBrush : BotCommand
     data object RetryPenBrush : BotCommand
+    data class SummarizeAudio(val profile: AudioSummaryProfile) : BotCommand
+    data object AudioStatus : BotCommand
+    data object CancelAudio : BotCommand
+    data object ResummarizeAudio : BotCommand
+    data object ResendAudio : BotCommand
+    data class AudioTranscript(val page: Int) : BotCommand
+    data class AudioEvidence(val page: Int) : BotCommand
+    data object DeleteAudio : BotCommand
     data class InvalidLocalCommand(val reason: String) : BotCommand
 }
 
@@ -97,6 +105,7 @@ class BotCommandRouter(private val trigger: String) {
                 BotCommand.InvalidLocalCommand("펜브러쉬로 만들 내용을 함께 입력해주세요.")
             else -> parseRecentDiagnostics(content)
                 ?: parseSkillDetail(content)
+                ?: parseAudioCommand(content)
                 ?: parseRoomCommand(content)
                 ?: parseClearUserMemory(content)
                 ?: BotCommand.GlmQuestion(content)
@@ -170,6 +179,21 @@ class BotCommandRouter(private val trigger: String) {
         } else {
             BotCommand.InvalidLocalCommand("‘헤이봇 최근 진단 R01’처럼 방 R번호를 입력해주세요.")
         }
+    }
+
+    private fun parseAudioCommand(content: String): BotCommand? = when (
+        val command = AudioCommandParser(trigger).parseContent(content)
+    ) {
+        is AudioCommand.Summarize -> BotCommand.SummarizeAudio(command.profile)
+        AudioCommand.Status -> BotCommand.AudioStatus
+        AudioCommand.Cancel -> BotCommand.CancelAudio
+        AudioCommand.Resummarize -> BotCommand.ResummarizeAudio
+        AudioCommand.Resend -> BotCommand.ResendAudio
+        is AudioCommand.Transcript -> BotCommand.AudioTranscript(command.page)
+        is AudioCommand.Evidence -> BotCommand.AudioEvidence(command.page)
+        AudioCommand.Delete -> BotCommand.DeleteAudio
+        is AudioCommand.Invalid -> BotCommand.InvalidLocalCommand(command.reason)
+        null -> null
     }
 
     private fun parseRoomCommand(content: String): BotCommand? {

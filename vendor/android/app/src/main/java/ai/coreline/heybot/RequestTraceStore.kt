@@ -9,11 +9,13 @@ enum class RequestTraceKind {
     WAKE_WORD,
     GENERAL_CONVERSATION,
     VISION_FOLLOW_UP,
+    AUDIO_FOLLOW_UP,
     LOCAL_COMMAND,
     IMAGE,
     VIDEO,
     PEN_BRUSH,
     VISION,
+    AUDIO,
     DIAGNOSTICS
 }
 

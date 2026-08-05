@@ -131,6 +131,27 @@ class BotCommandRouterTest {
     }
 
     @Test
+    fun `routes audio jobs separately from audio room policy`() {
+        assertEquals(
+            BotCommand.SummarizeAudio(
+                AudioSummaryProfile(AudioSummaryPattern.MEETING, AudioSummaryView.MINUTES)
+            ),
+            router.route("헤이봇 음성 요약 회의 회의록")
+        )
+        assertEquals(BotCommand.AudioStatus, router.route("헤이봇 음성 상태"))
+        assertEquals(BotCommand.ResendAudio, router.route("헤이봇 음성 재전송"))
+        assertEquals(BotCommand.AudioTranscript(2), router.route("헤이봇 음성 원문 2"))
+        assertEquals(
+            BotCommand.PreviewRoomCapability("R01", RoomCapability.AUDIO_ANALYSIS, true),
+            router.route("헤이봇 음성 허용 R01")
+        )
+        assertEquals(
+            BotCommand.PreviewRoomCapability("R01", RoomCapability.AUDIO_AUTO_ANALYSIS, false),
+            router.route("헤이봇 음성자동 불허용 R01")
+        )
+    }
+
+    @Test
     fun `rejects malformed target user IDs locally`() {
         assertTrue(
             router.route("헤이봇 사용자 기억 초기화 abc") is BotCommand.InvalidLocalCommand

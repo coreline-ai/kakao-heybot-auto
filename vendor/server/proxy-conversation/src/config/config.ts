@@ -42,7 +42,7 @@ export function loadConversationProxyConfig(env: NodeJS.ProcessEnv = process.env
     codexSecretFile: path(env, "CONVERSATION_CODEX_SECRET_FILE", "./runtime/secrets/codex-conversation.secret", cwd),
     grokBaseUrl: loopbackUrl(env.CONVERSATION_GROK_BASE_URL?.trim() || "http://127.0.0.1:4358", "CONVERSATION_GROK_BASE_URL"),
     grokSecretFile: path(env, "CONVERSATION_GROK_SECRET_FILE", "./runtime/secrets/grok-conversation.secret", cwd),
-    requestMaxBytes: integer(env, "CONVERSATION_PROXY_REQUEST_MAX_BYTES", 32_768, 1_024, 1_048_576),
+    requestMaxBytes: integer(env, "CONVERSATION_PROXY_REQUEST_MAX_BYTES", 65_536, 1_024, 1_048_576),
     timeoutMs: integer(env, "CONVERSATION_PROXY_TIMEOUT_MS", 100_000, 1_000, 300_000),
   };
 }

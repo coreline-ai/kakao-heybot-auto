@@ -18,7 +18,8 @@ data class GlmMessage(val role: String, val content: String)
 
 enum class GlmRequestKind(val metricLabel: String) {
     WAKE_WORD("wake_word"),
-    GENERAL_CONVERSATION("general_conversation")
+    GENERAL_CONVERSATION("general_conversation"),
+    AUDIO_SUMMARY("audio_summary")
 }
 
 data class GlmChatRequest(

@@ -3,16 +3,16 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-[[ -s "$ROOT/proxy-manager/runtime/secrets/route.secret" ]] ||
-  "$ROOT/scripts/bootstrap-secrets.sh"
+"$ROOT/scripts/bootstrap-secrets.sh"
 
-for package in proxy-codex proxy-image proxy-vision proxy-manager proxy-conversation; do
+for package in proxy-codex proxy-image proxy-vision proxy-audio proxy-manager proxy-conversation; do
   (cd "$ROOT/$package" && npm run build >/dev/null)
 done
 
 "$ROOT/proxy-codex/scripts/start.sh"
 "$ROOT/proxy-image/scripts/start.sh"
 "$ROOT/proxy-vision/scripts/start.sh"
+"$ROOT/proxy-audio/scripts/start.sh"
 "$ROOT/proxy-manager/scripts/start.sh"
 "$ROOT/proxy-conversation/scripts/start.sh"
 

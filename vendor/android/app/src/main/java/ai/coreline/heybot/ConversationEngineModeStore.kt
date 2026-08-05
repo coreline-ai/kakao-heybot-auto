@@ -17,6 +17,13 @@ class ConversationEngineModeStore(
     @Synchronized
     fun snapshot(): ConversationEngineModeSnapshot = current
 
+    /** Re-reads the shared root-only mode file for independent coordinators. */
+    @Synchronized
+    fun refresh(): ConversationEngineModeSnapshot {
+        if (file != null) current = load()
+        return current
+    }
+
     @Synchronized
     fun set(engine: ConversationEngine): ConversationEngineModeSnapshot {
         val next = ConversationEngineModeSnapshot(engine, nowMillis())
@@ -63,7 +70,14 @@ class ConversationGatewayRouter(
     private val codex: ConversationGateway?,
     private val grok: ConversationGateway?
 ) : ConversationGateway {
-    override suspend fun generate(request: GlmChatRequest): Result<GlmChatResponse> = when (modeStore.snapshot().engine) {
+    override suspend fun generate(request: GlmChatRequest): Result<GlmChatResponse> =
+        generateFor(modeStore.snapshot().engine, request)
+
+    /** Executes against the engine captured when a long-running job started. */
+    suspend fun generateFor(
+        engine: ConversationEngine,
+        request: GlmChatRequest
+    ): Result<GlmChatResponse> = when (engine) {
         ConversationEngine.GLM -> glm.generate(request)
         ConversationEngine.CODEX -> codex?.generate(request)
             ?: Result.failure(GlmFailure.Proxy("CODEX_PROXY_UNAVAILABLE"))

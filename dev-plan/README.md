@@ -1,6 +1,6 @@
 # 헤이봇 개발계획 인덱스
 
-갱신 기준: `2026-08-02 22:00 KST`
+갱신 기준: `2026-08-05 20:00 KST`
 
 여러 개발계획의 미체크 항목을 모두 독립 backlog로 취급하지 않는다. 뒤 계획이
 앞 계획의 결정을 대체하거나 실제 구현이 다른 계획에서 완료된 경우 이 문서를
@@ -31,6 +31,8 @@
 | `implement_20260801_214811.md` | 헤이봇 페르소나 v2·스킬 카탈로그·최근 진단·이미지 OCR | Phase 0~5 구현·서버/PD20 배포 완료/R01 제한 E2E 잔여 | 공통 persona v2, 카탈로그 도움말, 원문 없는 trace·Kakao DB 전송 확인, 설명/OCR/한국어 번역을 구현했다. 전체 자동 회귀, launchd 재배포, PD20 QUICK/INTEGRATION/DEVICE와 실제 Codex Vision 3-task canary가 통과했다. 외부 비봇 계정의 R01 대화 엔진 비교·첨부 회신만 남았다. |
 | `implement_20260802_193449.md` | PD20 ADB transport self-heal·Vision 재시도·GIF 분석 복구 | 구현·launchd/PD20 배포 완료/paired wireless·사용자 재검증·soak 대기 | USB/ADB/reverse/device-side readiness 자동 복구와 Vision 동일 ID 재시도를 배포했다. 추가 실장애는 안전 문제가 아니라 headerless GIF 지원 누락으로 확인되어 GIF89a magic 판별→bounded PNG 첫 프레임 변환, terminal job 재큐잉, 정확한 형식 오류 안내를 반영했다. proxy-vision 11개와 Android debug/release 각각 186개 테스트가 통과했다. |
 | `implement_20260802_212714.md` | 이미지 분석 결과 후속 대화 문맥 | Phase 0~4·3B 구현/PD20 배포 완료, 사용자 plain follow-up E2E 대기 | DB-confirmed 안전 분석 결과를 `(chatId,userId)` 문맥에 저장하고 호출어·일반대화·exact reply에 더해 의미가 명확한 평문 후속 질문으로 연결했다. 소유자는 30분, 다른 참여자는 같은 방 5분 focus window를 사용하며 unrelated 발화는 계속 무시한다. Android debug/release 각 205개 회귀와 PD20 QUICK/INTEGRATION/DEVICE가 통과했고 사용자 소유 R01 context `30923` 복원을 확인했다. |
+| `implement_20260804_190757.md` | 카카오 음성 STT·유형별 요약 | Phase 6·R01 운영 E2E 완료/고급 schema·후속 문맥은 `192026`으로 이관 | same-room cross-user 선택, 독립 proxy-audio, AES-256-GCM transcript, GLM/Codex/Grok snapshot 요약을 PD20에 배포했다. R01은 수동 음성 ON·자동 OFF이며, 13.1초 clean Korean 세 포맷 전사, 회의록/액션, 상태·취소·원문·근거·재요약·삭제, worker kill/watchdog 복구를 확인했다. |
+| `implement_20260805_192026.md` | 음성 strict evidence·part DB 확인·후속 문맥 | 구현·자동 회귀·PD20 자체진단 완료/R01 제한 E2E 대기 | strict JSON evidence와 1회 repair, part별 Kakao DB confirmation·자동 1회/명시 재전송, DB-confirmed 안전 요약만 저장하는 30분 audio context를 구현했다. Android release test/build와 PD20 QUICK·INTEGRATION·DEVICE를 통과했으며 R01 합성 음성 multipart·exact reply 한 턴만 남았다. |
 
 ## 통합 실행 순서
 
@@ -47,6 +49,8 @@
 11. 페르소나 v2·스킬 카탈로그·최근 요청 진단·DB 전송 확인·이미지 OCR/번역 구현과 서버/PD20 배포는 완료했다. 외부 비봇 계정으로 R01의 3엔진·3-task 첨부 회신만 제한 검증한다. (`20260801_214811`)
 12. PD20 USB/ADB self-heal, reverse와 device-side readiness, Vision 동일 request ID 재시도는 구현·배포·USB 장애 주입까지 완료했다. 사용자가 Wireless Debugging을 페어링한 뒤 USB→무선→USB 실기기 failover와 24시간 soak를 수행한다. (`20260802_193449`)
 13. 이미지 분석 결과가 Kakao DB에 확인된 뒤 사용자별 안전 문맥으로 저장되게 하고, 호출어와 분석 결과 exact reply에서 후속 대화를 이어가도록 구현·PD20 제한 검증한다. (`20260802_212714`)
+14. type 18 generic file에서 MP3·M4A·WAV만 안전하게 분리하고, `proxy-audio` STT와 현재 대화 엔진의 유형별 요약을 운영한다. R01 수동 3포맷·3엔진·제어 명령·worker 복구 E2E는 완료했다. strict evidence schema·part별 DB confirmation·음성 후속 문맥 구현은 `192026`으로 이관했다. (`20260804_190757`)
+15. strict evidence JSON, multipart part별 DB confirmation·재전송과 안전한 음성 후속 문맥은 구현·자동 회귀·PD20 자체진단을 완료했다. R01 합성 음성의 실제 multipart 결과와 exact reply 후속 질문 1턴만 제한 E2E로 확인한다. (`20260805_192026`)
 
 외부 비봇 카카오 계정이 필요한 단계는 자동 단위 테스트와 분리한다. 해당 E2E가
 대기 중이어도 이미 정의된 fail-closed 코드와 자동 테스트 구현은 계속할 수 있지만,
@@ -54,14 +58,14 @@
 
 ## 현재 자동 검증 기준
 
-- Iris Android JVM test: debug/release 각각 `202`개 통과, 실패 `0`; APK build·lint 통과
+- Iris Android JVM test: 최신 release `235`개 통과, 실패 `0`, 오류 `0`; release APK build 통과
 - Iris release APK build: 통과
-- Node server test: `proxy-manager` 9개, `proxy-image` 6개, `proxy-vision` 11개, `proxy-video` 2개, `proxy-draw` 3개, `proxy-brush` 2개, `proxy-codex` 12개, `proxy-grok` 4개, `proxy-conversation` 1개 통과 및 clean exit
+- Node server test: `proxy-manager` 9개, `proxy-image` 6개, `proxy-vision` 11개, `proxy-video` 2개, `proxy-draw` 3개, `proxy-brush` 2개, `proxy-codex` 12개, `proxy-grok` 4개, `proxy-conversation` 1개, `proxy-audio` 7개 통과 및 clean exit
 - 단일 스택 검증: `vendor/server/scripts/self-test-stack.sh`가 watchdog hermetic 회귀·readiness·전체 proxy test·Android `test assembleRelease`를 한 번에 통과
 - PD20: room capability catalog `4개`, 현재 bootstrap상 text·일반대화·이미지 동적 허용은 각 `3개` (`R02` 전체 불허용)
 - PD20 startup: GLM·일반대화 정책·대화 기억·room capability 준비와 5초 뒤 Iris process 지속 실행, Iris HTTP API 기본 비활성화 확인
 - 이미지 proxy reverse: `tcp:4340` 유지 확인
-- Android self-test v3: PD20 QUICK `PASS` 9/9, INTEGRATION `PASS` 10/10, DEVICE `PASS` 10/10. 신규 `vision-conversation-context` 계약 포함, CANARY는 명시 승인 guard 유지
+- Android self-test v3: PD20 QUICK `PASS` 10/10, INTEGRATION `PASS` 11/11, DEVICE `PASS` 11/11. 신규 `audio-summary-context` strict schema·재전송·context 계약 포함, CANARY는 명시 승인 guard 유지
 
 ## 현재 남은 검증
 
@@ -75,6 +79,7 @@
 - PD20 ADB transport self-heal·device-side readiness·Vision 재시도는 구현·launchd/PD20 배포·USB 장애 주입까지 완료했다. paired Wireless Debugging mDNS endpoint가 현재 없어 실제 USB→무선→USB failover는 사용자 pairing 뒤 검증한다. 외부 비봇 카카오 이미지 분석 E2E와 24시간 soak도 남아 있다.
 - 최신 `INVALID_IMAGE`는 실제로 `512×512 GIF89a`인데 Kakao CDN `Content-Type`이 비어 있어 기존 PNG/JPEG/WebP validator가 차단한 문제였다. GIF magic sniffing·PNG 첫 프레임 변환·실패 job 재큐잉과 정확한 안내 문구를 배포했다. 동일 실제 GIF의 manager→Vision→ffmpeg→Codex 재분석은 `succeeded`했고 source URL 삭제까지 확인했으며, 카카오 결과 메시지 delivery만 남아 있다.
 - 이미지 분석 후속 대화 문맥은 구현·자동 회귀·PD20 배포·self-test v3와 R01 live Vision/context commit까지 완료했다. 합성 이미지 결과 logId `30908`에 대해 비봇 사용자의 호출어 질문과 exact reply 2턴만 재검증한다.
+- 음성 STT·요약은 `whisper.cpp 1.9.1`/`large-v3-turbo` SHA pin으로 운영 활성화했다. R01 수동 MP3·M4A·WAV, clean Korean CER 0.0, GLM/Codex/Grok, 회의록·액션·상태·취소·원문·근거·재요약·삭제와 watchdog 복구를 확인했다. R01 음성자동은 의도대로 OFF이다. strict evidence schema, part별 DB confirmation/context는 구현·자동 회귀·PD20 자체진단까지 완료됐고, 실제 multipart/exact reply R01 제한 E2E가 남아 있다.
 - Mac sleep/wake, 물리 USB 재연결, 24시간 soak
 
 ## 2026-07-25 정합성 판정

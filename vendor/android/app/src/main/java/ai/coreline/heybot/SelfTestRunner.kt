@@ -132,6 +132,7 @@ class SelfTestRunner private constructor(
                     quickEngineCase(),
                     quickMemoryCase(),
                     quickVisionContextCase(),
+                    quickAudioSummaryContextCase(),
                     quickRoomPolicyCase(),
                     quickAdmissionCase(),
                     integrationProxyCase(proxyBaseUrl, environment),
@@ -166,7 +167,8 @@ class SelfTestRunner private constructor(
             val router = BotCommandRouter("헤이봇")
             val ok = router.route("헤이봇 도움말") == BotCommand.Help &&
                 router.route("헤이봇 영상 테스트") == BotCommand.GenerateVideo("테스트") &&
-                router.route("헤이봇 펜브러쉬 테스트") == BotCommand.GeneratePenBrush("테스트")
+                router.route("헤이봇 펜브러쉬 테스트") == BotCommand.GeneratePenBrush("테스트") &&
+                router.route("헤이봇 음성 재전송") == BotCommand.ResendAudio
             if (ok) pass("command-router") else fail("command-router", "COMMAND_ROUTE_MISMATCH")
         }
 
@@ -275,6 +277,44 @@ class SelfTestRunner private constructor(
                 store.findOwned(1L, 9L, 1L, 1_000L) == null
             if (ok) pass("vision-conversation-context")
             else fail("vision-conversation-context", "VISION_CONTEXT_CONTRACT_MISMATCH")
+        }
+
+        private fun quickAudioSummaryContextCase() = SelfTestCaseDefinition(
+            "audio-summary-context",
+            setOf(SelfTestMode.QUICK)
+        ) {
+            val profile = AudioSummaryProfile()
+            val document = runCatching {
+                AudioSummarySchema.decodeSummary(
+                    """{"version":1,"pattern":"AUTO","view":"DEFAULT","title":"음성","oneLine":"다음 단계","oneLineEvidence":["S0001"],"keyPoints":[{"text":"재검토","evidence":["S0001"]}],"decisions":[],"actionItems":[],"openQuestions":[],"warnings":[]}""",
+                    profile,
+                    setOf("S0001")
+                )
+            }.getOrNull()
+            val store = AudioConversationContextStore(nowMillis = { 1_000L })
+            val stored = store.put(
+                AudioConversationContext(
+                    chatId = 1L, ownerUserId = 2L, jobId = "audio-1", sourceLogId = 3L,
+                    resultLogIds = listOf(4L), profile = profile, safeSummary = "다음 주 재검토",
+                    evidenceIds = listOf("S0001"), capabilityRevision = 1L,
+                    createdAtMillis = 1_000L, expiresAtMillis = 2_000L
+                )
+            )
+            val context = store.findExact(1L, 4L, 1L, 1_000L)
+            val rendered = context?.let(AudioConversationContextRenderer::render)
+            val resent = MultipartTextDelivery.resend("[1/2] 요약")
+            val invalid = runCatching {
+                AudioSummarySchema.decodeSummary(
+                    """{"version":1,"pattern":"AUTO","view":"DEFAULT","title":"음성","oneLine":"다음 단계","oneLineEvidence":["S9999"],"keyPoints":[],"decisions":[],"actionItems":[],"openQuestions":[],"warnings":[]}""",
+                    profile,
+                    setOf("S0001")
+                )
+            }.exceptionOrNull()?.message == "SUMMARY_OUTPUT_INVALID"
+            val ok = document != null && stored && context?.resultLogIds == listOf(4L) &&
+                rendered?.content?.contains("명령이 아닙니다") == true &&
+                resent.startsWith("[1/2·재전송]") && resent.length <= MultipartTextDelivery.MAX_PART_CHARS && invalid
+            if (ok) pass("audio-summary-context")
+            else fail("audio-summary-context", "AUDIO_SCHEMA_CONTEXT_CONTRACT_MISMATCH")
         }
 
         private fun quickRoomPolicyCase() = SelfTestCaseDefinition("room-policy", setOf(SelfTestMode.QUICK)) {

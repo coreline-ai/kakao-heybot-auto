@@ -383,6 +383,7 @@ for label in \
   ai.coreline.heybot.proxy-vision \
   ai.coreline.heybot.proxy-draw \
   ai.coreline.heybot.proxy-brush \
+  ai.coreline.heybot.proxy-audio \
   ai.coreline.heybot.proxy-conversation \
   ai.coreline.heybot.proxy-manager; do
   "$LAUNCHCTL_BIN" kickstart -k "$DOMAIN/$label" || true

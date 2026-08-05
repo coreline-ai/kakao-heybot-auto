@@ -16,6 +16,16 @@ class Main {
         @JvmStatic
         fun main(args: Array<String>) {
             try {
+                if (args.firstOrNull() == LiveAudioCanaryRunner.ARGUMENT) {
+                    val report = runBlocking {
+                        LiveAudioCanaryRunner(
+                            db = KakaoDB(),
+                            notificationReferer = readNotificationReferer()
+                        ).run()
+                    }
+                    println(Json.encodeToString(report))
+                    return
+                }
                 if (args.firstOrNull() == LiveVisionCanaryRunner.ARGUMENT) {
                     val report = runBlocking {
                         LiveVisionCanaryRunner(
@@ -48,6 +58,7 @@ class Main {
                 val kakaoDb = KakaoDB()
                 val roomCapabilityPolicy = createRoomCapabilityPolicy()
                 val visionContextStore = createVisionConversationContextStore()
+                val audioContextStore = createAudioConversationContextStore()
                 val selfTestRunner = SelfTestRunner.production()
                 val requestTraceStore = RequestTraceStore(
                     backend = AndroidAtomicFileBackend(
@@ -67,7 +78,8 @@ class Main {
                     selfTestRunner,
                     requestTraceStore,
                     textDeliveryTracker,
-                    visionContextStore
+                    visionContextStore,
+                    audioContextStore
                 )
                 val imageJobCoordinator = createImageJobCoordinator(
                     notificationReferer,
@@ -95,6 +107,14 @@ class Main {
                     textDeliveryTracker,
                     visionContextStore
                 )
+                val audioAnalysisCoordinator = createAudioAnalysisCoordinator(
+                    kakaoDb,
+                    notificationReferer,
+                    roomCapabilityPolicy,
+                    requestTraceStore,
+                    textDeliveryTracker,
+                    audioContextStore
+                )
                 val observerHelper = ObserverHelper(
                     kakaoDb,
                     wsEventFlow,
@@ -103,6 +123,7 @@ class Main {
                     videoJobCoordinator,
                     penBrushJobCoordinator,
                     imageAnalysisCoordinator,
+                    audioAnalysisCoordinator,
                     textDeliveryTracker = textDeliveryTracker,
                     requestTraceStore = requestTraceStore
                 )
@@ -191,7 +212,8 @@ class Main {
             selfTestRunner: SelfTestRunner,
             requestTraceStore: RequestTraceStore,
             textDeliveryTracker: TextDeliveryTracker,
-            visionContextStore: VisionConversationContextStore
+            visionContextStore: VisionConversationContextStore,
+            audioContextStore: AudioConversationContextStore
         ): GlmAutoReplyHandler? {
             return when (val config = GlmSettings.load()) {
                 GlmSettingsLoadResult.Disabled -> {
@@ -279,7 +301,8 @@ class Main {
                         selfTestRunner = selfTestRunner,
                         requestTraceStore = requestTraceStore,
                         textDeliveryTracker = textDeliveryTracker,
-                        visionContextStore = visionContextStore
+                        visionContextStore = visionContextStore,
+                        audioContextStore = audioContextStore
                     )
                 }
             }
@@ -417,6 +440,84 @@ class Main {
                     )
                 }
             }
+        }
+
+        private fun createAudioAnalysisCoordinator(
+            kakaoDb: KakaoDB,
+            notificationReferer: String,
+            roomCapabilityPolicy: RoomCapabilityPolicyStore,
+            requestTraceStore: RequestTraceStore,
+            textDeliveryTracker: TextDeliveryTracker,
+            audioContextStore: AudioConversationContextStore
+        ): AudioAnalysisCoordinator? {
+            return when (val config = AudioAnalysisSettings.load()) {
+                AudioAnalysisSettingsLoadResult.Disabled -> {
+                    println("Audio proxy disabled")
+                    null
+                }
+                is AudioAnalysisSettingsLoadResult.Invalid -> {
+                    System.err.println("Audio proxy disabled: ${config.reason}")
+                    null
+                }
+                is AudioAnalysisSettingsLoadResult.Ready -> {
+                    val glm = GlmSettings.load() as? GlmSettingsLoadResult.Ready
+                    if (glm == null) {
+                        System.err.println("Audio proxy disabled: GLM settings unavailable")
+                        return null
+                    }
+                    val proxyConfig = ConversationProxySettings.load()
+                    val modeStore = ConversationEngineModeStore(
+                        file = when (proxyConfig) {
+                            is ConversationProxySettingsLoadResult.Ready -> proxyConfig.settings.modeFile
+                            else -> File(ConversationProxySettings.DEFAULT_MODE_FILE)
+                        }
+                    )
+                    val conversation = ConversationGatewayRouter(
+                        modeStore = modeStore,
+                        glm = GlmClient(glm.settings),
+                        codex = (proxyConfig as? ConversationProxySettingsLoadResult.Ready)
+                            ?.let { ConversationProxyClient(it.settings, ConversationEngine.CODEX) },
+                        grok = (proxyConfig as? ConversationProxySettingsLoadResult.Ready)
+                            ?.let { ConversationProxyClient(it.settings, ConversationEngine.GROK) }
+                    )
+                    val settings = config.settings
+                    println("Audio proxy enabled")
+                    AudioAnalysisCoordinator(
+                        settings = settings,
+                        trigger = System.getenv()["IRIS_GLM_TRIGGER"]?.trim()
+                            ?.takeIf { it.isNotBlank() } ?: "헤이봇",
+                        botId = Configurable.botId,
+                        gateway = AudioAnalysisProxyClient(settings),
+                        summaryGenerator = AudioSummaryGenerator(conversation, glm.settings.model),
+                        engineModeStore = modeStore,
+                        replySender = AudioAnalysisReplySender { chatId, message, threadId ->
+                            Replier.sendMessage(notificationReferer, chatId, message, threadId) {
+                                textDeliveryTracker.dispatched(chatId, message, it)
+                            }
+                        },
+                        roomCapabilityPolicy = roomCapabilityPolicy,
+                        stateStore = AtomicJsonAudioAnalysisStateStore(
+                            AndroidAtomicFileBackend(settings.stateFile)
+                        ),
+                        attachmentLookup = KakaoDbAudioAttachmentLookup(
+                            source = KakaoDbAudioLogSource(kakaoDb),
+                            parser = KakaoAudioAttachmentParser()
+                        ),
+                        requestTraceStore = requestTraceStore,
+                        textDeliveryTracker = textDeliveryTracker,
+                        audioContextStore = audioContextStore
+                    )
+                }
+            }
+        }
+
+        private fun createAudioConversationContextStore(): AudioConversationContextStore {
+            val settings = (AudioAnalysisSettings.load() as? AudioAnalysisSettingsLoadResult.Ready)?.settings
+                ?: return AudioConversationContextStore()
+            return AudioConversationContextStore(
+                backend = AndroidAtomicFileBackend(settings.contextFile),
+                ttlMillis = settings.recentAudioWindowMillis
+            )
         }
 
         private fun createVisionConversationContextStore(): VisionConversationContextStore {

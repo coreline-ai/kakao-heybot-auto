@@ -15,6 +15,9 @@ NODE_BIN="$(command -v node)"
 CODEX_BIN="$(command -v codex)"
 FFPROBE_BIN="$(command -v ffprobe)"
 FFMPEG_BIN="$(command -v ffmpeg)"
+WHISPER_BIN="${AUDIO_PROXY_WHISPER_BIN:-$(command -v whisper-cli || true)}"
+[[ -n "$WHISPER_BIN" ]] || WHISPER_BIN="whisper-cli"
+WHISPER_MODEL_SHA256="${AUDIO_PROXY_WHISPER_MODEL_SHA256:-}"
 ADB_BIN="${ADB:-$HOME/Library/Android/sdk/platform-tools/adb}"
 GROK_CLI_COMMAND="${GROK_PROXY_CLI_COMMAND:-$HOME/.grok/bin/grok}"
 GROK_CLI_HOME="${GROK_PROXY_CLI_HOME:-$HOME}"
@@ -44,13 +47,14 @@ if [[ "$RENDER_ONLY" == "false" ]]; then
     ai.coreline.heybot.proxy-grok \
     ai.coreline.heybot.proxy-draw \
     ai.coreline.heybot.proxy-brush \
+    ai.coreline.heybot.proxy-audio \
     ai.coreline.heybot.proxy-conversation; do
     launchctl bootout "$DOMAIN/$label" 2>/dev/null || true
   done
 fi
 
 "$ROOT/scripts/bootstrap-secrets.sh"
-for package in proxy-codex proxy-image proxy-vision proxy-grok proxy-video proxy-draw proxy-manager proxy-conversation; do
+for package in proxy-codex proxy-image proxy-vision proxy-grok proxy-video proxy-draw proxy-manager proxy-conversation proxy-audio; do
   (cd "$ROOT/$package" && npm run build >/dev/null)
   mkdir -p "$ROOT/$package/runtime/logs" "$ROOT/$package/runtime/state"
 done
@@ -82,9 +86,15 @@ sync_package() {
   /usr/bin/rsync -a --delete "$source/node_modules/" "$target/node_modules/"
   cp "$source/package.json" "$source/package-lock.json" "$target/"
 
-  # First install migrates the current durable queue/artifacts. Re-installs
-  # preserve the internal runtime and only synchronize credentials.
-  if [[ ! -e "$target/runtime/db/jobs.sqlite3" ]]; then
+  # First install migrates existing generation queues. Audio transcripts are
+  # sensitive and must never be copied from a development runtime into the
+  # launchd mirror; only its explicitly provisioned model is synchronized.
+  if [[ "$id" == "audio" ]]; then
+    mkdir -p "$target/runtime/db" "$target/runtime/jobs" "$target/runtime/models"
+    if [[ -d "$source/runtime/models" ]]; then
+      /usr/bin/rsync -a "$source/runtime/models/" "$target/runtime/models/"
+    fi
+  elif [[ ! -e "$target/runtime/db/jobs.sqlite3" ]]; then
     /usr/bin/rsync -a "$source/runtime/" "$target/runtime/"
   fi
   mkdir -p "$target/runtime/logs" "$target/runtime/state" "$target/runtime/secrets"
@@ -93,7 +103,7 @@ sync_package() {
   find "$target/runtime/secrets" -type f -exec chmod 600 {} +
 }
 
-for id in codex image vision grok video draw manager conversation; do
+for id in codex image vision grok video draw manager conversation audio; do
   sync_package "$id"
 done
 
@@ -167,6 +177,18 @@ write_proxy_plist() {
     extra_environment="
       <key>VISION_PROXY_FFMPEG_COMMAND</key>
       <string>$(xml_escape "$FFMPEG_BIN")</string>"
+  elif [[ "$id" == "audio" ]]; then
+    extra_environment="
+      <key>AUDIO_PROXY_FFMPEG_BIN</key>
+      <string>$(xml_escape "$FFMPEG_BIN")</string>
+      <key>AUDIO_PROXY_FFPROBE_BIN</key>
+      <string>$(xml_escape "$FFPROBE_BIN")</string>
+      <key>AUDIO_PROXY_WHISPER_BIN</key>
+      <string>$(xml_escape "$WHISPER_BIN")</string>
+      <key>AUDIO_PROXY_WHISPER_MODEL</key>
+      <string>$(xml_escape "$package/runtime/models/ggml-large-v3-turbo.bin")</string>
+      <key>AUDIO_PROXY_WHISPER_MODEL_SHA256</key>
+      <string>$(xml_escape "$WHISPER_MODEL_SHA256")</string>"
   fi
   cat >"$output" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -268,7 +290,7 @@ EOF
   plutil -lint "$output" >/dev/null
 }
 
-for id in grok video codex image vision brush draw conversation manager; do
+for id in grok video codex image vision brush draw conversation audio manager; do
   write_proxy_plist "$id"
 done
 write_watchdog_plist
@@ -296,6 +318,7 @@ for label in \
   ai.coreline.heybot.proxy-grok \
   ai.coreline.heybot.proxy-video \
   ai.coreline.heybot.proxy-brush \
+  ai.coreline.heybot.proxy-audio \
   ai.coreline.heybot.proxy-draw \
   ai.coreline.heybot.proxy-conversation \
   ai.coreline.heybot.proxy-manager \
@@ -310,6 +333,7 @@ for label in \
   ai.coreline.heybot.proxy-image \
   ai.coreline.heybot.proxy-vision \
   ai.coreline.heybot.proxy-brush \
+  ai.coreline.heybot.proxy-audio \
   ai.coreline.heybot.proxy-draw \
   ai.coreline.heybot.proxy-conversation \
   ai.coreline.heybot.proxy-manager; do
