@@ -771,6 +771,14 @@ SERIAL=0123456789ABCDEF
 - 제어: `헤이봇 유튜브 상태`, `헤이봇 유튜브 취소`, `헤이봇 유튜브 재전송`, `헤이봇 유튜브 삭제`
 - 관리자: 코어라인 AI 연구소에서 `헤이봇 유튜브 허용 R01` 후 `헤이봇 방 적용 <코드>`로만 활성화한다. 기본값은 전 방 불허용이다.
 - 서버는 `proxy-youtube`와 고정된 `yt-dlp`/FFmpeg 도구를 사용한다. playlist·로그인/DRM·임의 URL·cookie는 지원하지 않는다.
-- 서버는 Kakao-lite MP4(H.264 Baseline/yuv420p, 24fps, mono AAC)를 완성한다. 기본은 20 MiB hard limit·18 MiB target이며, 5분 이하 480×270, 5~10분 426×240, 10~15분 320×180으로 자동 축소한다.
-- Android는 최종 MP4를 저장·direct share만 하며 재인코딩하지 않는다. Kakao DB 첨부 행이 확인되어야 완료 처리하고, DB 미확인 시 자동으로 두 번째 영상을 보내지 않는다. 사용자가 `헤이봇 유튜브 재전송`을 입력할 때만 재시도한다.
-- R01 실사용 E2E 전에는 `IRIS_YOUTUBE_DOWNLOAD_PROXY_ENABLED=true`로 바꾸거나 room capability를 허용하지 않는다.
+- 서버는 품질 균형 MP4(H.264 Baseline/yuv420p, 24fps, AAC)를 완성한다. 기본은 42 MiB hard limit·38 MiB target이며, 3분 이하·3~5분은 최대 854×480(세로 480×854), 5~10분은 640×360(세로 360×640), 10~15분은 480×270(세로 270×480)으로 출력한다. 실제 bitrate는 duration·VBV ceiling에 맞춰 낮아질 수 있다.
+- Android는 최종 MP4를 저장·direct share만 하며 재인코딩하지 않는다. KakaoTalk 자체 인코딩으로 DB 첨부 행이 늦어질 수 있으므로, handoff 뒤 `max(5분, 3분 + MiB당 75초)`에서 최대 20분 동안 `카카오 처리 중`으로 둔다.
+- DB 미확인은 실패·잠금·재전송 근거가 아니다. 처리 중에는 자동 두 번째 영상과 자동 실패 안내를 보내지 않으며, 앱 재시작 때는 최근 bot MP4 DB 행을 read-only replay해 먼저 reconciliation한다. `헤이봇 유튜브 재전송`은 confirmation delayed 상태에서 한 번만 허용한다.
+
+## 공통 MP4 카카오 전송 지연 정책
+
+- 적용 기능: `헤이봇 영상`, `헤이봇 펜브러쉬`, `헤이봇 유튜브 다운로드`
+- local handoff(`startActivity`) 성공과 Kakao DB attachment(type `3`/`16`) 완료를 구분한다. 완료의 유일한 근거는 DB attachment row다.
+- 같은 방에서는 processing 중인 MP4가 있으면 두 번째 MP4 handoff를 대기시킨다. timeout·앱 재시작·late DB row 때문에 같은 영상을 다시 보내지 않는다. 재시작 시에는 최근 128개 bot MP4 DB 행을 원문 복호화 없이 read-only replay한다.
+- 사용자 요청 `헤이봇 <기능> 상태`에서만 처리 중/확인 지연 상태를 알린다. 시스템은 processing timeout 자체로 별도 채팅 메시지를 보내지 않는다.
+- 실사용 조건: 기동 시 `IRIS_YOUTUBE_DOWNLOAD_PROXY_ENABLED=true`이며, 관리자 room capability 변경도 적용되어야 한다. 둘 중 하나라도 아니면 요청은 fail-closed 된다.

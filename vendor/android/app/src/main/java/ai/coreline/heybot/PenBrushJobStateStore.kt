@@ -15,7 +15,10 @@ data class LocalPenBrushJob(
     val roomCapabilityRevision: Long = 0L,
     val createdAtMillis: Long,
     val deadlineAtMillis: Long,
-    val updatedAtMillis: Long
+    val updatedAtMillis: Long,
+    val deliveryHandoffAtMillis: Long? = null,
+    val deliveryConfirmationDeadlineAtMillis: Long? = null,
+    val deliveryAttempt: Int = 0
 )
 
 interface PenBrushJobStateStore {
@@ -76,16 +79,19 @@ class AtomicJsonPenBrushJobStateStore(
             log("PenBrush job state quarantined: invalid")
             return@withLock
         }
-        if (document.version != VERSION) {
+        if (document.version !in setOf(LEGACY_VERSION, VERSION)) {
             runCatching { backend.quarantine(System.currentTimeMillis()) }
             log("PenBrush job state quarantined: unsupported-version")
             return@withLock
         }
-        document.jobs.mapNotNull(::decode)
+        document.jobs.mapNotNull { decode(it, document.version) }
             .sortedByDescending { it.updatedAtMillis }
             .take(maxEntries)
             .reversed()
             .forEach { jobs[it.jobId] = it }
+        // Commit the safe v1 conversion before startup reconciliation.  This
+        // avoids reconsidering a previously handed-off MP4 for delivery.
+        if (document.version == LEGACY_VERSION) persist()
     }
 
     override suspend fun upsert(job: LocalPenBrushJob): Boolean = mutex.withLock {
@@ -115,7 +121,7 @@ class AtomicJsonPenBrushJobStateStore(
         jobs.values.count { it.chatId == chatId && it.status in PEN_BRUSH_PENDING_STATUSES }
     }
 
-    private fun decode(value: PersistedPenBrushJob): LocalPenBrushJob? {
+    private fun decode(value: PersistedPenBrushJob, documentVersion: Int): LocalPenBrushJob? {
         val chatId = value.chatId.toLongOrNull()
         val userId = value.userId.toLongOrNull()
         val logId = value.logId.toLongOrNull()
@@ -125,17 +131,29 @@ class AtomicJsonPenBrushJobStateStore(
             logId == null || logId <= 0L ||
             value.jobId.isBlank()
         ) return null
+        val legacyProcessing = documentVersion == LEGACY_VERSION &&
+            value.status in setOf("delivery_pending", "awaiting_unlock")
+        val handoffAt = value.deliveryHandoffAtMillis ?: if (legacyProcessing) value.updatedAtMillis else null
+        val confirmationDeadline = value.deliveryConfirmationDeadlineAtMillis ?: if (legacyProcessing) {
+            KakaoVideoDeliveryPolicy.legacyConfirmationDeadlineMillis(value.updatedAtMillis)
+        } else null
         return LocalPenBrushJob(
             jobId = value.jobId,
             requestId = value.requestId,
             chatId = chatId,
             userId = userId,
             logId = logId,
-            status = value.status,
+            status = if (legacyProcessing) "kakao_processing" else value.status,
             roomCapabilityRevision = value.roomCapabilityRevision,
             createdAtMillis = value.createdAtMillis,
             deadlineAtMillis = value.deadlineAtMillis,
-            updatedAtMillis = value.updatedAtMillis
+            updatedAtMillis = value.updatedAtMillis,
+            deliveryHandoffAtMillis = handoffAt,
+            deliveryConfirmationDeadlineAtMillis = confirmationDeadline,
+            // A legacy delivery_pending/awaiting_unlock record was already
+            // handed to Kakao.  Preserve the one-explicit-retry limit.
+            deliveryAttempt = if (legacyProcessing) value.deliveryAttempt.coerceAtLeast(1)
+            else value.deliveryAttempt
         )
     }
 
@@ -153,7 +171,10 @@ class AtomicJsonPenBrushJobStateStore(
                     roomCapabilityRevision = it.roomCapabilityRevision,
                     createdAtMillis = it.createdAtMillis,
                     deadlineAtMillis = it.deadlineAtMillis,
-                    updatedAtMillis = it.updatedAtMillis
+                    updatedAtMillis = it.updatedAtMillis,
+                    deliveryHandoffAtMillis = it.deliveryHandoffAtMillis,
+                    deliveryConfirmationDeadlineAtMillis = it.deliveryConfirmationDeadlineAtMillis,
+                    deliveryAttempt = it.deliveryAttempt
                 )
             }
         )
@@ -169,7 +190,8 @@ class AtomicJsonPenBrushJobStateStore(
     }
 
     private companion object {
-        const val VERSION = 1
+        const val LEGACY_VERSION = 1
+        const val VERSION = 2
     }
 }
 
@@ -190,13 +212,18 @@ private data class PersistedPenBrushJob(
     val roomCapabilityRevision: Long = 0L,
     val createdAtMillis: Long,
     val deadlineAtMillis: Long,
-    val updatedAtMillis: Long
+    val updatedAtMillis: Long,
+    val deliveryHandoffAtMillis: Long? = null,
+    val deliveryConfirmationDeadlineAtMillis: Long? = null,
+    val deliveryAttempt: Int = 0
 )
 
 private val PEN_BRUSH_PENDING_STATUSES = setOf(
     "queued",
     "running",
     "succeeded",
+    "kakao_handoff_pending",
     "delivery_pending",
-    "awaiting_unlock"
+    "awaiting_unlock",
+    "kakao_processing"
 )

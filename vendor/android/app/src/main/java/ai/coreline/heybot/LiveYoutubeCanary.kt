@@ -94,8 +94,8 @@ class LiveYoutubeCanaryRunner(
                 textSender = YoutubeDownloadTextReplySender { chatId, message, threadId ->
                     Replier.sendMessage(notificationReferer, chatId, message, threadId)
                 },
-                youtubeDownloadSender = YoutubeDownloadBytesReplySender { chatId, bytes ->
-                    Replier.sendVideoBytes(chatId, bytes)
+                youtubeDownloadSender = YoutubeDownloadBytesReplySender { chatId, bytes, onDispatched ->
+                    Replier.sendVideoBytes(chatId, bytes, onDispatched)
                 },
                 stateStore = state,
                 roomCapabilityPolicy = policy,

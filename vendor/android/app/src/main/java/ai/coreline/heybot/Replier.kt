@@ -155,11 +155,19 @@ class Replier {
 
         /** Sends a validated MP4 returned by the local video proxy without
          * putting media bytes into a text/base64 command path. */
-        fun sendVideoBytes(room: Long, videoBytes: ByteArray) {
+        fun sendVideoBytes(
+            room: Long,
+            videoBytes: ByteArray,
+            onDispatched: (Result<Unit>) -> Unit = {}
+        ) {
             coroutineScope.launch {
-                messageChannel.send(SendMessageRequest {
-                    sendVideoBytesInternal(room, videoBytes)
-                })
+                runCatching {
+                    messageChannel.send(SendMessageRequest {
+                        val result = runCatching { sendVideoBytesInternal(room, videoBytes) }
+                        onDispatched(result)
+                        result.getOrThrow()
+                    })
+                }.onFailure { onDispatched(Result.failure(it)) }
             }
         }
 

@@ -82,6 +82,7 @@ class Main {
                     botId = Configurable.botId,
                     traces = requestTraceStore
                 )
+                val kakaoVideoDeliveryGate = KakaoVideoDeliveryGate()
                 val glmAutoReplyHandler = createGlmAutoReplyHandler(
                     notificationReferer,
                     roomCapabilityPolicy,
@@ -101,19 +102,22 @@ class Main {
                     notificationReferer,
                     roomCapabilityPolicy,
                     requestTraceStore,
-                    textDeliveryTracker
+                    textDeliveryTracker,
+                    kakaoVideoDeliveryGate
                 )
                 val youtubeDownloadJobCoordinator = createYoutubeDownloadJobCoordinator(
                     notificationReferer,
                     roomCapabilityPolicy,
                     requestTraceStore,
-                    textDeliveryTracker
+                    textDeliveryTracker,
+                    kakaoVideoDeliveryGate
                 )
                 val penBrushJobCoordinator = createPenBrushJobCoordinator(
                     notificationReferer,
                     roomCapabilityPolicy,
                     requestTraceStore,
-                    textDeliveryTracker
+                    textDeliveryTracker,
+                    kakaoVideoDeliveryGate
                 )
                 val imageAnalysisCoordinator = createImageAnalysisCoordinator(
                     kakaoDb,
@@ -374,7 +378,8 @@ class Main {
             notificationReferer: String,
             roomCapabilityPolicy: RoomCapabilityPolicyStore,
             requestTraceStore: RequestTraceStore,
-            textDeliveryTracker: TextDeliveryTracker
+            textDeliveryTracker: TextDeliveryTracker,
+            deliveryGate: KakaoVideoDeliveryGate
         ): VideoJobCoordinator? {
             return when (val config = VideoProxySettings.load()) {
                 VideoProxySettingsLoadResult.Disabled -> {
@@ -401,15 +406,16 @@ class Main {
                                 textDeliveryTracker.dispatched(chatId, message, it)
                             }
                         },
-                        videoSender = VideoBytesReplySender { chatId, bytes ->
-                            Replier.sendVideoBytes(chatId, bytes)
+                        videoSender = VideoBytesReplySender { chatId, bytes, onDispatched ->
+                            Replier.sendVideoBytes(chatId, bytes, onDispatched)
                         },
                         stateStore = AtomicJsonVideoJobStateStore(
                             AndroidAtomicFileBackend(settings.stateFile)
                         ),
                         roomCapabilityPolicy = roomCapabilityPolicy,
                         requestTraceStore = requestTraceStore,
-                        textDeliveryTracker = textDeliveryTracker
+                        textDeliveryTracker = textDeliveryTracker,
+                        deliveryGate = deliveryGate
                     )
                 }
             }
@@ -419,7 +425,8 @@ class Main {
             notificationReferer: String,
             roomCapabilityPolicy: RoomCapabilityPolicyStore,
             requestTraceStore: RequestTraceStore,
-            textDeliveryTracker: TextDeliveryTracker
+            textDeliveryTracker: TextDeliveryTracker,
+            deliveryGate: KakaoVideoDeliveryGate
         ): YoutubeDownloadJobCoordinator? {
             return when (val config = YoutubeDownloadProxySettings.load()) {
                 YoutubeDownloadProxySettingsLoadResult.Disabled -> {
@@ -446,15 +453,16 @@ class Main {
                                 textDeliveryTracker.dispatched(chatId, message, it)
                             }
                         },
-                        youtubeDownloadSender = YoutubeDownloadBytesReplySender { chatId, bytes ->
-                            Replier.sendVideoBytes(chatId, bytes)
+                        youtubeDownloadSender = YoutubeDownloadBytesReplySender { chatId, bytes, onDispatched ->
+                            Replier.sendVideoBytes(chatId, bytes, onDispatched)
                         },
                         stateStore = AtomicJsonYoutubeDownloadJobStateStore(
                             AndroidAtomicFileBackend(settings.stateFile)
                         ),
                         roomCapabilityPolicy = roomCapabilityPolicy,
                         requestTraceStore = requestTraceStore,
-                        textDeliveryTracker = textDeliveryTracker
+                        textDeliveryTracker = textDeliveryTracker,
+                        deliveryGate = deliveryGate
                     )
                 }
             }
@@ -598,7 +606,8 @@ class Main {
             notificationReferer: String,
             roomCapabilityPolicy: RoomCapabilityPolicyStore,
             requestTraceStore: RequestTraceStore,
-            textDeliveryTracker: TextDeliveryTracker
+            textDeliveryTracker: TextDeliveryTracker,
+            deliveryGate: KakaoVideoDeliveryGate
         ): PenBrushJobCoordinator? {
             return when (val config = PenBrushProxySettings.load()) {
                 PenBrushProxySettingsLoadResult.Disabled -> {
@@ -625,15 +634,16 @@ class Main {
                                 textDeliveryTracker.dispatched(chatId, message, it)
                             }
                         },
-                        videoSender = PenBrushBytesReplySender { chatId, bytes ->
-                            Replier.sendVideoBytes(chatId, bytes)
+                        videoSender = PenBrushBytesReplySender { chatId, bytes, onDispatched ->
+                            Replier.sendVideoBytes(chatId, bytes, onDispatched)
                         },
                         stateStore = AtomicJsonPenBrushJobStateStore(
                             AndroidAtomicFileBackend(settings.stateFile)
                         ),
                         roomCapabilityPolicy = roomCapabilityPolicy,
                         requestTraceStore = requestTraceStore,
-                        textDeliveryTracker = textDeliveryTracker
+                        textDeliveryTracker = textDeliveryTracker,
+                        deliveryGate = deliveryGate
                     )
                 }
             }

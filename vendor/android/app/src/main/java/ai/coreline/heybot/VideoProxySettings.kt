@@ -11,7 +11,6 @@ data class VideoProxySettings(
     val jobTimeoutMillis: Long = DEFAULT_JOB_TIMEOUT_MILLIS,
     val promptMaxChars: Int = DEFAULT_PROMPT_MAX_CHARS,
     val videoMaxBytes: Int = DEFAULT_VIDEO_MAX_BYTES,
-    val deliveryConfirmTimeoutMillis: Long = DEFAULT_DELIVERY_CONFIRM_TIMEOUT_MILLIS,
     val maxPendingPerRoom: Int = DEFAULT_MAX_PENDING_PER_ROOM,
     val roomRateWindowMillis: Long = DEFAULT_RATE_WINDOW_MILLIS,
     val roomRateMaxRequests: Int = DEFAULT_ROOM_RATE_MAX,
@@ -32,7 +31,6 @@ data class VideoProxySettings(
         const val DEFAULT_JOB_TIMEOUT_MILLIS = 30 * 60 * 1_000L
         const val DEFAULT_PROMPT_MAX_CHARS = 1_000
         const val DEFAULT_VIDEO_MAX_BYTES = 50 * 1024 * 1024
-        const val DEFAULT_DELIVERY_CONFIRM_TIMEOUT_MILLIS = 45_000L
         const val DEFAULT_MAX_PENDING_PER_ROOM = 1
         const val DEFAULT_RATE_WINDOW_MILLIS = 10 * 60 * 1_000L
         const val DEFAULT_ROOM_RATE_MAX = 1
@@ -113,13 +111,6 @@ data class VideoProxySettings(
                 DEFAULT_VIDEO_MAX_BYTES,
                 1_024..50 * 1024 * 1024
             ) ?: return VideoProxySettingsLoadResult.Invalid("Invalid video byte maximum")
-            val deliveryConfirmTimeout = long(
-                "IRIS_VIDEO_DELIVERY_CONFIRM_TIMEOUT_MS",
-                DEFAULT_DELIVERY_CONFIRM_TIMEOUT_MILLIS,
-                5_000L..300_000L
-            ) ?: return VideoProxySettingsLoadResult.Invalid(
-                "Invalid video delivery confirmation timeout"
-            )
             val perRoom = int(
                 "IRIS_VIDEO_MAX_PENDING_PER_ROOM",
                 DEFAULT_MAX_PENDING_PER_ROOM,
@@ -159,7 +150,6 @@ data class VideoProxySettings(
                     jobTimeoutMillis = jobTimeout,
                     promptMaxChars = promptMax,
                     videoMaxBytes = videoMax,
-                    deliveryConfirmTimeoutMillis = deliveryConfirmTimeout,
                     maxPendingPerRoom = perRoom,
                     roomRateWindowMillis = rateWindow,
                     roomRateMaxRequests = roomRate,
