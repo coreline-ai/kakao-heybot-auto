@@ -58,6 +58,41 @@ class PenBrushJobCoordinatorTest {
         }
     }
 
+    @Test
+    fun `unconfirmed pen-brush Kakao processing is not resent after coordinator restart`() = runBlocking {
+        val state = InMemoryPenBrushJobStateStore()
+        state.upsert(
+            LocalPenBrushJob(
+                jobId = JOB,
+                requestId = "pen-brush:$CHAT:9",
+                chatId = CHAT,
+                userId = USER,
+                logId = 9L,
+                status = "kakao_processing",
+                createdAtMillis = 1L,
+                deadlineAtMillis = Long.MAX_VALUE,
+                updatedAtMillis = System.currentTimeMillis(),
+                deliveryHandoffAtMillis = System.currentTimeMillis(),
+                deliveryConfirmationDeadlineAtMillis = System.currentTimeMillis() + 60_000L,
+                deliveryAttempt = 1
+            )
+        )
+        val dispatches = AtomicInteger()
+        val coordinator = coordinator(
+            SuccessfulGateway(),
+            state,
+            policy(true),
+            RequestTraceStore.inMemory()
+        ) { _, _ -> dispatches.incrementAndGet() }
+        try {
+            Thread.sleep(150L)
+            assertEquals(0, dispatches.get())
+            assertEquals("kakao_processing", state.latest(CHAT, USER)?.status)
+        } finally {
+            coordinator.close()
+        }
+    }
+
     private fun coordinator(
         gateway: PenBrushProxyGateway,
         state: PenBrushJobStateStore,
@@ -71,14 +106,16 @@ class PenBrushJobCoordinatorTest {
             allowedChatIds = setOf(CHAT),
             pollIntervalMillis = 10L,
             jobTimeoutMillis = 10_000L,
-            videoMaxBytes = 1_024,
-            deliveryConfirmTimeoutMillis = 500L
+            videoMaxBytes = 1_024
         ),
         trigger = "헤이봇",
         botId = BOT,
         gateway = gateway,
         textSender = PenBrushTextReplySender { _, _, _ -> },
-        videoSender = PenBrushBytesReplySender(sender),
+        videoSender = PenBrushBytesReplySender { chatId, bytes, onDispatched ->
+            sender(chatId, bytes)
+            onDispatched(Result.success(Unit))
+        },
         stateStore = state,
         roomCapabilityPolicy = policy,
         log = {},

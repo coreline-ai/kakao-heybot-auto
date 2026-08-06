@@ -37,6 +37,12 @@ class ObserverHelper(
     fun checkChange(db: KakaoDB) {
         if (lastLogId == 0L) {
             lastLogId = getLastLogIdFromDB()
+            // The process may have been down while Kakao finished a direct
+            // MP4 share.  Normal polling intentionally starts at the newest
+            // row, so replay recent bot-authored video evidence once before
+            // establishing that cursor.  Coordinators accept it only for the
+            // currently owned processing job and only after its source row.
+            replayRecentOutgoingVideoEvidence()
             println("Initial lastLogId: $lastLogId")
             return
         }
@@ -244,6 +250,43 @@ class ObserverHelper(
         return lastLog["_id"]?.toLongOrNull() ?: 0
     }
 
+    /**
+     * Read-only startup reconciliation for a Kakao video that completed while
+     * Iris was restarted.  No message/attachment is decrypted or sent here;
+     * the coordinator needs only row ID, room, author and type to correlate
+     * its persisted processing state.
+     */
+    private fun replayRecentOutgoingVideoEvidence() {
+        db.connection.rawQuery(
+            """
+            SELECT _id, chat_id, user_id, type
+            FROM chat_logs
+            WHERE user_id = ? AND type IN (3, 16)
+            ORDER BY _id DESC
+            LIMIT $STARTUP_VIDEO_EVIDENCE_LIMIT
+            """.trimIndent(),
+            arrayOf(Configurable.botId.toString())
+        ).use { cursor ->
+            val idIndex = cursor.getColumnIndexOrThrow("_id")
+            val chatIndex = cursor.getColumnIndexOrThrow("chat_id")
+            val userIndex = cursor.getColumnIndexOrThrow("user_id")
+            val typeIndex = cursor.getColumnIndexOrThrow("type")
+            while (cursor.moveToNext()) {
+                val evidence = GlmIncomingMessage(
+                    logId = cursor.getLong(idIndex),
+                    chatId = cursor.getLong(chatIndex),
+                    userId = cursor.getLong(userIndex),
+                    messageType = cursor.getString(typeIndex),
+                    message = "",
+                    threadId = null
+                )
+                videoJobCoordinator?.onIncoming(evidence)
+                youtubeDownloadJobCoordinator?.onIncoming(evidence)
+                penBrushJobCoordinator?.onIncoming(evidence)
+            }
+        }
+    }
+
     private fun getStringJsonToMap(data: String?): MutableMap<String, Any?> {
         if (data.isNullOrEmpty()) return HashMap()
         try {
@@ -313,6 +356,7 @@ class ObserverHelper(
         get() = lastDecryptedLogs
 
     companion object {
+        private const val STARTUP_VIDEO_EVIDENCE_LIMIT = 128
         private const val MAX_LOGS_STORED = 50
     }
 }

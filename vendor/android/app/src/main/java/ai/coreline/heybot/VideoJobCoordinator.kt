@@ -11,7 +11,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.ConcurrentHashMap
 
 fun interface VideoTextReplySender {
@@ -19,7 +18,7 @@ fun interface VideoTextReplySender {
 }
 
 fun interface VideoBytesReplySender {
-    fun send(chatId: Long, bytes: ByteArray)
+    fun send(chatId: Long, bytes: ByteArray, onDispatched: (Result<Unit>) -> Unit)
 }
 
 class VideoJobCoordinator(
@@ -36,13 +35,13 @@ class VideoJobCoordinator(
     private val nowMillis: () -> Long = System::currentTimeMillis,
     private val requestTraceStore: RequestTraceStore = RequestTraceStore.inMemory(nowMillis),
     private val textDeliveryTracker: TextDeliveryTracker? = null,
+    private val deliveryGate: KakaoVideoDeliveryGate = KakaoVideoDeliveryGate(),
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 ) {
     private val parser = VideoCommandParser(trigger, settings.promptMaxChars)
     private val ready = CompletableDeferred<Unit>()
     private val pollers = ConcurrentHashMap<String, Job>()
-    private val deliveryWaiters =
-        ConcurrentHashMap<Long, ConcurrentLinkedQueue<DeliveryWaiter>>()
+    private val confirmationWatchers = ConcurrentHashMap<String, Job>()
     private val deliveryLocks = ConcurrentHashMap<Long, Mutex>()
     private val admission = RequestAdmissionController(
         roomWindowMillis = settings.roomRateWindowMillis,
@@ -57,7 +56,7 @@ class VideoJobCoordinator(
         scope.launch {
             runCatching {
                 stateStore.initialize()
-                stateStore.pending().forEach(::startPolling)
+                stateStore.pending().forEach(::resume)
             }.onFailure {
                 log("Video job state initialization failed: ${it::class.simpleName}")
             }
@@ -200,6 +199,37 @@ class VideoJobCoordinator(
         }
     }
 
+    private fun resume(job: LocalVideoJob) {
+        when (job.status) {
+            "queued", "running", "succeeded" -> startPolling(job)
+            "kakao_handoff_pending", "delivery_pending", "awaiting_unlock", "kakao_processing" ->
+                resumeKakaoProcessing(job)
+        }
+    }
+
+    private fun resumeKakaoProcessing(job: LocalVideoJob) {
+        scope.launch {
+            val processing = if (job.status == "kakao_processing") job else update(
+                job = job,
+                status = "kakao_processing",
+                handoffAtMillis = job.deliveryHandoffAtMillis ?: job.updatedAtMillis,
+                confirmationDeadlineAtMillis = job.deliveryConfirmationDeadlineAtMillis
+                    ?: KakaoVideoDeliveryPolicy.legacyConfirmationDeadlineMillis(job.updatedAtMillis)
+            )
+            while (nowMillis() < (processing.deliveryConfirmationDeadlineAtMillis ?: nowMillis())) {
+                if (deliveryGate.tryAcquire(processing.chatId, processing.jobId)) {
+                    startConfirmationWatcher(processing)
+                    return@launch
+                }
+                delay(1_000L)
+            }
+            val current = stateStore.latest(processing.chatId, processing.userId)
+            if (current?.jobId == processing.jobId && current.status == "kakao_processing") {
+                update(current, "confirmation_delayed")
+            }
+        }
+    }
+
     private suspend fun poll(initial: LocalVideoJob) {
         var local = initial
         while (nowMillis() < local.deadlineAtMillis) {
@@ -255,49 +285,75 @@ class VideoJobCoordinator(
             log("Video delivery skipped: room capability changed")
             return
         }
+        while (!deliveryGate.tryAcquire(job.chatId, job.jobId)) delay(1_000L)
         val downloadResult = gateway.download(job.jobId, job.chatId)
         if (downloadResult.isFailure) {
+            deliveryGate.release(job.chatId, job.jobId)
             update(job, "failed")
             notifyFailure(job.chatId, "완성 영상을 내려받지 못했어요.")
             return
         }
         val bytes = downloadResult.getOrThrow()
         if (!isValidMp4(bytes, settings.videoMaxBytes)) {
+            deliveryGate.release(job.chatId, job.jobId)
             update(job, "failed")
             notifyFailure(job.chatId, "완성 영상 검증에 실패했어요.")
             return
         }
 
-        val waiting = update(job, "delivery_pending")
-        val waiter = DeliveryWaiter(job.jobId, CompletableDeferred())
-        deliveryWaiters
-            .computeIfAbsent(job.chatId) { ConcurrentLinkedQueue() }
-            .add(waiter)
-
-        val dispatch = runCatching { videoSender.send(job.chatId, bytes) }
-        if (dispatch.isFailure) {
-            removeWaiter(job.chatId, waiter)
-            update(waiting, "failed")
+        // Count the attempt before the handoff.  A process death after this
+        // durable write must prefer a possible lost video over a duplicate.
+        val handoffPending = update(
+            job,
+            "kakao_handoff_pending",
+            deliveryAttempt = job.deliveryAttempt + 1
+        )
+        val handoff = dispatch(handoffPending, bytes)
+        if (handoff.isFailure) {
+            deliveryGate.release(job.chatId, job.jobId)
+            update(handoffPending, "failed")
             notifyFailure(job.chatId, "영상은 완성됐지만 카카오 전송을 시작하지 못했어요.")
             return
         }
-
-        val confirmedLogId = withTimeoutOrNull(settings.deliveryConfirmTimeoutMillis) {
-            waiter.confirmedLogId.await()
-        }
-        removeWaiter(job.chatId, waiter)
-        if (confirmedLogId != null) {
-            update(waiting, "delivered")
-            log("Video delivery confirmed jobId=${job.jobId} logId=$confirmedLogId")
-            return
-        }
-
-        update(waiting, "awaiting_unlock")
-        notifyFailure(
-            job.chatId,
-            "영상은 완성됐지만 카카오톡 전송이 확인되지 않았어요. " +
-                "카카오톡 잠금을 해제한 뒤 '헤이봇 영상 재전송'을 입력해주세요."
+        val handoffAt = nowMillis()
+        val processing = update(
+            job = handoffPending,
+            status = "kakao_processing",
+            handoffAtMillis = handoffAt,
+            confirmationDeadlineAtMillis = KakaoVideoDeliveryPolicy.confirmationDeadlineMillis(
+                handoffAt,
+                bytes.size
+            ),
+            deliveryAttempt = handoffPending.deliveryAttempt
         )
+        startConfirmationWatcher(processing)
+    }
+
+    private suspend fun dispatch(job: LocalVideoJob, bytes: ByteArray): Result<Unit> {
+        val handoff = CompletableDeferred<Result<Unit>>()
+        videoSender.send(job.chatId, bytes) { result ->
+            if (!handoff.isCompleted) handoff.complete(result)
+        }
+        return withTimeoutOrNull(KakaoVideoDeliveryPolicy.LOCAL_HANDOFF_TIMEOUT_MILLIS) {
+            handoff.await()
+        } ?: Result.failure(IllegalStateException("KAKAO_VIDEO_HANDOFF_TIMEOUT"))
+    }
+
+    private fun startConfirmationWatcher(job: LocalVideoJob) {
+        confirmationWatchers.computeIfAbsent(job.jobId) {
+            scope.launch {
+                val deadline = job.deliveryConfirmationDeadlineAtMillis ?: nowMillis()
+                delay((deadline - nowMillis()).coerceAtLeast(0L))
+                val current = stateStore.latest(job.chatId, job.userId)
+                if (current?.jobId == job.jobId && current.status == "kakao_processing") {
+                    update(current, "confirmation_delayed")
+                    deliveryGate.release(job.chatId, job.jobId)
+                    log("Video delivery confirmation delayed jobId=${job.jobId}")
+                }
+            }.also { watcher ->
+                watcher.invokeOnCompletion { confirmationWatchers.remove(job.jobId, watcher) }
+            }
+        }
     }
 
     private suspend fun showStatus(incoming: GlmIncomingMessage) {
@@ -306,8 +362,9 @@ class VideoJobCoordinator(
             "queued" -> "대기 중"
             "running" -> "생성 중"
             "succeeded" -> "전송 준비 중"
-            "delivery_pending" -> "카카오 전송 확인 중"
-            "awaiting_unlock" -> "카카오톡 잠금 해제 대기"
+            "kakao_handoff_pending", "delivery_pending" -> "카카오 전송 시작 중"
+            "kakao_processing", "awaiting_unlock" -> "카카오톡 영상 처리 중 (자동 재전송 안 함)"
+            "confirmation_delayed" -> "카카오 전송 확인 지연 (재전송 가능)"
             "delivered" -> "전송 완료"
             "failed" -> "실패"
             "cancelled" -> "취소됨"
@@ -321,7 +378,8 @@ class VideoJobCoordinator(
         if (
             job == null ||
             job.status !in setOf(
-                "queued", "running", "succeeded", "delivery_pending", "awaiting_unlock"
+                "queued", "running", "succeeded", "kakao_handoff_pending", "delivery_pending",
+                "kakao_processing", "awaiting_unlock", "confirmation_delayed"
             )
         ) {
             reply(incoming, "취소할 영상 작업이 없어요.")
@@ -330,19 +388,19 @@ class VideoJobCoordinator(
         gateway.cancel(job.jobId, job.chatId)
         update(job, "cancelled")
         pollers.remove(job.jobId)?.cancel()
+        confirmationWatchers.remove(job.jobId)?.cancel()
+        deliveryGate.release(job.chatId, job.jobId)
         reply(incoming, "최근 영상 작업을 취소했어요.")
     }
 
     private suspend fun retry(incoming: GlmIncomingMessage) {
-        val job = stateStore.pending()
-            .filter {
-                it.chatId == incoming.chatId &&
-                    it.userId == incoming.userId &&
-                    it.status == "awaiting_unlock"
-            }
-            .maxByOrNull { it.updatedAtMillis }
-        if (job == null) {
+        val job = stateStore.latest(incoming.chatId, incoming.userId)
+        if (job?.status != "confirmation_delayed") {
             reply(incoming, "재전송을 기다리는 영상이 없어요.")
+            return
+        }
+        if (job.deliveryAttempt >= 2) {
+            reply(incoming, "이미 재전송을 시도한 영상이에요. 카카오톡 전송 상태를 확인해주세요.")
             return
         }
         if (pollers[job.jobId]?.isActive == true) {
@@ -352,7 +410,9 @@ class VideoJobCoordinator(
         val refreshed = job.copy(
             status = "succeeded",
             deadlineAtMillis = nowMillis() + settings.jobTimeoutMillis,
-            updatedAtMillis = nowMillis()
+            updatedAtMillis = nowMillis(),
+            deliveryHandoffAtMillis = null,
+            deliveryConfirmationDeadlineAtMillis = null
         )
         stateStore.upsert(refreshed)
         reply(incoming, "완성된 영상을 다시 전송할게요.")
@@ -364,8 +424,20 @@ class VideoJobCoordinator(
             .filter { it.chatId == incoming.chatId && it.userId == incoming.userId }
             .maxByOrNull { it.updatedAtMillis }
 
-    private suspend fun update(job: LocalVideoJob, status: String): LocalVideoJob {
-        val updated = job.copy(status = status, updatedAtMillis = nowMillis())
+    private suspend fun update(
+        job: LocalVideoJob,
+        status: String,
+        handoffAtMillis: Long? = job.deliveryHandoffAtMillis,
+        confirmationDeadlineAtMillis: Long? = job.deliveryConfirmationDeadlineAtMillis,
+        deliveryAttempt: Int = job.deliveryAttempt
+    ): LocalVideoJob {
+        val updated = job.copy(
+            status = status,
+            updatedAtMillis = nowMillis(),
+            deliveryHandoffAtMillis = handoffAtMillis,
+            deliveryConfirmationDeadlineAtMillis = confirmationDeadlineAtMillis,
+            deliveryAttempt = deliveryAttempt
+        )
         stateStore.upsert(updated)
         val traceId = RequestTraceIds.from(job.chatId, job.logId)
         when (status) {
@@ -382,9 +454,10 @@ class VideoJobCoordinator(
                 RequestTraceStage.PROVIDER_FAILED,
                 reasonCode = "VIDEO_JOB_FAILED"
             )
-            "delivery_pending" -> requestTraceStore.record(traceId, RequestTraceStage.ENQUEUED)
+            "kakao_handoff_pending", "delivery_pending", "kakao_processing" ->
+                requestTraceStore.record(traceId, RequestTraceStage.ENQUEUED)
             "delivered" -> requestTraceStore.record(traceId, RequestTraceStage.DB_CONFIRMED)
-            "awaiting_unlock" -> requestTraceStore.record(
+            "confirmation_delayed", "awaiting_unlock" -> requestTraceStore.record(
                 traceId,
                 RequestTraceStage.UNCONFIRMED,
                 reasonCode = "KAKAO_DB_TIMEOUT"
@@ -410,29 +483,18 @@ class VideoJobCoordinator(
             incoming.messageType in OUTGOING_VIDEO_TYPES
 
     private fun confirmDelivery(incoming: GlmIncomingMessage) {
-        val queue = deliveryWaiters[incoming.chatId]
-        val waiter = generateSequence { queue?.poll() }
-            .firstOrNull { !it.confirmedLogId.isCompleted }
-        if (waiter != null) {
-            waiter.confirmedLogId.complete(incoming.logId)
-            return
-        }
-
         scope.launch {
             ready.await()
             val pending = stateStore.pending().firstOrNull {
                 it.chatId == incoming.chatId &&
-                    it.status in setOf("delivery_pending", "awaiting_unlock")
+                    it.status == "kakao_processing" &&
+                    incoming.logId > it.logId &&
+                    deliveryGate.owns(it.chatId, it.jobId)
             } ?: return@launch
             update(pending, "delivered")
+            confirmationWatchers.remove(pending.jobId)?.cancel()
+            deliveryGate.release(pending.chatId, pending.jobId)
             log("Delayed video delivery reconciled jobId=${pending.jobId} logId=${incoming.logId}")
-        }
-    }
-
-    private fun removeWaiter(chatId: Long, waiter: DeliveryWaiter) {
-        deliveryWaiters[chatId]?.let { queue ->
-            queue.remove(waiter)
-            if (queue.isEmpty()) deliveryWaiters.remove(chatId, queue)
         }
     }
 
@@ -473,9 +535,4 @@ class VideoJobCoordinator(
                 bytes[7] == 'p'.code.toByte()
         }
     }
-
-    private data class DeliveryWaiter(
-        val jobId: String,
-        val confirmedLogId: CompletableDeferred<Long>
-    )
 }

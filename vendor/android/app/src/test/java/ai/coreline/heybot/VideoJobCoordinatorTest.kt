@@ -59,6 +59,40 @@ class VideoJobCoordinatorTest {
         }
     }
 
+    @Test
+    fun `unconfirmed Kakao processing is not resent after coordinator restart`() {
+        val state = InMemoryVideoJobStateStore()
+        val firstDispatches = AtomicInteger()
+        val first = coordinator(
+            SuccessfulVideoGateway(),
+            state,
+            policy(videoEnabled = true),
+            RequestTraceStore.inMemory()
+        ) { _, _ -> firstDispatches.incrementAndGet() }
+        try {
+            first.onIncoming(incoming(10L, "헤이봇 영상 느린 카카오 전송"))
+            assertTrue(awaitCount(firstDispatches, 1))
+            assertTrue(awaitStatus(state, "kakao_processing"))
+        } finally {
+            first.close()
+        }
+
+        val restartDispatches = AtomicInteger()
+        val restarted = coordinator(
+            SuccessfulVideoGateway(),
+            state,
+            policy(videoEnabled = true),
+            RequestTraceStore.inMemory()
+        ) { _, _ -> restartDispatches.incrementAndGet() }
+        try {
+            Thread.sleep(150L)
+            assertEquals(0, restartDispatches.get())
+            assertEquals("kakao_processing", runBlocking { state.latest(CHAT, USER)?.status })
+        } finally {
+            restarted.close()
+        }
+    }
+
     private fun coordinator(
         gateway: VideoProxyGateway,
         store: VideoJobStateStore,
@@ -72,14 +106,16 @@ class VideoJobCoordinatorTest {
             allowedChatIds = setOf(CHAT),
             pollIntervalMillis = 10L,
             jobTimeoutMillis = 10_000L,
-            videoMaxBytes = 1024,
-            deliveryConfirmTimeoutMillis = 500L
+            videoMaxBytes = 1024
         ),
         trigger = "헤이봇",
         botId = BOT,
         gateway = gateway,
         textSender = VideoTextReplySender { _, _, _ -> },
-        videoSender = VideoBytesReplySender(sender),
+        videoSender = VideoBytesReplySender { chatId, bytes, onDispatched ->
+            sender(chatId, bytes)
+            onDispatched(Result.success(Unit))
+        },
         stateStore = store,
         roomCapabilityPolicy = policy,
         log = {},
@@ -104,6 +140,15 @@ class VideoJobCoordinatorTest {
         val deadline = System.currentTimeMillis() + 2_000L
         while (System.currentTimeMillis() < deadline) {
             if (runBlocking { store.latest(CHAT, USER)?.status } == status) return true
+            Thread.sleep(10L)
+        }
+        return false
+    }
+
+    private fun awaitCount(value: AtomicInteger, expected: Int): Boolean {
+        val deadline = System.currentTimeMillis() + 2_000L
+        while (System.currentTimeMillis() < deadline) {
+            if (value.get() == expected) return true
             Thread.sleep(10L)
         }
         return false

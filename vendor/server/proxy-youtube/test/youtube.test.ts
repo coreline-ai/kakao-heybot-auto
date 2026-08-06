@@ -4,10 +4,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { YoutubeProcessor } from "../src/processor.js";
-import { createYoutubeRunner, canonicalYoutubeUrl, selectKakaoLiteProfile } from "../src/runner.js";
+import {
+  createYoutubeRunner,
+  canonicalYoutubeUrl,
+  kakaoBalancedScaleFilter,
+  selectKakaoLiteProfile,
+} from "../src/runner.js";
 import { createYoutubeServer } from "../src/server.js";
 import { YoutubeJobStore } from "../src/store.js";
-import type { YoutubeProxyConfig } from "../src/config.js";
+import { loadYoutubeProxyConfig, type YoutubeProxyConfig } from "../src/config.js";
 
 const root = mkdtempSync(join(tmpdir(), "proxy-youtube-test-"));
 const secret = "s".repeat(48);
@@ -17,23 +22,55 @@ const config: YoutubeProxyConfig = {
 };
 writeFileSync(config.managerSecretFile, secret);
 
+test("quality defaults retain headroom below the Android 50MiB transport guard", () => {
+  const loaded = loadYoutubeProxyConfig({}, root);
+  assert.equal(loaded.maxBytes, 42 * 1024 * 1024);
+  assert.equal(loaded.kakaoTargetBytes, 38 * 1024 * 1024);
+  assert.ok(loaded.kakaoTargetBytes < loaded.maxBytes);
+  assert.ok(loaded.maxBytes < 50 * 1024 * 1024);
+});
+
 test("canonicalizer rejects playlist and accepts video IDs", () => {
   assert.equal(canonicalYoutubeUrl("https://youtu.be/AbCdEfGhI_1"), "https://www.youtube.com/watch?v=AbCdEfGhI_1");
   assert.throws(() => canonicalYoutubeUrl("https://youtube.com/watch?v=AbCdEfGhI_1&list=PL1"));
   assert.throws(() => canonicalYoutubeUrl("https://example.com/AbCdEfGhI_1"));
 });
 
-test("Kakao-lite profile gets smaller for longer videos and stays under target", () => {
-  const target = 18 * 1024 * 1024;
-  const short = selectKakaoLiteProfile(120, target);
-  const medium = selectKakaoLiteProfile(480, target);
+test("quality-balanced profile keeps 480p or 360p detail within the server target", () => {
+  const target = 38 * 1024 * 1024;
+  const short = selectKakaoLiteProfile(180, target);
+  const fiveMinutes = selectKakaoLiteProfile(300, target);
+  const medium = selectKakaoLiteProfile(600, target);
   const long = selectKakaoLiteProfile(900, target);
-  assert.deepEqual([short.width, short.height, short.fps], [480, 270, 24]);
-  assert.deepEqual([medium.width, medium.height], [426, 240]);
-  assert.deepEqual([long.width, long.height], [320, 180]);
-  assert.ok(short.maxVideoBitrate > medium.maxVideoBitrate);
-  assert.ok(medium.maxVideoBitrate > long.maxVideoBitrate);
-  assert.ok(long.estimatedMaximumBytes <= target);
+  assert.deepEqual([short.width, short.height, short.portraitWidth, short.portraitHeight, short.fps], [854, 480, 480, 854, 24]);
+  assert.deepEqual([fiveMinutes.width, fiveMinutes.height], [854, 480]);
+  assert.deepEqual([medium.width, medium.height, medium.portraitWidth, medium.portraitHeight], [640, 360, 360, 640]);
+  assert.deepEqual([long.width, long.height, long.portraitWidth, long.portraitHeight], [480, 270, 270, 480]);
+  assert.ok(short.videoBitrate >= 1_000_000);
+  assert.ok(medium.videoBitrate >= 350_000);
+  assert.ok(long.videoBitrate >= 200_000);
+  assert.ok([short, fiveMinutes, medium, long].every(profile => profile.estimatedMaximumBytes <= target));
+});
+
+test("quality profile changes only after the documented duration boundaries", () => {
+  const target = 38 * 1024 * 1024;
+  assert.deepEqual(
+    [selectKakaoLiteProfile(179, target).width, selectKakaoLiteProfile(180, target).width, selectKakaoLiteProfile(181, target).width],
+    [854, 854, 854],
+  );
+  assert.deepEqual(
+    [selectKakaoLiteProfile(300, target).width, selectKakaoLiteProfile(301, target).width, selectKakaoLiteProfile(600, target).width, selectKakaoLiteProfile(601, target).width],
+    [854, 640, 640, 480],
+  );
+});
+
+test("portrait scale retains the portrait long edge with an even H264 dimension", () => {
+  const filter = kakaoBalancedScaleFilter(selectKakaoLiteProfile(120, 38 * 1024 * 1024));
+  assert.match(filter, /gte\(iw,ih\)/);
+  assert.match(filter, /min\(854,iw\)/);
+  assert.match(filter, /min\(480,iw\)/);
+  assert.match(filter, /min\(854,ih\)/);
+  assert.match(filter, /force_divisible_by=2/);
 });
 
 test("scoped job returns only validated mp4 to the requesting chat", async () => {

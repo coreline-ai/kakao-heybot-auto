@@ -8,8 +8,12 @@ const exec = promisify(execFile);
 
 /** A bounded device-friendly MP4 profile selected from source duration. */
 export interface KakaoLiteProfile {
+  /** Landscape output ceiling. */
   width: number;
   height: number;
+  /** Portrait output ceiling. Keeping the long edge avoids 270px shorts. */
+  portraitWidth: number;
+  portraitHeight: number;
   fps: number;
   videoBitrate: number;
   maxVideoBitrate: number;
@@ -30,11 +34,29 @@ export function selectKakaoLiteProfile(
     throw new Error("YOUTUBE_UNSUPPORTED_SOURCE");
   }
   const duration = Math.ceil(durationSeconds);
-  const tier = duration <= 5 * 60
-    ? { width: 480, height: 270, preferredVideo: 350_000, audio: 48_000 }
-    : duration <= 10 * 60
-      ? { width: 426, height: 240, preferredVideo: 180_000, audio: 40_000 }
-      : { width: 320, height: 180, preferredVideo: 110_000, audio: 32_000 };
+  // This is deliberately a quality-balanced profile rather than a tiny
+  // transport profile.  Android never transcodes this MP4, and Kakao can
+  // apply another encode after direct-share, so 426x240 / 180kbps is visibly
+  // degraded in the recipient room.
+  const tier = duration <= 3 * 60
+    ? {
+        width: 854, height: 480, portraitWidth: 480, portraitHeight: 854,
+        preferredVideo: 1_100_000, audio: 96_000,
+      }
+    : duration <= 5 * 60
+      ? {
+          width: 854, height: 480, portraitWidth: 480, portraitHeight: 854,
+          preferredVideo: 880_000, audio: 96_000,
+        }
+      : duration <= 10 * 60
+        ? {
+            width: 640, height: 360, portraitWidth: 360, portraitHeight: 640,
+            preferredVideo: 400_000, audio: 64_000,
+          }
+        : {
+            width: 480, height: 270, portraitWidth: 270, portraitHeight: 480,
+            preferredVideo: 260_000, audio: 64_000,
+          };
 
   // Reserve 5% for muxing and encoder variation.  The computed ceiling takes
   // precedence over a quality preference, which is what holds long videos to
@@ -52,12 +74,25 @@ export function selectKakaoLiteProfile(
   return {
     width: tier.width,
     height: tier.height,
+    portraitWidth: tier.portraitWidth,
+    portraitHeight: tier.portraitHeight,
     fps: 24,
     videoBitrate,
     maxVideoBitrate,
     audioBitrate: tier.audio,
     estimatedMaximumBytes,
   };
+}
+
+/**
+ * Keeps a portrait source's long edge instead of applying a landscape-only
+ * 854x480 box.  `force_divisible_by=2` preserves H.264/yuv420p compatibility.
+ */
+export function kakaoBalancedScaleFilter(profile: KakaoLiteProfile): string {
+  return "fps=" + profile.fps +
+    ",scale=w='if(gte(iw,ih),min(" + profile.width + ",iw),min(" + profile.portraitWidth + ",iw))'" +
+    ":h='if(gte(iw,ih),min(" + profile.height + ",ih),min(" + profile.portraitHeight + ",ih))'" +
+    ":force_original_aspect_ratio=decrease:force_divisible_by=2";
 }
 
 export interface YoutubeRunner { readiness():Promise<{ready:boolean;version?:string;reason?:string}>; download(jobId:string,url:string,signal:AbortSignal):Promise<{path:string;bytes:number;sha256:string}>; }
@@ -128,7 +163,7 @@ function cli(config: YoutubeProxyConfig): YoutubeRunner {
             // Prefer a broadly Kakao-compatible AVC/AAC MP4 over a newer AV1
             // representation that can decode inconsistently on recipients' clients.
             "--format",
-            "bestvideo[vcodec^=avc1][ext=mp4][height<=360]+bestaudio[ext=m4a]/best[ext=mp4][height<=360]",
+            "bestvideo[vcodec^=avc1][ext=mp4][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4][height<=1080]",
             "--merge-output-format",
             "mp4",
             "--output",
@@ -156,7 +191,7 @@ function cli(config: YoutubeProxyConfig): YoutubeRunner {
             "-map",
             "0:a:0?",
             "-vf",
-            `fps=${profile.fps},scale=w='min(${profile.width},iw)':h='min(${profile.height},ih)':force_original_aspect_ratio=decrease:force_divisible_by=2`,
+            kakaoBalancedScaleFilter(profile),
             "-c:v",
             "libx264",
             "-profile:v",

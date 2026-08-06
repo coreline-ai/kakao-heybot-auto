@@ -24,13 +24,13 @@ export function loadYoutubeProxyConfig(env: NodeJS.ProcessEnv = process.env, cwd
   const runner = (env.YOUTUBE_PROXY_RUNNER_MODE || "cli").trim().toLowerCase();
   if (runner !== "cli" && runner !== "fake") throw new Error("YOUTUBE_PROXY_RUNNER_MODE must be cli or fake");
   const runtimeDir = resolve(cwd, env.YOUTUBE_PROXY_RUNTIME_DIR?.trim() || "./runtime");
-  // Deliberately below Android's 50 MiB transport guard: smaller artifacts
-  // reduce the work KakaoTalk must do after receiving the direct-share intent.
-  const maxBytes = integer(env, "YOUTUBE_PROXY_MAX_BYTES", 20 * 1024 * 1024, 1024, 100 * 1024 * 1024);
+  // Leave headroom below Android's 50 MiB transport guard while preserving
+  // enough source detail for Kakao's subsequent direct-share processing.
+  const maxBytes = integer(env, "YOUTUBE_PROXY_MAX_BYTES", 42 * 1024 * 1024, 1024, 100 * 1024 * 1024);
   const kakaoTargetBytes = integer(
     env,
     "YOUTUBE_PROXY_KAKAO_TARGET_BYTES",
-    18 * 1024 * 1024,
+    38 * 1024 * 1024,
     1024 * 1024,
     maxBytes,
   );
