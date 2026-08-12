@@ -19,31 +19,35 @@
 <p align="center">
   <a href="docs/GLM_자동응답_운영설정.md"><img src="https://img.shields.io/badge/AI%20Engines-GLM%20%7C%20Codex%20%7C%20Grok-111827?style=for-the-badge&logo=openai&logoColor=white" alt="GLM Codex Grok 엔진" /></a>
   <a href="scripts/start_iris_glm_pd20.sh"><img src="https://img.shields.io/badge/Device-PD20%20via%20ADB-2563EB?style=for-the-badge&logo=android&logoColor=white" alt="PD20 ADB 운영 단말" /></a>
-  <a href="#라이선스와-배포"><img src="https://img.shields.io/badge/License-Review%20Required-D97706?style=for-the-badge&logo=creativecommons&logoColor=white" alt="라이선스 검토 필요" /></a>
+  <a href="#license"><img src="https://img.shields.io/badge/License-Review%20Required-D97706?style=for-the-badge&logo=creativecommons&logoColor=white" alt="라이선스 검토 필요" /></a>
 </p>
 
 > [!WARNING]
 > 이 프로젝트는 **루트 권한이 있는 Android 단말**, 카카오톡 DB 접근 및 외부 AI/미디어 서비스 연동을 전제로 합니다. 실제 운영 전에는 카카오 서비스 약관, 적용 법령, 사내 보안 정책 및 AI 제공자 약관을 반드시 검토하세요.
 
-## 목차
+<a id="contents"></a>
 
-- [프로젝트 개요](#프로젝트-개요)
-- [핵심 기능](#핵심-기능)
-- [아키텍처](#아키텍처)
-- [카카오톡 사용법](#카카오톡-사용법)
-- [방 단위 권한과 관리자](#방-단위-권한과-관리자)
-- [구성 요소](#구성-요소)
-- [빠른 시작](#빠른-시작)
-- [운영과 보안](#운영과-보안)
-- [테스트와 검증](#테스트와-검증)
-- [프로젝트 구조](#프로젝트-구조)
-- [문서](#문서)
-- [기여 및 소스 관리](#기여-및-소스-관리)
-- [라이선스와 배포](#라이선스와-배포)
+## 🗺️ 목차
+
+- [🧭 프로젝트 개요](#overview)
+- [✨ 핵심 기능](#features)
+- [🏗️ 아키텍처](#architecture)
+- [💬 카카오톡 사용법](#kakao-usage)
+- [🛡️ 방 단위 권한과 관리자](#room-policy)
+- [🧩 구성 요소](#components)
+- [⚡ 빠른 시작](#quick-start)
+- [🔐 운영과 보안](#operations-security)
+- [✅ 테스트와 검증](#testing)
+- [🗂️ 프로젝트 구조](#project-structure)
+- [📚 문서](#documentation)
+- [🤝 기여 및 소스 관리](#contributing)
+- [⚖️ 라이선스와 배포](#license)
 
 ---
 
-## 프로젝트 개요
+<a id="overview"></a>
+
+## 🧭 프로젝트 개요
 
 **헤이봇(HeyBot)**은 카카오톡 오픈채팅/그룹채팅에서 `헤이봇` 호출어를 받아 대화와 AI 작업을 수행하는 Android 중심 자동화 시스템입니다.
 
@@ -53,7 +57,7 @@
 - **프록시 매니저**는 단일 loopback 진입점에서 기능별 프록시를 분리하고, 인증·준비 상태·큐·watchdog를 관리합니다.
 - **방 capability 정책**은 텍스트, 일반대화, 이미지, 영상, 이미지 분석, 음성 분석 등 기능별 허용 여부를 각 방마다 독립적으로 적용합니다.
 
-### 설계 원칙
+### 🎯 설계 원칙
 
 | 원칙 | 적용 방식 |
 | --- | --- |
@@ -66,7 +70,9 @@
 
 ---
 
-## 핵심 기능
+<a id="features"></a>
+
+## ✨ 핵심 기능
 
 모든 기능은 **프록시 준비 상태**, **방 권한**, **요청 형식**, **큐 여유**가 동시에 충족될 때만 실행됩니다. 실제 허용 방 목록은 카카오톡에서 `헤이봇 카톡방`으로 확인합니다.
 
@@ -83,7 +89,7 @@
 | 🎙️ 음성 STT/요약 | MP3·M4A·WAV 한국어 전사, 유형별 요약, 원문/근거/후속 질문 | 음성 권한 + Audio 경로 준비 |
 | 🛠️ 운영 | 상태, 최근 요청 진단, 자체진단, 방 권한 변경 | 제어 방 관리자 |
 
-### 대화 엔진
+### 🧠 대화 엔진
 
 | 엔진 | 경로 | 적합한 사용 |
 | --- | --- | --- |
@@ -96,7 +102,9 @@
 
 ---
 
-## 아키텍처
+<a id="architecture"></a>
+
+## 🏗️ 아키텍처
 
 ```mermaid
 flowchart LR
@@ -138,7 +146,7 @@ flowchart LR
     DR --> CX
 ```
 
-### 처리 흐름
+### 🔄 처리 흐름
 
 1. **수신**: `DBObserver`가 카카오톡 `chat_logs`의 새 이벤트를 감지합니다.
 2. **정규화**: 메시지, 답장 대상, 이미지/음성 attachment를 필요한 최소 메타데이터로 해석합니다.
@@ -147,7 +155,7 @@ flowchart LR
 5. **상태 추적**: 요청 trace, job 상태, capability revision을 기록해 잘못된 방으로의 결과 전송을 막습니다.
 6. **전달 확인**: 결과를 카카오톡으로 보낸 뒤 카카오 DB의 발신 evidence를 확인합니다.
 
-### 프록시 경계
+### ⚙️ 프록시 경계
 
 | 프록시 | 노출 | 책임 |
 | --- | --- | --- |
@@ -166,9 +174,11 @@ flowchart LR
 
 ---
 
-## 카카오톡 사용법
+<a id="kakao-usage"></a>
 
-### 기본 대화와 기억
+## 💬 카카오톡 사용법
+
+### 🧠 기본 대화와 기억
 
 ```text
 헤이봇 오늘 할 일을 세 가지로 정리해줘
@@ -181,7 +191,7 @@ flowchart LR
 - 대화 기억은 같은 **방 + 사용자** 기준으로 분리됩니다.
 - 기억 초기화는 내 대화 기억과 나의 이미지·음성 후속 문맥을 삭제합니다.
 
-### 이미지
+### 🖼️ 이미지
 
 ```text
 헤이봇 이미지 분홍색 로봇이 별을 들고 있는 3D 일러스트
@@ -200,7 +210,17 @@ flowchart LR
 - 답장이 없으면 같은 방의 최근 분석 가능한 이미지를 사용합니다.
 - 이미지 분석 결과는 안전 처리된 문맥으로만 보관되며, 후속 질문은 사용자별 30분·같은 방 참여자 공유 5분 창을 따릅니다.
 
-### 영상·펜브러쉬·YouTube
+### 📱 실제 카카오톡 이미지 분석 화면
+
+<p align="center">
+  <img src="assets/heybot-kakaotalk-current.png" width="360" alt="코어라인 AI 연구소 카카오톡방에서 헤이봇 이미지 분석 요청과 결과가 표시된 PD20 화면" />
+</p>
+
+<p align="center">
+  <sub>PD20의 코어라인 AI 연구소 방에서 이미지 전송 → <code>헤이봇 이미지 분석</code> → 분석 결과가 같은 방에 전달된 실제 화면입니다.</sub>
+</p>
+
+### 🎬 영상·펜브러쉬·YouTube
 
 ```text
 헤이봇 영상 핑크 로봇이 카메라를 보며 손을 흔드는 3초 세로 영상
@@ -222,7 +242,7 @@ flowchart LR
 - YouTube는 **단일 공개 영상**만 지원합니다. 재생목록·로그인 필요·DRM 콘텐츠는 지원하지 않습니다.
 - YouTube의 다운로드·이용은 저작권 및 서비스 약관을 준수해야 합니다.
 
-### 음성 STT·요약
+### 🎙️ 음성 STT·요약
 
 ```text
 [MP3·M4A·WAV를 같은 방에 올린 뒤]
@@ -242,9 +262,11 @@ flowchart LR
 
 ---
 
-## 방 단위 권한과 관리자
+<a id="room-policy"></a>
 
-### 권한 모델
+## 🛡️ 방 단위 권한과 관리자
+
+### 🔐 권한 모델
 
 각 방에는 다음 capability가 독립적으로 존재합니다.
 
@@ -262,7 +284,7 @@ flowchart LR
 
 정책은 Android의 root 전용 파일에 원자적으로 저장되며, 각 capability의 revision을 통해 **권한이 바뀐 뒤 이전 작업 결과가 전송되는 상황**을 차단합니다.
 
-### 관리자 운영 명령
+### 🛠️ 관리자 운영 명령
 
 관리자 명령은 **코어라인 AI 연구소 제어 방**에서 인증된 관리자만 실행할 수 있습니다.
 
@@ -296,9 +318,11 @@ flowchart LR
 
 ---
 
-## 구성 요소
+<a id="components"></a>
 
-### Android: `vendor/android`
+## 🧩 구성 요소
+
+### 📱 Android: `vendor/android`
 
 | 항목 | 내용 |
 | --- | --- |
@@ -310,7 +334,7 @@ flowchart LR
 | 운영 단말 | PD20 `0123456789ABCDEF` |
 | 핵심 역할 | 카카오 DB 감시, 호출어/정책 처리, GLM 대화, 프록시 client, 카카오 전송, 요청 추적 |
 
-### Server: `vendor/server`
+### 🖥️ Server: `vendor/server`
 
 | 영역 | 주요 역할 |
 | --- | --- |
@@ -324,12 +348,14 @@ flowchart LR
 
 ---
 
-## 빠른 시작
+<a id="quick-start"></a>
+
+## ⚡ 빠른 시작
 
 > [!IMPORTANT]
 > 아래는 개발·운영 구조를 이해하기 위한 최소 절차입니다. 실제 토큰, 관리자 ID, 카카오톡 로그인 단말 및 외부 CLI 인증은 이 저장소에 포함되지 않습니다. 상세 운영 절차는 [GLM 자동응답 운영 설정](docs/GLM_자동응답_운영설정.md)을 기준으로 하세요.
 
-### 1. 요구 사항
+### 1️⃣ 요구 사항
 
 | 위치 | 요구 사항 |
 | --- | --- |
@@ -338,7 +364,7 @@ flowchart LR
 | Android 운영 | 루트 권한 Android, 카카오톡 로그인, `adb`, PD20 연결 |
 | 네트워크 | PD20 ↔ Mac 프록시 경로용 `adb reverse tcp:4340 tcp:4340` |
 
-### 2. 저장소 준비
+### 2️⃣ 저장소 준비
 
 ```bash
 git clone https://github.com/coreline-ai/kakao-heybot-auto.git
@@ -352,7 +378,7 @@ cd ../..
 
 생성된 APK는 `vendor/android/output/Iris-release.apk`에 배치됩니다.
 
-### 3. 서버 프록시 스택 준비
+### 3️⃣ 서버 프록시 스택 준비
 
 ```bash
 cd vendor/server
@@ -374,7 +400,7 @@ cd vendor/server
 ./scripts/stop-stack.sh
 ```
 
-### 4. PD20 배포
+### 4️⃣ PD20 배포
 
 배포 전에 다음 root 전용 파일을 PD20의 `/data/local/private/`에 준비해야 합니다.
 
@@ -399,7 +425,7 @@ scripts/start_iris_glm_pd20.sh
 헤이봇 카톡방
 ```
 
-### 5. 기능 활성화의 3중 조건
+### 5️⃣ 기능 활성화의 3중 조건
 
 어떤 비기본 기능도 다음 세 조건이 모두 참일 때만 실행됩니다.
 
@@ -415,9 +441,11 @@ Android 실행 환경/route secret이 준비됨
 
 ---
 
-## 운영과 보안
+<a id="operations-security"></a>
 
-### 비밀과 데이터
+## 🔐 운영과 보안
+
+### 🔑 비밀과 데이터
 
 | 대상 | 처리 원칙 |
 | --- | --- |
@@ -428,7 +456,7 @@ Android 실행 환경/route secret이 준비됨
 | 요청 진단 | 안정된 reason code와 단계 중심으로 기록합니다. |
 | 이미지/음성 artifact | 기능별 retention cleanup 대상으로 두고 장기 보관하지 않습니다. |
 
-### 안전장치
+### 🛡️ 안전장치
 
 - 일반대화는 오류·429·timeout이 임계치를 넘으면 자동 OFF되고, 호출어 기반 기능은 유지됩니다.
 - 출력은 비밀값 형태, 이메일·전화·주민등록번호·카드번호 패턴을 정리하는 공통 safety 경계를 거칩니다.
@@ -437,7 +465,7 @@ Android 실행 환경/route secret이 준비됨
 - 비디오와 YouTube 전송은 카카오 DB evidence 확인 전 자동 중복 전송하지 않습니다.
 - HTTP 관리 API는 기본 비활성입니다. 활성화해도 loopback과 Bearer secret이 모두 필요합니다.
 
-### 상태 확인
+### 📊 상태 확인
 
 | 확인 위치 | 방법 |
 | --- | --- |
@@ -448,9 +476,11 @@ Android 실행 환경/route secret이 준비됨
 
 ---
 
-## 테스트와 검증
+<a id="testing"></a>
 
-### 코드 검증
+## ✅ 테스트와 검증
+
+### 🧪 코드 검증
 
 ```bash
 # Android
@@ -462,7 +492,7 @@ cd ../server
 ./scripts/self-test-stack.sh
 ```
 
-### PD20 자체진단
+### 📱 PD20 자체진단
 
 ```bash
 # 저장소 루트
@@ -478,7 +508,7 @@ scripts/run_heybot_self_test_pd20.sh device
 | `device` | PD20 파일·권한·연결 조건 | 없음 |
 | `canary` | 명시적 승인된 실전 E2E 경로 | 승인 없이는 skip |
 
-### 명시적 실전 canary
+### 🚨 명시적 실전 canary
 
 아래 스크립트는 실제 카카오톡 전송 또는 외부 작업을 유발할 수 있으므로, 테스트 방·테스트 파일·권한을 확인한 경우에만 실행합니다.
 
@@ -494,7 +524,9 @@ scripts/run_live_youtube_canary_pd20.sh
 
 ---
 
-## 프로젝트 구조
+<a id="project-structure"></a>
+
+## 🗂️ 프로젝트 구조
 
 ```text
 .
@@ -526,7 +558,9 @@ scripts/run_live_youtube_canary_pd20.sh
 
 ---
 
-## 문서
+<a id="documentation"></a>
+
+## 📚 문서
 
 | 문서 | 내용 |
 | --- | --- |
@@ -541,7 +575,9 @@ scripts/run_live_youtube_canary_pd20.sh
 
 ---
 
-## 기여 및 소스 관리
+<a id="contributing"></a>
+
+## 🤝 기여 및 소스 관리
 
 1. 기능을 추가하거나 명령 문법을 바꾸면 Android parser/router, `HeybotSkillCatalog`, 카카오톡 도움말, 테스트, 운영 문서를 **같은 변경**에 반영합니다.
 2. 기능별 사용자 호출어는 `헤이봇 도움말`에서 확인 가능해야 하며, 카카오톡 메시지 길이 제한을 지켜야 합니다.
@@ -559,7 +595,9 @@ git diff --check
 
 ---
 
-## 라이선스와 배포
+<a id="license"></a>
+
+## ⚖️ 라이선스와 배포
 
 현재 이 저장소의 최상위에는 배포 라이선스를 선언하는 `LICENSE` 파일이 없습니다. 따라서 이 README는 사용·복제·재배포 권한을 새로 부여하지 않습니다.
 
