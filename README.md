@@ -210,14 +210,23 @@ flowchart LR
 - 답장이 없으면 같은 방의 최근 분석 가능한 이미지를 사용합니다.
 - 이미지 분석 결과는 안전 처리된 문맥으로만 보관되며, 후속 질문은 사용자별 30분·같은 방 참여자 공유 5분 창을 따릅니다.
 
-### 📱 실제 카카오톡 이미지 분석 화면
+### 📱 실제 카카오톡 실행 화면
+
+<table>
+  <tr>
+    <td width="33.33%" align="center"><img src="assets/heybot-kakaotalk-image-analysis.png" width="230" alt="코어라인 AI 연구소 카카오톡방의 헤이봇 이미지 분석 요청과 결과" /></td>
+    <td width="33.33%" align="center"><img src="assets/heybot-kakaotalk-help.png" width="230" alt="코어라인 AI 연구소 카카오톡방에 표시된 헤이봇 도움말" /></td>
+    <td width="33.33%" align="center"><img src="assets/heybot-kakaotalk-audio-summary.png" width="230" alt="코어라인 AI 연구소 카카오톡방의 헤이봇 음성 요약 결과" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>🖼️ 이미지 분석</sub></td>
+    <td align="center"><sub>📖 도움말</sub></td>
+    <td align="center"><sub>🎙️ 음성 요약</sub></td>
+  </tr>
+</table>
 
 <p align="center">
-  <img src="assets/heybot-kakaotalk-current.png" width="360" alt="코어라인 AI 연구소 카카오톡방에서 헤이봇 이미지 분석 요청과 결과가 표시된 PD20 화면" />
-</p>
-
-<p align="center">
-  <sub>PD20의 코어라인 AI 연구소 방에서 이미지 전송 → <code>헤이봇 이미지 분석</code> → 분석 결과가 같은 방에 전달된 실제 화면입니다.</sub>
+  <sub>첨부된 3개 카카오톡 화면을 모두 <strong>760 × 1566px</strong>로 통일해 구성했습니다.</sub>
 </p>
 
 ### 🎬 영상·펜브러쉬·YouTube
