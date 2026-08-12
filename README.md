@@ -213,9 +213,9 @@ flowchart LR
 
 <table>
   <tr>
-    <td width="33.33%" align="center"><img src="assets/heybot-kakaotalk-image-analysis.png" width="230" alt="코어라인 AI 연구소 카카오톡방의 헤이봇 이미지 분석 요청과 결과" /></td>
-    <td width="33.33%" align="center"><img src="assets/heybot-kakaotalk-help.png" width="230" alt="코어라인 AI 연구소 카카오톡방에 표시된 헤이봇 도움말" /></td>
-    <td width="33.33%" align="center"><img src="assets/heybot-kakaotalk-audio-summary.png" width="230" alt="코어라인 AI 연구소 카카오톡방의 헤이봇 음성 요약 결과" /></td>
+    <td width="33.33%" align="center"><img src="assets/heybot-kakaotalk-image-analysis.png" width="230" alt="헤이봇 이미지 분석 요청과 결과가 표시된 카카오톡 데모 화면" /></td>
+    <td width="33.33%" align="center"><img src="assets/heybot-kakaotalk-help.png" width="230" alt="헤이봇 도움말이 표시된 카카오톡 데모 화면" /></td>
+    <td width="33.33%" align="center"><img src="assets/heybot-kakaotalk-audio-summary.png" width="230" alt="헤이봇 음성 요약 결과가 표시된 카카오톡 데모 화면" /></td>
   </tr>
   <tr>
     <td align="center"><sub>🖼️ 이미지 분석</sub></td>
@@ -225,7 +225,7 @@ flowchart LR
 </table>
 
 <p align="center">
-  <sub>첨부된 3개 카카오톡 화면을 모두 <strong>760 × 1566px</strong>로 통일해 구성했습니다.</sub>
+  <sub>개인정보 보호를 위해 상단 방 헤더는 제거했으며, 3개 데모 화면은 모두 <strong>760 × 1566px</strong>로 통일했습니다.</sub>
 </p>
 
 ### 🎬 영상·펜브러쉬·YouTube
