@@ -1,10 +1,9 @@
-<p align="center">
-  <img src="assets/pinkbot_20260725.png" width="128" alt="분홍색 헤이봇 마스코트" />
-</p>
-
 <h1 align="center">헤이봇 · KakaoTalk AI Automation</h1>
 
 <p align="center">
+
+  <img width="2752" height="1536" alt="메신저_전용_인공지능_비서_안내" src="https://github.com/user-attachments/assets/6e34b84c-bf9d-4806-89ce-46e494be25c9" />
+  
   루팅된 Android 단말의 카카오톡 DB 이벤트를 기반으로 동작하는<br />
   <strong>방 단위 권한·멀티 엔진 대화·미디어 생성/분석</strong> 자동화 시스템
 </p>
@@ -566,7 +565,6 @@ git diff --check
 
 - 외부 공개 또는 상용 배포 전에는 코드의 저작권 소유자와 함께 적절한 최상위 라이선스를 명시하세요.
 - `vendor/`의 각 구성 요소 및 사용한 외부 CLI/라이브러리의 라이선스를 별도로 검토하세요.
-- 과거 `old-bot`은 별도 라이선스 경계로 취급하며, 본 저장소의 라이선스로 간주하지 않습니다.
 
 ---
 
