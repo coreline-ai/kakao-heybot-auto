@@ -213,9 +213,9 @@ flowchart LR
 
 <table>
   <tr>
-    <td width="33.33%" align="center"><img src="assets/heybot-kakaotalk-image-analysis.png" width="230" alt="헤이봇 이미지 분석 요청과 결과가 표시된 카카오톡 데모 화면" /></td>
-    <td width="33.33%" align="center"><img src="assets/heybot-kakaotalk-help.png" width="230" alt="헤이봇 도움말이 표시된 카카오톡 데모 화면" /></td>
-    <td width="33.33%" align="center"><img src="assets/heybot-kakaotalk-audio-summary.png" width="230" alt="헤이봇 음성 요약 결과가 표시된 카카오톡 데모 화면" /></td>
+    <td width="33.33%" align="center"><img src="assets/heybot-demo-image-analysis-20260813.png" width="230" alt="헤이봇 이미지 분석 요청과 결과가 표시된 카카오톡 데모 화면" /></td>
+    <td width="33.33%" align="center"><img src="assets/heybot-demo-help-20260813.png" width="230" alt="헤이봇 도움말이 표시된 카카오톡 데모 화면" /></td>
+    <td width="33.33%" align="center"><img src="assets/heybot-demo-audio-summary-20260813.png" width="230" alt="헤이봇 음성 요약 결과가 표시된 카카오톡 데모 화면" /></td>
   </tr>
   <tr>
     <td align="center"><sub>🖼️ 이미지 분석</sub></td>
