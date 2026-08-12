@@ -27,6 +27,8 @@ class HeybotSkillCatalogTest {
         assertTrue(help.contains("헤이봇 음성 재전송"))
         assertTrue(help.contains("품질 균형 MP4"))
         assertTrue(help.contains("짧은 영상은 최대 480p"))
+        assertTrue(help.contains("같은 방 최근 30분 이미지(다른 사람 포함)"))
+        assertTrue(help.contains("특정 이미지는 답장하세요"))
         assertTrue(help.contains("30분 동안 바로 이어 질문"))
         assertTrue(help.contains("같은 방에 최근 30분 안에 올라온 최신 음성"))
         assertTrue(help.contains("카카오톡이 영상을 처리하는 동안에는 최대 20분"))

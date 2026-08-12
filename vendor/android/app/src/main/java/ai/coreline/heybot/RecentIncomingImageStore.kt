@@ -39,6 +39,22 @@ class RecentIncomingImageStore(
             ?.attachment
     }
 
+    /**
+     * Selects only from the current room.  The caller must still enforce the
+     * room capability; this cache never authorizes a room by itself.
+     */
+    fun findLatestInRoom(chatId: Long, notBeforeMillis: Long): IncomingImageAttachment? = synchronized(lock) {
+        pruneLocked()
+        entries.asSequence()
+            .filter { it.key.chatId == chatId }
+            .flatMap { it.value.asSequence() }
+            .filter { it.observedAtMillis >= notBeforeMillis }
+            .maxWithOrNull(
+                compareBy<Entry> { it.observedAtMillis }.thenBy { it.attachment.sourceLogId }
+            )
+            ?.attachment
+    }
+
     fun clear() = synchronized(lock) { entries.clear() }
 
     private fun pruneLocked() {

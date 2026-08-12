@@ -18,7 +18,6 @@ fun interface ImageAnalysisReplySender {
 class ImageAnalysisCoordinator(
     private val settings: ImageAnalysisSettings,
     private val trigger: String,
-    private val botId: Long,
     private val gateway: ImageAnalysisGateway,
     private val replySender: ImageAnalysisReplySender,
     private val roomCapabilityPolicy: RoomCapabilityPolicyStore,
@@ -50,7 +49,7 @@ class ImageAnalysisCoordinator(
 
     fun onIncoming(incoming: GlmIncomingMessage) {
         incoming.imageAttachment?.let { attachment ->
-            if (incoming.chatId in settings.allowedChatIds) {
+            if (roomCapabilityPolicy.allows(incoming.chatId, RoomCapability.IMAGE_ANALYSIS)) {
                 recentStore.put(attachment)
             }
         }
@@ -67,6 +66,10 @@ class ImageAnalysisCoordinator(
                 RequestTraceStage.POLICY_DENIED,
                 reasonCode = "IMAGE_ANALYSIS_CAPABILITY_DISABLED"
             )
+            reply(
+                incoming,
+                "이 방에서는 이미지 분석이 허용되지 않았어요. 허용 방과 상태는 ‘헤이봇 카톡방’에서 확인해주세요."
+            )
             return
         }
         requestTraceStore.record(incoming.traceId, RequestTraceStage.POLICY_ALLOWED)
@@ -80,13 +83,18 @@ class ImageAnalysisCoordinator(
         if (source == null) {
             requestTraceStore.record(
                 incoming.traceId,
-                RequestTraceStage.POLICY_DENIED,
-                reasonCode = "VISION_SOURCE_NOT_FOUND"
+                RequestTraceStage.SOURCE_NOT_FOUND,
+                reasonCode = if (incoming.threadId == null) {
+                    "VISION_RECENT_ROOM_SOURCE_NOT_FOUND"
+                } else {
+                    "VISION_REPLY_SOURCE_NOT_FOUND"
+                }
             )
             val message = if (incoming.threadId != null) {
                 "답장한 이미지를 찾을 수 없거나 원본 주소가 만료됐어요. 이미지를 다시 보낸 뒤 요청해주세요."
             } else {
-                "${recentWindowLabel()} 안에 보낸 분석 가능한 이미지를 찾지 못했어요. 이미지를 보낸 뒤 다시 요청해주세요."
+                "${recentWindowLabel()} 안에 이 방에서 분석 가능한 이미지를 찾지 못했어요. " +
+                    "이미지를 다시 보낸 뒤 요청하거나, 분석할 이미지에 답장해 명령해주세요."
             }
             reply(incoming, message)
             return
@@ -357,9 +365,12 @@ class ImageAnalysisCoordinator(
     }
 
     private fun analyzeCommand(incoming: GlmIncomingMessage): BotCommand.AnalyzeImage? {
-        if (incoming.messageType != "1" || incoming.chatId !in settings.allowedChatIds) return null
+        if (incoming.messageType != "1" || !isManagedRoom(incoming.chatId)) return null
         return commandRouter.route(incoming.message) as? BotCommand.AnalyzeImage
     }
+
+    private fun isManagedRoom(chatId: Long): Boolean =
+        roomCapabilityPolicy.snapshot().rooms.any { it.chatId == chatId }
 
     private fun selectSource(incoming: GlmIncomingMessage): IncomingImageAttachment? {
         val referencedLogId = incoming.threadId
@@ -368,22 +379,14 @@ class ImageAnalysisCoordinator(
                 ?: attachmentLookup.findExact(incoming.chatId, referencedLogId)
         } else {
             val notBeforeMillis = nowMillis() - settings.recentImageWindowMillis
-            recentStore.findRecent(incoming.chatId, incoming.userId, notBeforeMillis)
-                ?: attachmentLookup.findLatest(
+            recentStore.findLatestInRoom(incoming.chatId, notBeforeMillis)
+                ?: attachmentLookup.findLatestInRoom(
                     incoming.chatId,
-                    incoming.userId,
                     notBeforeMillis
                 )
-                ?: selectLatestBotImage(incoming.chatId)
         }
         selected?.let(recentStore::put)
         return selected
-    }
-
-    private fun selectLatestBotImage(chatId: Long): IncomingImageAttachment? {
-        if (botId == 0L) return null
-        return recentStore.findRecent(chatId, botId, Long.MIN_VALUE)
-            ?: attachmentLookup.findLatest(chatId, botId, Long.MIN_VALUE)
     }
 
     private fun recentWindowLabel(): String {

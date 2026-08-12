@@ -492,7 +492,6 @@ class Main {
                         settings = settings,
                         trigger = System.getenv()["IRIS_GLM_TRIGGER"]?.trim()
                             ?.takeIf { it.isNotBlank() } ?: "헤이봇",
-                        botId = Configurable.botId,
                         gateway = ImageAnalysisProxyClient(settings),
                         replySender = ImageAnalysisReplySender { chatId, message, threadId ->
                             Replier.sendMessage(notificationReferer, chatId, message, threadId) {

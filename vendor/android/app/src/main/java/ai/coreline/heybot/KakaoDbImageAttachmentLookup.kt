@@ -8,14 +8,13 @@ import kotlinx.serialization.json.jsonPrimitive
 
 interface ImageAttachmentLookup {
     fun findExact(chatId: Long, sourceLogId: Long): IncomingImageAttachment?
-    fun findLatest(chatId: Long, userId: Long, notBeforeMillis: Long): IncomingImageAttachment?
+    fun findLatestInRoom(chatId: Long, notBeforeMillis: Long): IncomingImageAttachment?
 }
 
 object EmptyImageAttachmentLookup : ImageAttachmentLookup {
     override fun findExact(chatId: Long, sourceLogId: Long): IncomingImageAttachment? = null
-    override fun findLatest(
+    override fun findLatestInRoom(
         chatId: Long,
-        userId: Long,
         notBeforeMillis: Long
     ): IncomingImageAttachment? = null
 }
@@ -32,7 +31,7 @@ data class KakaoImageLogRow(
 
 interface KakaoImageLogSource {
     fun findExact(chatId: Long, sourceLogId: Long): KakaoImageLogRow?
-    fun findRecent(chatId: Long, userId: Long, limit: Int): List<KakaoImageLogRow>
+    fun findRecentInRoom(chatId: Long, limit: Int): List<KakaoImageLogRow>
 }
 
 /** Read-only adapter around KakaoTalk's attached chat_logs table. */
@@ -48,16 +47,16 @@ class KakaoDbImageLogSource(private val db: KakaoDB) : KakaoImageLogSource {
             arrayOf(chatId.toString(), sourceLogId.toString())
         ).firstOrNull()?.toImageLogRow()
 
-    override fun findRecent(chatId: Long, userId: Long, limit: Int): List<KakaoImageLogRow> =
+    override fun findRecentInRoom(chatId: Long, limit: Int): List<KakaoImageLogRow> =
         db.executeQuery(
             """
             SELECT _id, chat_id, user_id, type, attachment, v, created_at
             FROM chat_logs
-            WHERE chat_id = ? AND user_id = ? AND type IN ('2', '3')
+            WHERE chat_id = ? AND type IN ('2', '3')
             ORDER BY _id DESC
             LIMIT $limit
             """.trimIndent(),
-            arrayOf(chatId.toString(), userId.toString())
+            arrayOf(chatId.toString())
         ).mapNotNull { it.toImageLogRow() }
 
     private fun Map<String, String?>.toImageLogRow(): KakaoImageLogRow? {
@@ -95,16 +94,15 @@ class KakaoDbImageAttachmentLookup(
             ?.takeIf { it.chatId == chatId && it.sourceLogId == sourceLogId }
             ?.toAttachment()
 
-    override fun findLatest(
+    override fun findLatestInRoom(
         chatId: Long,
-        userId: Long,
         notBeforeMillis: Long
     ): IncomingImageAttachment? {
-        val rows = runCatching { source.findRecent(chatId, userId, RECENT_SCAN_LIMIT) }
+        val rows = runCatching { source.findRecentInRoom(chatId, RECENT_SCAN_LIMIT) }
             .onFailure { log("Vision DB recent lookup failed: ${it::class.simpleName}") }
             .getOrDefault(emptyList())
         for (row in rows) {
-            if (row.chatId != chatId || row.userId != userId) continue
+            if (row.chatId != chatId) continue
             val createdAtMillis = normalizeEpochMillis(row.createdAt) ?: continue
             if (createdAtMillis < notBeforeMillis) continue
             row.toAttachment()?.let { return it }

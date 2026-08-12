@@ -26,6 +26,7 @@ enum class RequestTraceStage {
     MODE_DISABLED,
     POLICY_ALLOWED,
     POLICY_DENIED,
+    SOURCE_NOT_FOUND,
     ADMITTED,
     DUPLICATE,
     RATE_LIMITED,
@@ -282,6 +283,7 @@ class RequestTraceStore(
         private val ROOT_REASON_STAGES = setOf(
             RequestTraceStage.MODE_DISABLED,
             RequestTraceStage.POLICY_DENIED,
+            RequestTraceStage.SOURCE_NOT_FOUND,
             RequestTraceStage.DUPLICATE,
             RequestTraceStage.RATE_LIMITED,
             RequestTraceStage.QUEUE_FULL,

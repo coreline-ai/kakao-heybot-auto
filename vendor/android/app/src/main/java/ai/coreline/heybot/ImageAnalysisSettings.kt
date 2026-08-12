@@ -5,7 +5,6 @@ import java.io.File
 data class ImageAnalysisSettings(
     val baseUrl: String,
     val routeSecretFile: File,
-    val allowedChatIds: Set<Long>,
     val requestTimeoutMillis: Long = 30_000L,
     val pollIntervalMillis: Long = 1_000L,
     val jobTimeoutMillis: Long = 120_000L,
@@ -38,13 +37,6 @@ data class ImageAnalysisSettings(
             if (secretPath.isBlank() || !File(secretPath).isAbsolute) {
                 return ImageAnalysisSettingsLoadResult.Invalid("IRIS_VISION_PROXY_SECRET_FILE must be absolute")
             }
-            val rawIds = (environment["IRIS_VISION_ALLOWED_CHAT_IDS"]
-                ?: environment["IRIS_GLM_ALLOWED_CHAT_IDS"]).orEmpty()
-                .split(',').map(String::trim)
-            val ids = rawIds.map(String::toLongOrNull)
-            if (rawIds.any(String::isBlank) || ids.any { it == null || it <= 0L }) {
-                return ImageAnalysisSettingsLoadResult.Invalid("IRIS_VISION_ALLOWED_CHAT_IDS is invalid")
-            }
             fun long(name: String, fallback: Long, range: LongRange): Long? {
                 val parsed = environment[name]?.trim()?.toLongOrNull() ?: fallback
                 return parsed.takeIf { it in range }
@@ -57,7 +49,6 @@ data class ImageAnalysisSettings(
                 ImageAnalysisSettings(
                     baseUrl = baseUrl,
                     routeSecretFile = File(secretPath),
-                    allowedChatIds = ids.filterNotNull().toSet(),
                     requestTimeoutMillis = long(
                         "IRIS_VISION_PROXY_REQUEST_TIMEOUT_MS", 30_000L, 1_000L..120_000L
                     ) ?: return ImageAnalysisSettingsLoadResult.Invalid("Invalid vision request timeout"),

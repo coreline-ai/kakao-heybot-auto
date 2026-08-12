@@ -39,6 +39,7 @@ object RequestTraceRenderer {
         RequestTraceStage.MODE_DISABLED -> "일반대화 꺼짐"
         RequestTraceStage.POLICY_ALLOWED -> "방·사용자 정책 통과"
         RequestTraceStage.POLICY_DENIED -> "정책에서 제외"
+        RequestTraceStage.SOURCE_NOT_FOUND -> "분석 이미지 없음"
         RequestTraceStage.ADMITTED -> "처리 승인"
         RequestTraceStage.DUPLICATE -> "중복 요청 제외"
         RequestTraceStage.RATE_LIMITED -> "요청 횟수 제한"

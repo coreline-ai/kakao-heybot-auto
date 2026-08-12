@@ -24,10 +24,9 @@ class ImageAnalysisCoordinatorTest {
         val outgoingLog = AtomicInteger(500)
         val coordinator = ImageAnalysisCoordinator(
             settings = ImageAnalysisSettings(
-                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+                "http://127.0.0.1:4340", File("/tmp/none"), pollIntervalMillis = 1
             ),
             trigger = "헤이봇",
-            botId = 999L,
             gateway = FakeGateway(),
             replySender = ImageAnalysisReplySender { chatId, text, threadId ->
                 tracker.dispatched(chatId, text, Result.success(Unit))
@@ -75,10 +74,9 @@ class ImageAnalysisCoordinatorTest {
         val gateway = FakeGateway()
         val coordinator = ImageAnalysisCoordinator(
             settings = ImageAnalysisSettings(
-                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+                "http://127.0.0.1:4340", File("/tmp/none"), pollIntervalMillis = 1
             ),
             trigger = "헤이봇",
-            botId = 999L,
             gateway = gateway,
             replySender = ImageAnalysisReplySender { _, _, _ -> Unit },
             roomCapabilityPolicy = policy(),
@@ -112,8 +110,8 @@ class ImageAnalysisCoordinatorTest {
             backend = MemoryBackend()
         )
         val coordinator = ImageAnalysisCoordinator(
-            settings = ImageAnalysisSettings("http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1),
-            trigger = "헤이봇", botId = 20, gateway = gateway,
+            settings = ImageAnalysisSettings("http://127.0.0.1:4340", File("/tmp/none"), pollIntervalMillis = 1),
+            trigger = "헤이봇", gateway = gateway,
             replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
             roomCapabilityPolicy = policy
         )
@@ -132,11 +130,9 @@ class ImageAnalysisCoordinatorTest {
             settings = ImageAnalysisSettings(
                 "http://127.0.0.1:4340",
                 File("/tmp/none"),
-                setOf(10L),
                 pollIntervalMillis = 1
             ),
             trigger = "헤이봇",
-            botId = 20,
             gateway = gateway,
             replySender = ImageAnalysisReplySender { _, _, _ -> },
             roomCapabilityPolicy = policy()
@@ -148,16 +144,80 @@ class ImageAnalysisCoordinatorTest {
         coordinator.close()
     }
 
+    @Test fun `managed room with image analysis disabled reports policy without provider call`() {
+        val replies = CopyOnWriteArrayList<String>()
+        val traces = RequestTraceStore.inMemory()
+        val gateway = FakeGateway()
+        val coordinator = ImageAnalysisCoordinator(
+            settings = ImageAnalysisSettings("http://127.0.0.1:4340", File("/tmp/none")),
+            trigger = "헤이봇",
+            gateway = gateway,
+            replySender = ImageAnalysisReplySender { _, message, _ -> replies += message },
+            roomCapabilityPolicy = policy(imageAnalysisEnabled = false),
+            requestTraceStore = traces
+        )
+
+        coordinator.onIncoming(message(65, "1", "헤이봇 이미지 분석"))
+
+        assertFalse(gateway.created.await(100, TimeUnit.MILLISECONDS))
+        assertTrue(replies.single().contains("허용되지 않았어요"))
+        val trace = traces.get(RequestTraceIds.from(10L, 65L))
+        assertEquals(RequestTraceKind.VISION, trace?.kind)
+        assertEquals("IMAGE_ANALYSIS_CAPABILITY_DISABLED", trace?.rootReasonCode)
+        coordinator.close()
+    }
+
+    @Test fun `unmanaged room command is ignored without provider or reply`() {
+        val replies = CopyOnWriteArrayList<String>()
+        val gateway = FakeGateway()
+        val coordinator = ImageAnalysisCoordinator(
+            settings = ImageAnalysisSettings("http://127.0.0.1:4340", File("/tmp/none")),
+            trigger = "헤이봇",
+            gateway = gateway,
+            replySender = ImageAnalysisReplySender { _, message, _ -> replies += message },
+            roomCapabilityPolicy = policy()
+        )
+
+        coordinator.onIncoming(message(66, "1", "헤이봇 이미지 분석", chatId = 11L))
+
+        assertFalse(gateway.created.await(100, TimeUnit.MILLISECONDS))
+        assertTrue(replies.isEmpty())
+        coordinator.close()
+    }
+
+    @Test fun `missing recent room image gives a source diagnostic without provider call`() {
+        val replies = CopyOnWriteArrayList<String>()
+        val traces = RequestTraceStore.inMemory()
+        val gateway = FakeGateway()
+        val coordinator = ImageAnalysisCoordinator(
+            settings = ImageAnalysisSettings("http://127.0.0.1:4340", File("/tmp/none")),
+            trigger = "헤이봇",
+            gateway = gateway,
+            replySender = ImageAnalysisReplySender { _, message, _ -> replies += message },
+            roomCapabilityPolicy = policy(),
+            requestTraceStore = traces
+        )
+
+        coordinator.onIncoming(message(67, "1", "헤이봇 이미지 분석"))
+
+        repeat(50) { if (replies.isNotEmpty()) return@repeat; Thread.sleep(2) }
+        assertFalse(gateway.created.await(100, TimeUnit.MILLISECONDS))
+        assertTrue(replies.single().contains("이 방에서 분석 가능한 이미지"))
+        val trace = traces.get(RequestTraceIds.from(10L, 67L))
+        assertEquals(RequestTraceKind.VISION, trace?.kind)
+        assertEquals("VISION_RECENT_ROOM_SOURCE_NOT_FOUND", trace?.rootReasonCode)
+        coordinator.close()
+    }
+
     @Test fun `OCR command creates a task scoped job and renders task label`() {
         val replies = CopyOnWriteArrayList<String>()
         val gateway = FakeGateway()
         val traces = RequestTraceStore.inMemory()
         val coordinator = ImageAnalysisCoordinator(
             settings = ImageAnalysisSettings(
-                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+                "http://127.0.0.1:4340", File("/tmp/none"), pollIntervalMillis = 1
             ),
             trigger = "헤이봇",
-            botId = 20,
             gateway = gateway,
             replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
             roomCapabilityPolicy = policy(),
@@ -181,10 +241,9 @@ class ImageAnalysisCoordinatorTest {
         val gateway = FakeGateway("문의 test@example.com 010-1234-5678")
         val coordinator = ImageAnalysisCoordinator(
             settings = ImageAnalysisSettings(
-                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+                "http://127.0.0.1:4340", File("/tmp/none"), pollIntervalMillis = 1
             ),
             trigger = "헤이봇",
-            botId = 20,
             gateway = gateway,
             replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
             roomCapabilityPolicy = policy()
@@ -209,11 +268,9 @@ class ImageAnalysisCoordinatorTest {
             settings = ImageAnalysisSettings(
                 "http://127.0.0.1:4340",
                 File("/tmp/none"),
-                setOf(10L),
                 pollIntervalMillis = 1
             ),
             trigger = "헤이봇",
-            botId = 999,
             gateway = gateway,
             replySender = ImageAnalysisReplySender { _, _, _ -> },
             roomCapabilityPolicy = policy(),
@@ -225,23 +282,21 @@ class ImageAnalysisCoordinatorTest {
         assertTrue(gateway.created.await(2, TimeUnit.SECONDS))
         assertEquals(41L, gateway.source?.sourceLogId)
         assertEquals(1, lookup.exactCalls)
-        assertEquals(0, lookup.latestCalls)
+        assertEquals(0, lookup.latestInRoomCalls)
         coordinator.close()
     }
 
-    @Test fun `empty cache falls back to same-user recent DB image after restart`() {
+    @Test fun `empty cache falls back to recent room image from another user after restart`() {
         val gateway = FakeGateway()
-        val recentImage = image(51, 10, 20)
+        val recentImage = image(51, 10, 888)
         val lookup = FakeLookup(latest = recentImage)
         val coordinator = ImageAnalysisCoordinator(
             settings = ImageAnalysisSettings(
                 "http://127.0.0.1:4340",
                 File("/tmp/none"),
-                setOf(10L),
                 pollIntervalMillis = 1
             ),
             trigger = "헤이봇",
-            botId = 999,
             gateway = gateway,
             replySender = ImageAnalysisReplySender { _, _, _ -> },
             roomCapabilityPolicy = policy(),
@@ -253,11 +308,11 @@ class ImageAnalysisCoordinatorTest {
         assertTrue(gateway.created.await(2, TimeUnit.SECONDS))
         assertEquals(51L, gateway.source?.sourceLogId)
         assertEquals(0, lookup.exactCalls)
-        assertEquals(1, lookup.latestCalls)
+        assertEquals(1, lookup.latestInRoomCalls)
         coordinator.close()
     }
 
-    @Test fun `different user falls back to recent bot image in same room`() {
+    @Test fun `recent room lookup also selects a bot image without a special fallback`() {
         val gateway = FakeGateway()
         val botImage = image(61, 10, 999)
         val lookup = FakeLookup(latest = botImage)
@@ -265,11 +320,9 @@ class ImageAnalysisCoordinatorTest {
             settings = ImageAnalysisSettings(
                 "http://127.0.0.1:4340",
                 File("/tmp/none"),
-                setOf(10L),
                 pollIntervalMillis = 1
             ),
             trigger = "헤이봇",
-            botId = 999,
             gateway = gateway,
             replySender = ImageAnalysisReplySender { _, _, _ -> },
             roomCapabilityPolicy = policy(),
@@ -280,8 +333,7 @@ class ImageAnalysisCoordinatorTest {
 
         assertTrue(gateway.created.await(2, TimeUnit.SECONDS))
         assertEquals(61L, gateway.source?.sourceLogId)
-        assertEquals(2, lookup.latestCalls)
-        assertEquals(Long.MIN_VALUE, lookup.lastNotBeforeMillis)
+        assertEquals(1, lookup.latestInRoomCalls)
         coordinator.close()
     }
 
@@ -290,10 +342,9 @@ class ImageAnalysisCoordinatorTest {
         val gateway = RetryGateway(transportFailures = 2)
         val coordinator = ImageAnalysisCoordinator(
             settings = ImageAnalysisSettings(
-                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+                "http://127.0.0.1:4340", File("/tmp/none"), pollIntervalMillis = 1
             ),
             trigger = "헤이봇",
-            botId = 20,
             gateway = gateway,
             replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
             roomCapabilityPolicy = policy(),
@@ -317,10 +368,9 @@ class ImageAnalysisCoordinatorTest {
         val traces = RequestTraceStore.inMemory()
         val coordinator = ImageAnalysisCoordinator(
             settings = ImageAnalysisSettings(
-                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+                "http://127.0.0.1:4340", File("/tmp/none"), pollIntervalMillis = 1
             ),
             trigger = "헤이봇",
-            botId = 20,
             gateway = gateway,
             replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
             roomCapabilityPolicy = policy(),
@@ -344,10 +394,9 @@ class ImageAnalysisCoordinatorTest {
         val gateway = RetryGateway(authorizationFailure = true)
         val coordinator = ImageAnalysisCoordinator(
             settings = ImageAnalysisSettings(
-                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+                "http://127.0.0.1:4340", File("/tmp/none"), pollIntervalMillis = 1
             ),
             trigger = "헤이봇",
-            botId = 20,
             gateway = gateway,
             replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
             roomCapabilityPolicy = policy(),
@@ -369,10 +418,9 @@ class ImageAnalysisCoordinatorTest {
         val policy = policy()
         val coordinator = ImageAnalysisCoordinator(
             settings = ImageAnalysisSettings(
-                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+                "http://127.0.0.1:4340", File("/tmp/none"), pollIntervalMillis = 1
             ),
             trigger = "헤이봇",
-            botId = 20,
             gateway = gateway,
             replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
             roomCapabilityPolicy = policy,
@@ -397,10 +445,9 @@ class ImageAnalysisCoordinatorTest {
         val gateway = StatusRetryGateway()
         val coordinator = ImageAnalysisCoordinator(
             settings = ImageAnalysisSettings(
-                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+                "http://127.0.0.1:4340", File("/tmp/none"), pollIntervalMillis = 1
             ),
             trigger = "헤이봇",
-            botId = 20,
             gateway = gateway,
             replySender = ImageAnalysisReplySender { _, message, _ -> synchronized(replies) { replies += message } },
             roomCapabilityPolicy = policy()
@@ -421,10 +468,9 @@ class ImageAnalysisCoordinatorTest {
         val gateway = FailedStatusGateway("INVALID_IMAGE")
         val coordinator = ImageAnalysisCoordinator(
             settings = ImageAnalysisSettings(
-                "http://127.0.0.1:4340", File("/tmp/none"), setOf(10L), pollIntervalMillis = 1
+                "http://127.0.0.1:4340", File("/tmp/none"), pollIntervalMillis = 1
             ),
             trigger = "헤이봇",
-            botId = 20,
             gateway = gateway,
             replySender = ImageAnalysisReplySender { _, message, _ -> replies += message },
             roomCapabilityPolicy = policy()
@@ -444,14 +490,16 @@ class ImageAnalysisCoordinatorTest {
         type: String,
         text: String,
         image: IncomingImageAttachment? = null,
-        threadId: Long? = null
-    ) = GlmIncomingMessage(log, 10, 20, type, text, threadId, image)
+        threadId: Long? = null,
+        chatId: Long = 10L,
+        userId: Long = 20L
+    ) = GlmIncomingMessage(log, chatId, userId, type, text, threadId, image)
     private fun image(log:Long,chat:Long,user:Long)=IncomingImageAttachment(log,chat,user,"https://talk.kakaocdn.net/fake.png",null,100,100,100,System.currentTimeMillis()+60_000,"image/png")
-    private fun policy() = RoomCapabilityPolicyStore.forTesting(
+    private fun policy(imageAnalysisEnabled: Boolean = true) = RoomCapabilityPolicyStore.forTesting(
         rooms = listOf(
             ManagedRoomCapability(
                 "R01", 10, "테스트", true, true, true,
-                imageAnalysisEnabled = true,
+                imageAnalysisEnabled = imageAnalysisEnabled,
                 imageAnalysisRevision = 1
             )
         ),
@@ -463,20 +511,19 @@ class ImageAnalysisCoordinatorTest {
         private val latest: IncomingImageAttachment? = null
     ) : ImageAttachmentLookup {
         var exactCalls = 0
-        var latestCalls = 0
+        var latestInRoomCalls = 0
         var lastNotBeforeMillis: Long? = null
         override fun findExact(chatId: Long, sourceLogId: Long): IncomingImageAttachment? {
             exactCalls += 1
             return exact?.takeIf { it.chatId == chatId && it.sourceLogId == sourceLogId }
         }
-        override fun findLatest(
+        override fun findLatestInRoom(
             chatId: Long,
-            userId: Long,
             notBeforeMillis: Long
         ): IncomingImageAttachment? {
-            latestCalls += 1
+            latestInRoomCalls += 1
             lastNotBeforeMillis = notBeforeMillis
-            return latest?.takeIf { it.chatId == chatId && it.userId == userId }
+            return latest?.takeIf { it.chatId == chatId }
         }
     }
     private class FakeGateway(private val answerOverride: String? = null):ImageAnalysisGateway {

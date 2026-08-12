@@ -76,6 +76,6 @@ class ImageAnalysisProxyClientTest {
     }
 
     private fun settings() = ImageAnalysisSettings(
-        server.url("/").toString().trimEnd('/'), secret, setOf(10L)
+        server.url("/").toString().trimEnd('/'), secret
     )
 }

@@ -18,7 +18,7 @@ class KakaoDbImageAttachmentLookupTest {
     }
 
     @Test
-    fun `latest fallback requires same room user and configured time window`() {
+    fun `latest fallback selects the latest valid image from the same room and configured time window`() {
         val rows = listOf(
             row(logId = 9, userId = 21, createdAt = now - 1_000L),
             row(logId = 8, createdAt = now - 601_000L),
@@ -26,9 +26,8 @@ class KakaoDbImageAttachmentLookupTest {
         )
         val lookup = lookup(rows)
 
-        assertEquals(7L, lookup.findLatest(10, 20, now - 600_000L)?.sourceLogId)
-        assertNull(lookup.findLatest(10, 22, now - 600_000L))
-        assertNull(lookup.findLatest(11, 20, now - 600_000L))
+        assertEquals(9L, lookup.findLatestInRoom(10, now - 600_000L)?.sourceLogId)
+        assertNull(lookup.findLatestInRoom(11, now - 600_000L))
     }
 
     @Test
@@ -36,7 +35,7 @@ class KakaoDbImageAttachmentLookupTest {
         val botRow = row(logId = 1, userId = 999)
         val botLookup = lookup(listOf(botRow))
         assertEquals(1L, botLookup.findExact(10, 1)?.sourceLogId)
-        assertEquals(1L, botLookup.findLatest(10, 999, now - 600_000L)?.sourceLogId)
+        assertEquals(1L, botLookup.findLatestInRoom(10, now - 600_000L)?.sourceLogId)
         assertNull(lookup(listOf(row(logId = 2, origin = "SYNCMSG"))).findExact(10, 2))
         assertNull(lookup(listOf(row(logId = 3, version = "{}"))).findExact(10, 3))
     }
@@ -46,11 +45,10 @@ class KakaoDbImageAttachmentLookupTest {
             override fun findExact(chatId: Long, sourceLogId: Long): KakaoImageLogRow? =
                 rows.firstOrNull { it.chatId == chatId && it.sourceLogId == sourceLogId }
 
-            override fun findRecent(
+            override fun findRecentInRoom(
                 chatId: Long,
-                userId: Long,
                 limit: Int
-            ): List<KakaoImageLogRow> = rows.take(limit)
+            ): List<KakaoImageLogRow> = rows.filter { it.chatId == chatId }.take(limit)
         }
         return KakaoDbImageAttachmentLookup(
             source = source,
