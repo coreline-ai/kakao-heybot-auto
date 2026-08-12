@@ -1,14 +1,13 @@
 <h1 align="center">헤이봇 · KakaoTalk AI Automation</h1>
 
-<p align="center">
-
-  <img width="2752" height="1536" alt="메신저_전용_인공지능_비서_안내" src="https://github.com/user-attachments/assets/6e34b84c-bf9d-4806-89ce-46e494be25c9" />
-  
+<p align="center">  
   루팅된 Android 단말의 카카오톡 DB 이벤트를 기반으로 동작하는<br />
   <strong>방 단위 권한·멀티 엔진 대화·미디어 생성/분석</strong> 자동화 시스템
 </p>
 
 <p align="center">
+
+  <img width="2752" height="1536" alt="메신저_전용_인공지능_비서_안내" src="https://github.com/user-attachments/assets/6e34b84c-bf9d-4806-89ce-46e494be25c9" />
   <a href="https://github.com/coreline-ai/kakao-heybot-auto"><img src="https://img.shields.io/github/last-commit/coreline-ai/kakao-heybot-auto/main?style=for-the-badge&logo=git&logoColor=white&label=LAST%20COMMIT" alt="GitHub 마지막 커밋" /></a>
   <a href="https://github.com/coreline-ai/kakao-heybot-auto"><img src="https://img.shields.io/github/repo-size/coreline-ai/kakao-heybot-auto?style=for-the-badge&logo=github&logoColor=white&label=REPOSITORY" alt="GitHub 저장소 크기" /></a>
   <a href="vendor/android"><img src="https://img.shields.io/badge/Android-API%2026%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android API 26 이상" /></a>
