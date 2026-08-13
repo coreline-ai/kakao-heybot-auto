@@ -17,7 +17,7 @@
 
 <p align="center">
   <a href="docs/GLM_자동응답_운영설정.md"><img src="https://img.shields.io/badge/AI%20Engines-GLM%20%7C%20Codex%20%7C%20Grok-111827?style=for-the-badge&logo=openai&logoColor=white" alt="GLM Codex Grok 엔진" /></a>
-  <a href="scripts/start_iris_glm_pd20.sh"><img src="https://img.shields.io/badge/Device-PD20%20via%20ADB-2563EB?style=for-the-badge&logo=android&logoColor=white" alt="PD20 ADB 운영 단말" /></a>
+  <a href="scripts/start_iris_glm_pd20.sh"><img src="https://img.shields.io/badge/Device-via%20ADB-2563EB?style=for-the-badge&logo=android&logoColor=white" alt="ADB 운영 디바이스" /></a>
   <a href="#license"><img src="https://img.shields.io/badge/License-Review%20Required-D97706?style=for-the-badge&logo=creativecommons&logoColor=white" alt="라이선스 검토 필요" /></a>
 </p>
 
@@ -92,9 +92,9 @@
 
 | 엔진 | 경로 | 적합한 사용 |
 | --- | --- | --- |
-| **기본 (GLM)** | PD20 Android → GLM API | 빠른 기본 응답, 서버 경로 장애 시 기본 대화 |
-| **Codex** | PD20 → proxy-manager → proxy-conversation → proxy-codex | 코드·구조화·고난도 추론 성격의 대화 |
-| **Grok** | PD20 → proxy-manager → proxy-conversation → proxy-grok | 별도 Grok CLI 계약이 준비된 대화/미디어 작업 |
+| **기본 (GLM)** | Android 디바이스 → GLM API | 빠른 기본 응답, 서버 경로 장애 시 기본 대화 |
+| **Codex** | Android 디바이스 → proxy-manager → proxy-conversation → proxy-codex | 코드·구조화·고난도 추론 성격의 대화 |
+| **Grok** | Android 디바이스 → proxy-manager → proxy-conversation → proxy-grok | 별도 Grok CLI 계약이 준비된 대화/미디어 작업 |
 
 > [!NOTE]
 > 엔진 선택은 응답의 **모델 경로**만 바꾸며, 헤이봇의 호출어·권한·안전 필터·카카오 전송 경계는 동일하게 유지됩니다.
@@ -108,7 +108,7 @@
 ```mermaid
 flowchart LR
     K["<b>KakaoTalk</b><br/>채팅·이미지·음성·영상"]
-    D["<b>PD20 · Android</b><br/>Iris / DBObserver / Replier"]
+    D["<b>Android 디바이스</b><br/>Iris / DBObserver / Replier"]
     P["<b>Room Capability Policy</b><br/>방·기능·revision"]
     G["<b>GLM</b><br/>기본 대화 엔진"]
     A["<b>ADB reverse</b><br/>tcp:4340"]
@@ -339,7 +339,7 @@ flowchart LR
 | 컴파일 SDK | 35 |
 | Kotlin / Java | Kotlin, JVM 17 |
 | 진입점 | `app_process / ai.coreline.heybot.Main` |
-| 운영 단말 | PD20 `0123456789ABCDEF` |
+| 운영 디바이스 | 고정 Android 디바이스 |
 | 핵심 역할 | 카카오 DB 감시, 호출어/정책 처리, GLM 대화, 프록시 client, 카카오 전송, 요청 추적 |
 
 ### 🖥️ Server: `vendor/server`
@@ -369,8 +369,8 @@ flowchart LR
 | --- | --- |
 | Mac 서버 | macOS, Node.js 24+, npm, `curl`, `openssl`, 필요한 AI CLI 인증 |
 | Android 빌드 | Android SDK, JDK 17, Gradle wrapper |
-| Android 운영 | 루트 권한 Android, 카카오톡 로그인, `adb`, PD20 연결 |
-| 네트워크 | PD20 ↔ Mac 프록시 경로용 `adb reverse tcp:4340 tcp:4340` |
+| Android 운영 | 루트 권한 Android, 카카오톡 로그인, `adb`, 디바이스 연결 |
+| 네트워크 | Android 디바이스 ↔ Mac 프록시 경로용 `adb reverse tcp:4340 tcp:4340` |
 
 ### 2️⃣ 저장소 준비
 
@@ -408,9 +408,9 @@ cd vendor/server
 ./scripts/stop-stack.sh
 ```
 
-### 4️⃣ PD20 배포
+### 4️⃣ Android 디바이스 배포
 
-배포 전에 다음 root 전용 파일을 PD20의 `/data/local/private/`에 준비해야 합니다.
+배포 전에 다음 root 전용 파일을 Android 디바이스의 `/data/local/private/`에 준비해야 합니다.
 
 | 파일 | 용도 | 요구 권한 |
 | --- | --- | --- |
@@ -423,10 +423,11 @@ cd vendor/server
 
 ```bash
 # 저장소 루트에서 실행
-scripts/start_iris_glm_pd20.sh
+DEVICE_DEPLOY_SCRIPT="$(find scripts -maxdepth 1 -type f -name 'start_iris_glm_*.sh' -print -quit)"
+bash "$DEVICE_DEPLOY_SCRIPT"
 ```
 
-이 스크립트는 PD20 serial을 `0123456789ABCDEF`로 고정합니다. 기동 뒤 카카오톡 허용 방에서 다음으로 기본 동작을 점검할 수 있습니다.
+이 스크립트는 사전에 지정한 Android 디바이스를 대상으로 실행합니다. 기동 뒤 카카오톡 허용 방에서 다음으로 기본 동작을 점검할 수 있습니다.
 
 ```text
 헤이봇 안녕
@@ -478,7 +479,7 @@ Android 실행 환경/route secret이 준비됨
 | 확인 위치 | 방법 |
 | --- | --- |
 | 카카오톡 사용자 | `헤이봇 상태`, `헤이봇 최근 진단 [R번호]`, `헤이봇 카톡방` |
-| Android 단말 | `scripts/run_heybot_self_test_pd20.sh quick` |
+| Android 디바이스 | [자체진단 스크립트](scripts/run_heybot_self_test_pd20.sh) `quick` 실행 |
 | 프록시 스택 | `vendor/server/scripts/self-test-stack.sh` |
 | macOS 상시 실행 | 각 proxy의 `doctor.sh`, `launchctl print`, manager `/ready` |
 
@@ -500,20 +501,21 @@ cd ../server
 ./scripts/self-test-stack.sh
 ```
 
-### 📱 PD20 자체진단
+### 📱 Android 디바이스 자체진단
 
 ```bash
 # 저장소 루트
-scripts/run_heybot_self_test_pd20.sh quick
-scripts/run_heybot_self_test_pd20.sh integration
-scripts/run_heybot_self_test_pd20.sh device
+DEVICE_SELF_TEST_SCRIPT="$(find scripts -maxdepth 1 -type f -name 'run_heybot_self_test_*.sh' -print -quit)"
+bash "$DEVICE_SELF_TEST_SCRIPT" quick
+bash "$DEVICE_SELF_TEST_SCRIPT" integration
+bash "$DEVICE_SELF_TEST_SCRIPT" device
 ```
 
 | 모드 | 범위 | 카카오톡 외부 전송 |
 | --- | --- | --- |
 | `quick` | 순수 Android 설정·파서·정책 계약 | 없음 |
 | `integration` | 프록시 준비 상태와 Android 통합 계약 | 없음 |
-| `device` | PD20 파일·권한·연결 조건 | 없음 |
+| `device` | Android 디바이스 파일·권한·연결 조건 | 없음 |
 | `canary` | 명시적 승인된 실전 E2E 경로 | 승인 없이는 skip |
 
 ### 🚨 명시적 실전 canary
@@ -522,10 +524,12 @@ scripts/run_heybot_self_test_pd20.sh device
 
 ```bash
 # M4A/MP3/WAV fixture를 통한 R01 음성 분석 턴
-scripts/run_live_audio_canary_pd20.sh
+AUDIO_CANARY_SCRIPT="$(find scripts -maxdepth 1 -type f -name 'run_live_audio_canary_*.sh' -print -quit)"
+bash "$AUDIO_CANARY_SCRIPT"
 
 # 공개 YouTube 단일 영상의 다운로드·카카오 DB 전송 확인
-scripts/run_live_youtube_canary_pd20.sh
+YOUTUBE_CANARY_SCRIPT="$(find scripts -maxdepth 1 -type f -name 'run_live_youtube_canary_*.sh' -print -quit)"
+bash "$YOUTUBE_CANARY_SCRIPT"
 ```
 
 이미지 Vision E2E도 앱 내부에서 **명시적 확인 값**을 요구하도록 설계되어 있습니다. 이 원칙은 실사용자 방에 의도하지 않은 테스트 메시지를 보내지 않기 위한 것입니다.
@@ -539,13 +543,13 @@ scripts/run_live_youtube_canary_pd20.sh
 ```text
 .
 ├── README.md                         # 이 문서
-├── AGENTS.md                         # 기능·도움말·PD20 개발 규칙
+├── AGENTS.md                         # 기능·도움말·Android 디바이스 개발 규칙
 ├── assets/                           # 헤이봇 이미지 자산
 ├── config/
 │   └── iris-room-capabilities.bootstrap.json
 ├── docs/                             # 운영·검증·소스 관리 문서
 ├── dev-plan/                         # 기능별 개발 계획과 완료 기록
-├── scripts/                          # PD20 배포·진단·실전 canary
+├── scripts/                          # Android 디바이스 배포·진단·실전 canary
 └── vendor/
     ├── android/                      # ai.coreline.heybot Android/Iris runtime
     │   ├── app/src/main/java/ai/coreline/heybot/
@@ -591,7 +595,7 @@ scripts/run_live_youtube_canary_pd20.sh
 2. 기능별 사용자 호출어는 `헤이봇 도움말`에서 확인 가능해야 하며, 카카오톡 메시지 길이 제한을 지켜야 합니다.
 3. 새 프록시는 `proxy-<feature>` 단위로 격리하고, manager registry·인증·readiness·테스트·운영 문서를 함께 추가합니다.
 4. API key, route/internal/admin secret, 로그인 인증, runtime artifact, 로그, APK/build output은 커밋하지 않습니다.
-5. Android 실기기 검증 대상은 PD20 `0123456789ABCDEF`입니다. 단말 조작은 ADB·DB·코드 경로로만 수행합니다.
+5. Android 실기기 검증은 지정된 디바이스에서 수행합니다. 단말 조작은 ADB·DB·코드 경로로만 수행합니다.
 6. `old-bot`은 별도 저장소이며, 현재 new-bot에는 라이선스 검토 목적의 참조 외 코드를 복사하지 않습니다.
 
 변경 전에 반드시 다음을 확인하세요.
